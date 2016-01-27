@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
+	
+		<item name="android:windowTranslucentStatus">true</item>
+		
+		<item name="colorPrimary">#F44336</item>
+		<item name="colorPrimaryDark">#D32F2F</item>
+		<item name="colorAccent">#FFC107</item>
+		<item name="android:navigationBarColor">#D32F2F</item>
+		<item name="colorAccent">#FFC107</item>
+		<item name="colorControlNormal">#FFC107</item>
+		
+		<item name="android:windowContentTransitions">true</item>
+		<item name="android:windowEnterTransition">@transition/explode</item>
+		<item name="android:windowExitTransition">@transition/explode</item>
+		
+		<item name="android:windowSharedElementEnterTransition">
+			@transition/change_image_transform</item>
+		<item name="android:windowSharedElementExitTransition">
+			@transition/change_image_transform</item>
+		
+	</style>
+	<style name="DialogTheme" parent="@style/Theme.AppCompat.Light.Dialog">
+
+		<item name="colorPrimary">#F44336</item>
+		<item name="colorPrimaryDark">#D32F2F</item>
+		<item name="colorAccent">#FFC107</item>
+		<item name="android:navigationBarColor">#D32F2F</item>
+		<item name="colorAccent">#FFC107</item>
+		<item name="colorControlNormal">#FFC107</item>
+		
+	</style>
+	<style name="ToolBarTheme" parent="@style/AppTheme">
+		<item name="android:textColorPrimary">#FFC107</item>
+	</style>
+</resources>

@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/detail"
+        android:title="Show vocabulary"/>
+    
+	<item
+        android:id="@+id/show_solutions"
+        android:title="Show all possible solutions"/>
+	
+	<item
+        android:id="@+id/learn_remove"
+        android:title="Remove from learned vocabulary"/>
+</menu>

@@ -1,0 +1,76 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto">
+ 
+	<item
+        android:id="@+id/item_search"
+        android:icon="@drawable/search"
+        android:title="Search vocabularies"
+        app:showAsAction="collapseActionView|ifRoom"
+		app:actionViewClass="android.support.v7.widget.SearchView" />
+	<item
+        android:id="@+id/item_sort"
+        android:icon="@drawable/sort"
+        android:title="Filter..."
+        app:showAsAction="ifRoom"/>
+	<item
+        android:id="@+id/item_add"
+        android:title="Add"/>
+    <item
+        android:id="@+id/item_import_file"
+        android:title="Import from file"/>
+	<item
+        android:id="@+id/item_import_clipboard"
+        android:title="Import from clipboard"/>
+	<item
+        android:id="@+id/item_export"
+        android:title="Export to file"/>
+	<item
+        android:id="@+id/item_save"
+        android:title="Save to file"/>
+	<item
+        android:id="@+id/item_load"
+        android:title="Load from file"/>
+    <item
+        android:id="@+id/item_clear"
+        android:title="Clear"/>
+	<item
+        android:id="@+id/item_learn_add_next"
+        android:title="Learn next 20 vocabularies"/>
+	<item
+        android:id="@+id/item_learn_add_all"
+        android:title="Add all to learned vocabulary"/>
+	<item
+        android:id="@+id/item_learn_remove_all"
+        android:title="Remove all from learned vocabulary"/>
+	
+	<item
+        android:id="@+id/item_open_jisho"
+        android:title="Show vocabulary on jisho.org"/>
+	<item
+        android:id="@+id/item_open_jisho_kanji"
+        android:title="Show kanji on jisho.org"/>
+	<item
+        android:id="@+id/item_edit"
+        android:title="Edit"/>
+	<item
+        android:id="@+id/item_learn_add"
+        android:title="Add to learned vocabulary"/>
+	<item
+        android:id="@+id/item_learn_remove"
+        android:title="Remove from learned vocabulary"/>
+	<item
+        android:id="@+id/item_reset"
+        android:title="Reset"/>
+	<item
+        android:id="@+id/item_delete"
+        android:title="Delete"/>
+	
+
+	<item
+        android:id="@+id/item_show"
+        android:title="Show vocabulary"/>
+
+	<item
+        android:id="@+id/item_cheat"
+        android:title="Cheat level up"/>
+</menu>

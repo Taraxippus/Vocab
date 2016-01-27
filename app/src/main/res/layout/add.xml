@@ -1,0 +1,139 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical">
+    
+	<android.support.v7.widget.CardView
+		xmlns:card_view="http://schemas.android.com/apk/res-auto"
+		android:id="@+id/card_add"
+		android:layout_gravity="top"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		card_view:cardCornerRadius="4dp"
+		card_view:cardElevation="4dp"
+		card_view:cardUseCompatPadding="true"
+		android:clickable="true"
+		android:foreground="?attr/selectableItemBackground"
+		android:padding="8dp">
+
+		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
+			android:padding="8dp">
+
+			<EditText
+				android:id="@+id/kanji_text"
+				android:layout_gravity="left"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:hint="Kanji"
+				android:textSize="20dp"
+				android:gravity="left"
+				android:maxLines="1"
+				android:singleLine="true"/>
+
+			<EditText
+				android:id="@+id/reading_text"
+				android:layout_gravity="left"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:hint="Readings (Seperate with ';')"
+				android:textSize="20dp"
+				android:gravity="left"
+				android:maxLines="1"
+				android:singleLine="true"/>
+			
+			<EditText
+				android:id="@+id/meaning_text"
+				android:layout_gravity="left"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:hint="Meanings (Seperate with ';')"
+				android:textSize="20dp"
+				android:gravity="left"
+				android:maxLines="1"
+				android:singleLine="true"/>
+
+			<FrameLayout
+				android:layout_width="match_parent"
+				android:layout_height="16dp"/>
+		
+			<EditText
+				android:id="@+id/additional_info_text"
+				android:layout_gravity="left"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:hint="Additional information"
+				android:textSize="15dp"
+				android:gravity="left"
+				android:maxLines="1"
+				android:singleLine="true"/>
+			
+			<CheckBox android:id="@+id/show_info_checkbox"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:checked="true"
+				android:text="Show info next to meaning"/>
+			
+			<FrameLayout
+				android:layout_width="match_parent"
+				android:layout_height="16dp"/>
+			
+			<View
+				android:layout_width="match_parent"
+				android:layout_height="1dp"
+				android:background="?android:attr/listDivider"/>
+			
+			<FrameLayout
+				android:layout_width="match_parent"
+				android:layout_height="16dp"/>
+			
+			<Spinner
+				android:id="@+id/type_spinner"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:paddingBottom="8dp"/>
+			
+			<CheckBox android:id="@+id/learned_checkbox"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Add to learned vocabulary"/>
+			
+			<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:orientation="horizontal">
+			
+				<Button
+					android:id="@+id/cancel_button"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Cancel"
+					android:textColor="#FFC107"
+					style="?android:attr/borderlessButtonStyle"
+					android:layout_gravity="left"
+				/>
+			
+				<FrameLayout
+					android:layout_width="0dp"
+					android:layout_height="0dp"
+					android:layout_weight="2"/>
+
+				<Button
+					android:id="@+id/add_button"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Add"
+					android:textColor="#FFC107"
+					style="?android:attr/borderlessButtonStyle"
+					android:layout_gravity="right"
+				/>
+			
+			</LinearLayout>
+			
+		</LinearLayout>
+
+	</android.support.v7.widget.CardView>
+	
+</LinearLayout>
