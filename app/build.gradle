@@ -5,8 +5,8 @@ android {
     buildToolsVersion "21.1.0"
 
     defaultConfig {
-        applicationId "com.mycompany.myapp"
-        minSdkVersion 14
+        applicationId "com.taraxippus.visualizer"
+        minSdkVersion 21
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"

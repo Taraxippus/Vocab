@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+	<PreferenceCategory 
+		android:title="General">
+
+		<Preference
+            android:title="Set live wallpaper"
+			android:summary="Set this as your wallpaper"
+            android:key="setWallpaper" 
+		/>
+		<ListPreference
+            android:title="Choose mode"
+			android:summary="Choose between different visualizer modes"
+			android:entries="@array/entries_mode"
+			android:entryValues="@array/entryValues_mode"
+			android:defaultValue="bars"
+            android:key="mode" 
+		/>
+		<CheckBoxPreference
+            android:title="Enable rainbow mode"
+			android:defaultValue="false"
+            android:key="enableRainbow" 
+		/>
+		<EditTextPreference
+            android:title="Bar color"
+			android:summary="Enter bar color hex value"
+			android:defaultValue="#ffffff"
+            android:key="barColor" 
+		/>
+		<EditTextPreference
+            android:title="Background color"
+			android:summary="Enter background color hex value"
+			android:defaultValue="#ff8800"
+            android:key="backgroundColor" 
+		/>
+		<CheckBoxPreference
+            android:title="Enable antialiasing"
+			android:summary="Use 4x MSAA"
+			android:defaultValue="true"
+            android:key="enableMSAA" 
+		/>
+	</PreferenceCategory>
+	<PreferenceCategory 
+		android:title="Background">
+
+		<CheckBoxPreference
+            android:title="Enable background wallpaper"
+            android:key="enableBackground" 
+		/>
+		<Preference
+            android:title="Pick wallpaper"
+            android:key="filePicker" 
+			android:dependency="enableBackground"
+		/>
+	</PreferenceCategory>
+	<PreferenceCategory 
+		android:title="Debug">
+		
+		<Preference
+            android:title="Crash"
+			android:summary="Crash this application for debug purposes"
+            android:key="crash" 
+		/>
+	</PreferenceCategory>
+</PreferenceScreen>

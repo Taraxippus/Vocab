@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <string-array
+        name="entries_mode">
+		
+        <item>Bars</item>
+		<item>Bars as circle</item>
+		<item>Line</item>
+    </string-array>
+	<string-array
+        name="entryValues_mode">
 
-    <string name="app_name">MyApp</string>
-    <string name="hello_world">Hello world!</string>
-
+        <item>bars</item>
+		<item>bars_circle</item>
+		<item>line</item>
+    </string-array>
 </resources>
