@@ -1,5 +1,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     
+	<item
+        android:id="@+id/retry"
+        android:title="Retry"/>
+    
     <item
         android:id="@+id/detail"
         android:title="Show vocabulary"/>

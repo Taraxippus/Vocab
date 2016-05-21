@@ -19,13 +19,9 @@ public class SynonymAdapter extends RecyclerView.Adapter<SynonymAdapter.ViewHold
 		main.selectedVocabulary_backStack.add(main.vocabulary_selected);
 		main.vocabulary_selected = main.vocabulary.indexOf(vocab);
 		
-		Fragment fragment = new VocabularyFragment();
+		Fragment fragment = main.getDetailFragment();
 		
-		fragment.setSharedElementEnterTransition(TransitionInflater.from(main).inflateTransition(R.transition.change_image_transform));
-		fragment.setSharedElementReturnTransition(TransitionInflater.from(main).inflateTransition(R.transition.change_image_transform));
-		
-		fragment.setEnterTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.slide_top));
-		fragment.setReturnTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.fade));
+		fragment.setEnterTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.slide_bottom));
 		
 		position = main.vocabulary_filtered.indexOf(vocab);
 		

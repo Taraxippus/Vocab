@@ -1,14 +1,14 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="top">
-	
-	<LinearLayout
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:gravity="top"
-		android:orientation="vertical"
-		android:scrollbars="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical"
+	android:scrollbars="vertical"
+	android:weightSum="1">
+
+	<FrameLayout
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1">
 
 		<android.support.v7.widget.CardView
 			xmlns:card_view="http://schemas.android.com/apk/res-auto"
@@ -17,9 +17,9 @@
 			android:layout_width="match_parent"
 			android:layout_height="175dp"
 			card_view:cardCornerRadius="4dp"
-			card_view:cardElevation="8dp"
+			card_view:cardElevation="4dp"
 			card_view:cardUseCompatPadding="true"
-			card_view:cardBackgroundColor="#F44336"
+			card_view:cardBackgroundColor="@color/primary"
 			android:clickable="true"
 			android:foreground="?attr/selectableItemBackground">
 
@@ -29,46 +29,72 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="1"
-				android:textSize="24dp"
+				android:textSize="18dp"
 				android:gravity="left|top"
-				android:textColor="#D32F2F"
+				android:textColor="@color/primaryDark"
 				android:textStyle="bold"
-				android:paddingLeft="8dp"
-				android:paddingTop="4dp"/>
+				android:paddingLeft="6dp"
+				android:paddingTop="2dp"/>
+
+			<TextView
+				android:id="@+id/question_text"
+				android:layout_gravity="center"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="8dp"
+				android:layout_marginRight="8dp"
+				android:layout_marginTop="8dp"
+				android:layout_marginBottom="24dp"
+				android:text="漢字"
+				android:shadowColor="@color/primaryDark"
+				android:shadowDx="2"
+				android:shadowDy="2"
+				android:shadowRadius="16"
+				android:textSize="70dp"
+				android:gravity="center"
+				android:textColor="@color/white"
+				android:textStyle="bold"/>
 			
-			<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:gravity="top"
-				android:orientation="vertical">
+			<TextView
+				android:id="@+id/type_text"
+				android:layout_gravity="center|bottom"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginBottom="8dp"
+				android:text="Meaning"
+				android:textSize="18dp"
+				android:gravity="center"
+				android:textColor="@color/primaryDark"
+				android:textStyle="bold"/>
+			
+			<LinearLayout
+				android:layout_gravity="left|bottom"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal"
+				android:padding="5dp">
 
-				<TextView
-					android:id="@+id/question_text"
-					android:layout_gravity="center"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_weight="3"
-					android:text="漢字"
-					android:shadowColor="#D32F2F"
-					android:shadowDx="2"
-					android:shadowDy="2"
-					android:shadowRadius="16"
-					android:textSize="70dp"
-					android:gravity="center"
-					android:textColor="#ffffff"
-					android:textStyle="bold"/>
+				<ImageButton
+					android:id="@+id/stroke_order"
+					android:layout_gravity="left|bottom"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:scaleType="center"
+					android:src="@drawable/stroke_order_quiz"
+					android:background="?attr/selectableItemBackgroundBorderless"
+					android:clickable="true"
+				/>
 
-				<TextView
-					android:id="@+id/type_text"
-					android:layout_gravity="center"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_weight="2"
-					android:text="Meaning"
-					android:textSize="20dp"
-					android:gravity="center"
-					android:textColor="#D32F2F"
-					android:textStyle="bold"/>
+				<ImageButton
+					android:id="@+id/sound"
+					android:layout_gravity="left|bottom"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:scaleType="center"
+					android:src="@drawable/sound_quiz"
+					android:background="?attr/selectableItemBackgroundBorderless"
+					android:visibility="gone"
+				/>
 
 			</LinearLayout>
 
@@ -76,120 +102,193 @@
 
 		<android.support.v7.widget.CardView
 			xmlns:card_view="http://schemas.android.com/apk/res-auto"
-			android:id="@+id/card_answer"
+			android:id="@+id/card_solution"
 			android:layout_gravity="top"
-			android:layout_width="match_parent"
-			android:layout_height="100dp"
+			android:layout_width="fill_parent"
+			android:layout_height="175dp"
 			card_view:cardCornerRadius="4dp"
 			card_view:cardElevation="4dp"
 			card_view:cardUseCompatPadding="true"
-			>
+			card_view:cardBackgroundColor="@color/primaryDark">
 
-			<LinearLayout 
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:gravity="top"
-				android:orientation="horizontal">
+			<TextView
+				android:id="@+id/level_up_text"
+				android:layout_gravity="left|top"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text=""
+				android:textSize="18dp"
+				android:gravity="left|top"
+				android:textColor="@color/accent"
+				android:textStyle="bold"
+				android:paddingLeft="6dp"
+				android:paddingTop="2dp"/>
 
-				<EditText
-					android:id="@+id/answer_text"
-					android:layout_gravity="center"
-					android:layout_width="0dp"
-					android:layout_height="wrap_content"
-					android:textSize="20dp"
-					android:gravity="center"
-					android:layout_weight="10"
-					android:inputType="textNoSuggestions"
-					android:maxLines="1"
-					android:maxLength="30"
-				/>
-
-				<Button
-					android:id="@+id/button_enter"
-					style="?android:attr/borderlessButtonStyle"
-					android:layout_gravity="center"
-					android:layout_width="25dp"
-					android:layout_height="wrap_content"
-					android:layout_weight="1"
-					android:text=">"
-					android:textSize="25dp"
-					android:gravity="center"
-					android:textColor="#FFC107"
-					android:textStyle="bold"/>
-
-			</LinearLayout>
-
-		</android.support.v7.widget.CardView>
-
-	</LinearLayout>
-	
-	<android.support.v7.widget.CardView
-		xmlns:card_view="http://schemas.android.com/apk/res-auto"
-		android:id="@+id/card_solution"
-		android:layout_gravity="top"
-		android:layout_width="match_parent"
-		android:layout_height="175dp"
-		card_view:cardCornerRadius="4dp"
-		card_view:cardElevation="8dp"
-		card_view:cardUseCompatPadding="true"
-		card_view:cardBackgroundColor="#D32F2F">
-
-		<TextView
-			android:id="@+id/level_up_text"
-			android:layout_gravity="left|top"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text=""
-			android:textSize="24dp"
-			android:gravity="left|top"
-			android:textColor="#FFC107"
-			android:textStyle="bold"
-			android:paddingLeft="8dp"
-			android:paddingTop="4dp"/>
-		
-		<ImageButton
-			android:id="@+id/overflow_button"
-			android:layout_gravity="right|top"
-			android:layout_width="34dp"
-			android:layout_height="40dp"
-			android:padding="0dp"
-			android:scaleType="center"
-			android:src="@drawable/overflow_vocabulary"
-			android:background="?attr/selectableItemBackgroundBorderless"
-		/>
-		
-		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:gravity="top"
-			android:orientation="vertical">
+			<ImageButton
+				android:id="@+id/overflow_button"
+				android:layout_gravity="right|top"
+				android:layout_width="34dp"
+				android:layout_height="40dp"
+				android:padding="0dp"
+				android:scaleType="center"
+				android:src="@drawable/overflow_vocabulary"
+				android:background="?attr/selectableItemBackgroundBorderless"
+			/>
 
 			<TextView
 				android:id="@+id/solution_icon"
 				android:layout_gravity="center"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:layout_weight="3"
+				android:layout_marginLeft="8dp"
+				android:layout_marginRight="8dp"
+				android:layout_marginTop="8dp"
+				android:layout_marginBottom="24dp"
 				android:text="✔"
 				android:textSize="60dp"
 				android:gravity="center"
-				android:textColor="#FFC107"
+				android:textColor="@color/accent"
 				android:textStyle="bold"/>
 
 			<TextView
 				android:id="@+id/solution_text"
-				android:layout_gravity="center"
+				android:layout_gravity="center|bottom"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:layout_weight="2"
+				android:layout_marginBottom="8dp"
 				android:text="Correct"
+				android:textSize="20dp"
+				android:gravity="center"
+				android:textColor="@color/accent"
+				android:textStyle="bold"/>
+			
+			<LinearLayout
+				android:layout_gravity="left|bottom"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal"
+				android:padding="5dp">
+
+				<ImageButton
+					android:id="@+id/stroke_order2"
+					android:layout_gravity="left|bottom"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:scaleType="center"
+					android:src="@drawable/stroke_order_quiz_overlay"
+					android:background="?attr/selectableItemBackgroundBorderless"
+					android:clickable="true"
+				/>
+
+				<ImageButton
+					android:id="@+id/sound2"
+					android:layout_gravity="left|bottom"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:scaleType="center"
+					android:src="@drawable/sound_quiz_overlay"
+					android:background="?attr/selectableItemBackgroundBorderless"
+					android:visibility="gone"
+				/>
+
+			</LinearLayout>
+
+		</android.support.v7.widget.CardView>
+
+		<android.support.v7.widget.CardView
+			xmlns:card_view="http://schemas.android.com/apk/res-auto"
+			android:id="@+id/card_stroke_order"
+			android:layout_gravity="top"
+			android:layout_width="match_parent"
+			android:layout_height="175dp"
+			card_view:cardCornerRadius="4dp"
+			card_view:cardElevation="4dp"
+			card_view:cardUseCompatPadding="true"
+			card_view:cardBackgroundColor="@color/primaryDark">
+
+			<ImageButton
+				android:id="@+id/overflow_button_stroke_order"
+				android:layout_gravity="right|top"
+				android:layout_width="34dp"
+				android:layout_height="40dp"
+				android:padding="0dp"
+				android:scaleType="center"
+				android:src="@drawable/overflow_vocabulary"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:onClick="showStrokeOrderPopup"
+			/>
+
+			<ProgressBar
+				android:id="@+id/stroke_order_progress"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+			/>
+
+			<LinearLayout
+				android:id="@+id/layout_stroke_order"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:orientation="horizontal"
+				android:gravity="center">
+
+			</LinearLayout>
+
+			<ImageButton
+				android:id="@+id/stroke_order3"
+				android:layout_gravity="left|bottom"
+				android:layout_width="34dp"
+				android:layout_height="34dp"
+				android:scaleType="center"
+				android:src="@drawable/stroke_order_quiz_overlay"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:clickable="true"
+			/>
+
+		</android.support.v7.widget.CardView>
+
+	</FrameLayout>
+
+	
+		<LinearLayout 
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:gravity="top"
+			android:orientation="horizontal"
+			android:elevation="8dp"
+			android:background="@color/white">
+
+			<EditText
+				android:id="@+id/answer_text"
+				android:layout_gravity="center"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:textSize="20dp"
+				android:gravity="center"
+				android:layout_weight="10"
+				android:inputType="textNoSuggestions"
+				android:maxLines="1"
+				android:maxLength="30"
+			/>
+
+			<Button
+				android:id="@+id/button_enter"
+				style="?android:attr/borderlessButtonStyle"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:layout_gravity="center"
+				android:layout_width="12dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text=">"
 				android:textSize="25dp"
 				android:gravity="center"
-				android:textColor="#FFC107"
+				android:textColor="@color/accent"
 				android:textStyle="bold"/>
 
 		</LinearLayout>
 
-	</android.support.v7.widget.CardView>
+
+</LinearLayout>
 	
-</FrameLayout>
+

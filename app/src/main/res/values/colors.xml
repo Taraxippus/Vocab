@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<item name="primary" type="color">#F44336</item>
+	<item name="primaryDark" type="color">#D32F2F</item>
+	<item name="accent" type="color">#FFC107</item>
+	
+	<item name="white" type="color">#FFFFFF</item>
+	<item name="gray" type="color">#8a000000</item>
+	<item name="black" type="color">#000000</item>
+	
+	<item name="navigationSelected" type="color">#EEEEEE</item>
+	<item name="navigationText" type="color">#dd000000</item>
+	<item name="navigationIcon" type="color">#FF757575</item>
+	
+</resources>

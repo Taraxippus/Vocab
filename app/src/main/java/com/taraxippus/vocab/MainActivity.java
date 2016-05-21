@@ -1,72 +1,124 @@
 package com.taraxippus.vocab;
-import android.app.*;
-import android.content.*;
-import android.net.*;
-import android.os.*;
-import android.support.v4.widget.*;
-import android.support.v7.app.*;
-import android.support.v7.view.menu.*;
-import android.support.v7.widget.*;
-import android.transition.*;
-import android.view.*;
-import android.widget.*;
-import com.taraxippus.vocab.fragment.*;
-import com.taraxippus.vocab.notification.*;
-import com.taraxippus.vocab.save.*;
-import com.taraxippus.vocab.util.*;
-import com.taraxippus.vocab.vocabulary.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.SearchManager;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.view.menu.MenuBuilder;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.transition.TransitionInflater;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.TextView;
+import com.taraxippus.vocab.R;
+import com.taraxippus.vocab.fragment.AddFragment;
+import com.taraxippus.vocab.fragment.DetailFragment;
+import com.taraxippus.vocab.fragment.EditFragment;
+import com.taraxippus.vocab.fragment.GrammarQuizFragment;
+import com.taraxippus.vocab.fragment.HomeFragment;
+import com.taraxippus.vocab.fragment.QuizFragment;
+import com.taraxippus.vocab.util.AlarmReceiver;
+import com.taraxippus.vocab.util.DialogHelper;
+import com.taraxippus.vocab.util.JishoHelper;
+import com.taraxippus.vocab.util.SaveHandler;
+import com.taraxippus.vocab.util.ViewVocabularyDialog;
+import com.taraxippus.vocab.vocabulary.Answer;
+import com.taraxippus.vocab.vocabulary.ImportType;
+import com.taraxippus.vocab.vocabulary.QuestionType;
+import com.taraxippus.vocab.vocabulary.ShowType;
+import com.taraxippus.vocab.vocabulary.SortType;
+import com.taraxippus.vocab.vocabulary.ViewType;
+import com.taraxippus.vocab.vocabulary.Vocabulary;
+import com.taraxippus.vocab.vocabulary.VocabularyType;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import com.taraxippus.vocab.vocabulary.DBHelper;
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener
 {
 
-	public static final String[] item_names = new String[] {"Home", "Add new Vocabulary", "Quiz", "Grammar quiz"};
-	public static final int[] item_icons = new int[] {R.drawable.home, R.drawable.add, R.drawable.quiz, R.drawable.quiz_grammar};
+	public static final String[] item_names = new String[] {"Home", "Add new vocabulary", "Quiz", "Grammar quiz", "Settings"};
+	public static final int[] item_icons = new int[] {R.drawable.home, R.drawable.add, R.drawable.quiz, R.drawable.quiz_grammar, R.drawable.settings};
 	
-	public SaveHandler saveHandler = new SaveHandler(this);
-	public DialogHelper dialogHelper = new DialogHelper(this);
+	public final SaveHandler saveHandler = new SaveHandler(this);
+	public final DialogHelper dialogHelper = new DialogHelper(this);
+	public final JishoHelper jishoHelper = new JishoHelper(this);
 	
 	public HomeFragment home;
-	public Fragment add;
+	public AddFragment add;
 	public QuizFragment quiz;
-	public GrammarQuizFragment quiz_grammar;
-	
-	private Toolbar toolbar;                       
-	
-    RecyclerView recyclerView;                  
-    RecyclerView.Adapter adapter;                    
-    RecyclerView.LayoutManager layoutManager;            
-    DrawerLayout drawerLayout;                             
+	public GrammarQuizFragment quiz_grammar;    
 
-    ActionBarDrawerToggle mDrawerToggle;             
+    RecyclerView recyclerView;                             
+    DrawerLayout drawerLayout;                                        
 	
 	public ViewVocabularyDialog viewVocabularyDialog;
 	
 	public int vocabulary_selected;
+	public DBHelper dbHelper;
 	
 	public final ArrayList<Vocabulary> vocabulary = new ArrayList<Vocabulary>();
 	public final ArrayList<Vocabulary> vocabulary_filtered = new ArrayList<Vocabulary>();
 	public final ArrayList<Vocabulary> vocabulary_learned = new ArrayList<Vocabulary>();
 	public final ArrayList<Vocabulary> vocabulary_learned_new = new ArrayList<Vocabulary>();
 	
-	public static Vocabulary.SortType sortType = Vocabulary.SortType.CATEGORY;
-	public Vocabulary.ViewType viewType = Vocabulary.ViewType.LARGE;
-	public Vocabulary.ShowType showType = Vocabulary.ShowType.ALL;
-	public final boolean[] show = new boolean[Vocabulary.Type.values().length];
+	public static SortType sortType = SortType.CATEGORY;
+	public ViewType viewType = ViewType.MEDIUM;
+	public ShowType showType = ShowType.ALL;
+	public final boolean[] show = new boolean[VocabularyType.values().length];
 	public String queryText;
+	public final Comparator<Vocabulary> searchComparator;
 
+	public Fragment currentFragment;
 	public Tap tap;
 	public int selectedTap = 0;
 	
 	public MainActivity()
 	{
 		super();
+		
+		searchComparator = new Comparator<Vocabulary>()
+		{
+			@Override
+			public int compare(Vocabulary v1, Vocabulary v2)
+			{
+				return (int) Math.signum(v2.searchResult - v1.searchResult);
+			}
+		};
 	}
 	
     @Override
@@ -77,21 +129,20 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		
 		updateFilter();
 		
-		toolbar = (Toolbar) findViewById(R.id.tool_bar);
+		Toolbar toolbar = (Toolbar) findViewById(R.id.tool_bar);
 		setSupportActionBar(toolbar);
 		
         recyclerView = (RecyclerView) findViewById(R.id.RecyclerView);                        
-		recyclerView.addItemDecoration(new DividerItemDecoration(this));
 		
-        adapter = new NavigationAdapter(this);     
+        NavigationAdapter adapter = new NavigationAdapter(this);     
         recyclerView.setAdapter(adapter);                            
 
-        layoutManager = new LinearLayoutManager(this);               
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);               
         recyclerView.setLayoutManager(layoutManager);            
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);   
 
-        mDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.app_name, R.string.app_name)
+        ActionBarDrawerToggle drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.app_name, R.string.app_name)
 		{
             @Override
             public void onDrawerOpened(View drawerView) 
@@ -107,51 +158,28 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                 invalidateOptionsMenu();
             }
 		}; 
-        drawerLayout.setDrawerListener(mDrawerToggle); 
-        mDrawerToggle.syncState();              
+        drawerLayout.setDrawerListener(drawerToggle); 
+        drawerToggle.syncState();      
+		
+		dbHelper = new DBHelper(this);
 		
 		home = new HomeFragment();
 		add = new AddFragment();
 		quiz = new QuizFragment();
 		quiz_grammar = new GrammarQuizFragment();
 		
-		quiz.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_top));
-		quiz.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
+		home.setTransitions(this);
+		add.setTransitions(this);
+		quiz.setTransitions(this);
+		quiz_grammar.setTransitions(this);
 		
-		quiz.setAllowEnterTransitionOverlap(false);
-		quiz.setAllowReturnTransitionOverlap(false);
-		
-		quiz_grammar.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_left));
-		quiz_grammar.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-		
-		quiz_grammar.setAllowEnterTransitionOverlap(false);
-		quiz_grammar.setAllowReturnTransitionOverlap(false);
-		
-		add.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_left));
-		add.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-		
-		add.setAllowEnterTransitionOverlap(false);
-		add.setAllowReturnTransitionOverlap(false);
-		
-		home.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_left));
-		home.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-		
-		home.setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-		home.setSharedElementReturnTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-	
-		home.setAllowEnterTransitionOverlap(false);
-		home.setAllowReturnTransitionOverlap(false);
-		
-		if (getIntent() != null && getIntent().getAction() == Intent.ACTION_SEND)
-		{
-			changeFragment(add, null);
-			setTitle(item_names[1]);
-		}
-		else
+		if (getIntent() == null)
 		{
 			changeFragment(home, null);
 			setTitle(item_names[0]);
 		}
+		else 
+			onNewIntent(getIntent());
 	}
 
 	@Override
@@ -159,10 +187,36 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 	{
 		super.onNewIntent(intent);
 		
-		if (intent.getAction() == Intent.ACTION_SEND)
+		if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_SEND))
 		{
-			changeFragment(add, null);
-			setTitle(item_names[1]);
+			String s = intent.getDataString();
+			
+			if (s != null && !s.isEmpty())
+			{
+				boolean flag = true;
+				
+				String[] s1 = s.split("\n");
+				
+				for (String s2 : s1)
+				{
+					if (saveHandler.isVocabulary(s2))
+					{
+						saveHandler.importVocabulary(s2, ImportType.ASK, VocabularyType.NONE, false);
+						flag = false;
+					}
+				}
+				
+				if (flag)
+				{
+					changeFragment(add, null);
+					setTitle(item_names[1]);
+				}
+			}
+			else
+			{
+				changeFragment(add, null);
+				setTitle(item_names[1]);
+			}
 		}
 		else if (intent.getBooleanExtra("review", false))
 		{
@@ -185,6 +239,11 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 			
 			changeFragment(fragment, null);
 			setTap(quiz);
+		}
+		else
+		{
+			changeFragment(home, null);
+			setTitle(item_names[0]);
 		}
 	}
 	
@@ -215,17 +274,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 	
 	public void onVocabularyClicked(View v)
 	{
-		vocabulary_selected = vocabulary.indexOf(vocabulary_filtered.get(home.recyclerView.getChildAdapterPosition((LinearLayout)v.getParent()) - 1));
+		vocabulary_selected = vocabulary.indexOf(vocabulary_filtered.get(home.recyclerView.getChildAdapterPosition((LinearLayout) v.getParent()) - 1));
 		
-		VocabularyFragment fragment = new VocabularyFragment();
-		fragment.setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-		fragment.setSharedElementReturnTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-		
-		fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_top));
-		fragment.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-
-		fragment.setAllowEnterTransitionOverlap(false);
-		fragment.setAllowReturnTransitionOverlap(false);
+		Fragment fragment = getDetailFragment();
 		
 		View v1 = v.findViewById(R.id.kanji_text);
 		View v2 = v.findViewById(R.id.reading_text);
@@ -248,7 +299,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		getMenuInflater().inflate(R.menu.main, menu);
 		
 		SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-		android.support.v7.widget.SearchView searchView = (android.support.v7.widget.SearchView) menu.findItem(R.id.item_search).getActionView();
+		android.support.v7.widget.SearchView searchView = (android.support.v7.widget.SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.item_search));
 		searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
 		searchView.setOnQueryTextListener(new android.support.v7.widget.SearchView.OnQueryTextListener()
 			{
@@ -274,29 +325,12 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) 
 	{
-		menu.findItem(R.id.item_search).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_sort).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_add).setVisible(tap == Tap.HOME);
-        menu.findItem(R.id.item_import_file).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_import_clipboard).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_export).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_load).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_save).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_clear).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_learn_add_next).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_learn_add_all).setVisible(tap == Tap.HOME);
-		menu.findItem(R.id.item_learn_remove_all).setVisible(tap == Tap.HOME);
+		menu.setGroupVisible(R.id.group_detail, tap == Tap.DETAIL);
+		menu.setGroupVisible(R.id.group_home, tap == Tap.HOME);
+		menu.setGroupVisible(R.id.group_quiz, tap == Tap.QUIZ);
 		
-		menu.findItem(R.id.item_open_jisho).setVisible(tap == Tap.DETAIL);
-		menu.findItem(R.id.item_open_jisho_kanji).setVisible(tap == Tap.DETAIL);
-		menu.findItem(R.id.item_edit).setVisible(tap == Tap.DETAIL);
 		menu.findItem(R.id.item_learn_add).setVisible(tap == Tap.DETAIL && !vocabulary.get(vocabulary_selected).learned);
 		menu.findItem(R.id.item_learn_remove).setVisible(tap == Tap.DETAIL && vocabulary.get(vocabulary_selected).learned);
-		menu.findItem(R.id.item_reset).setVisible(tap == Tap.DETAIL);
-		menu.findItem(R.id.item_cheat).setVisible(tap == Tap.DETAIL);
-		menu.findItem(R.id.item_delete).setVisible(tap == Tap.DETAIL);
-		
-		menu.findItem(R.id.item_show).setVisible(tap == Tap.QUIZ);
 		
         return super.onPrepareOptionsMenu(menu);
     }
@@ -356,8 +390,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 						{
 							dialog.dismiss();
 							
-							Vocabulary.ImportType importType = Vocabulary.ImportType.values()[spinner.getSelectedItemPosition()];
-							Vocabulary.Type type = Vocabulary.Type.values()[spinner1.getSelectedItemPosition()];
+							ImportType importType = ImportType.values()[spinner.getSelectedItemPosition()];
+							VocabularyType type = VocabularyType.values()[spinner1.getSelectedItemPosition()];
 							
 							int size = vocabulary.size();
 
@@ -393,33 +427,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		{
 			String filename = "vocabularies_" + new SimpleDateFormat("yyyy_MM_dd_HH:mm").format(new Date()) + ".txt";
 			
-			File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
-			file.mkdirs();
-			
-			try
-			{
-				BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file.getAbsolutePath() + "/" + filename)));
-			
-				int i;
-				for (Vocabulary v : vocabulary)
-				{
-					writer.write(v.kanji + "【" + v.reading + "】- ");
-					for (i = 0; i < v.meaning.length - 1; ++i)
-					{
-						writer.write(v.meaning[i] + "; ");
-					}
-					writer.write(v.meaning[v.meaning.length -1]);
-					if (!v.additionalInfo.isEmpty())
-						writer.write(" (" + v.additionalInfo + ")");
-					writer.write("\n");
-				}
-				
-				writer.close();
-			}
-			catch (IOException e) 
-			{
-				e.printStackTrace();
-			}
+			saveHandler.exportVocabulary(filename);
 
 			dialogHelper.createDialog("Export", "Exported " + vocabulary.size() + (vocabulary.size() == 1 ? " vocabulary" : " vocabularies") + " to file \"" + filename + "\" in documents!");
 		}
@@ -465,47 +473,223 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         }
 		else if (id == R.id.item_clear)
 		{
-			AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-			alertDialog.setTitle("Clear");
-			alertDialog.setMessage("Do you really want to delete every vocabulary? This cannot be undone!");
-			alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Delete",
+			dialogHelper.createDialog("Clear", "Do you really want to delete every vocabulary? This cannot be undone!",
+			"Delete filtered", 
 				new DialogInterface.OnClickListener() 
+				{
+					public void onClick(DialogInterface dialog, int which) 
+					{
+						vocabulary.removeAll(vocabulary_filtered);
+						saveHandler.save();
+						onVocabularyChanged();
+
+						dialog.dismiss();
+					}
+				}, 
+			"Delete", new DialogInterface.OnClickListener() 
 				{
 					public void onClick(DialogInterface dialog, int which) 
 					{
 						vocabulary.clear();
 						saveHandler.save();
-						home.recyclerView.getAdapter().notifyDataSetChanged();
-						updateNotification();
+						onVocabularyChanged();
 						
 						dialog.dismiss();
 					}
 				});
-			alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",
+		}
+		else if (id == R.id.item_clear_reset)
+		{
+			dialogHelper.createDialog("Reset", "Do you really want to reset every vocabulary? Your stats and progress will be lost. This cannot be undone!",
+				"Reset filtered", 
 				new DialogInterface.OnClickListener() 
 				{
 					public void onClick(DialogInterface dialog, int which) 
 					{
+						for (Vocabulary v : vocabulary_filtered)
+							v.reset();
+					
+						saveHandler.save();
+						onVocabularyChanged();
+
+						dialog.dismiss();
+					}
+				}, 
+				"Reset", new DialogInterface.OnClickListener() 
+				{
+					public void onClick(DialogInterface dialog, int which) 
+					{
+						for (Vocabulary v : vocabulary)
+							v.reset();
+						
+						saveHandler.save();
+						onVocabularyChanged();
+
 						dialog.dismiss();
 					}
 				});
-			alertDialog.show();
 		}
 		else if (id == R.id.item_learn_add_next)
 		{
-			int count = 0;
-			for (int i = 0; i < vocabulary.size() && count < 20; ++i)
+			AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+			alertDialog.setTitle("Learn next vocabularies");
+			View v = getLayoutInflater().inflate(R.layout.learn_dialog, null);
+			
+			final Runnable updatePreview;
+			final Spinner spinner = (Spinner) v.findViewById(R.id.learn_spinner);
+			final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, new String[] {"Oldest", "Filtered"});
+			final EditText edit_count = (EditText) v.findViewById(R.id.edit_text_count);
+			final Button plus = (Button) v.findViewById(R.id.button_plus);
+			final Button minus = (Button) v.findViewById(R.id.button_minus);
+			final TextView preview = (TextView) v.findViewById(R.id.text_preview);
+			final ScrollView scroll_preview = (ScrollView) v.findViewById(R.id.scroll_preview);
+			final View divider_scroll_top = v.findViewById(R.id.divider_scroll_top);
+			final View divider_scroll_bottom = v.findViewById(R.id.divider_scroll_bottom);
+			
+			scroll_preview.setOnScrollChangeListener(
+			new View.OnScrollChangeListener()
 			{
-				if (!vocabulary.get(i).learned)
+					@Override
+					public void onScrollChange(View p1, int p2, int p3, int p4, int p5)
+					{
+						if (scroll_preview.canScrollVertically(1)) 
+							divider_scroll_bottom.setVisibility(View.VISIBLE);
+						else
+							divider_scroll_bottom.setVisibility(View.INVISIBLE);
+
+						if (scroll_preview.canScrollVertically(-1)) 
+							divider_scroll_top.setVisibility(View.VISIBLE);
+						else
+							divider_scroll_top.setVisibility(View.INVISIBLE);
+						
+					}
+			});
+			
+			updatePreview = new Runnable()
+			{
+				@Override
+				public void run()
 				{
-					vocabulary.get(i).learned = true;
-					++count;
+					StringBuilder sb = new StringBuilder();
+
+					ArrayList<Vocabulary> vocabulary1 = spinner.getSelectedItemPosition() == 0 ? vocabulary : vocabulary_filtered;
+
+					int count = 0;
+					int count1 = Integer.parseInt(edit_count.getText().toString());
+					for (int i = 0; i < vocabulary1.size() && count < count1; ++i)
+					{
+						if (!vocabulary1.get(i).learned)
+						{
+							if (count > 0)
+								sb.append("\n");
+							sb.append(vocabulary1.get(i).kanji);
+							++count;
+						}
+					}
+
+					preview.setText(sb.toString());
+					
+					if (scroll_preview.canScrollVertically(1)) 
+						divider_scroll_bottom.setVisibility(View.VISIBLE);
+					else
+						divider_scroll_bottom.setVisibility(View.INVISIBLE);
+
+					if (scroll_preview.canScrollVertically(-1)) 
+						divider_scroll_top.setVisibility(View.VISIBLE);
+					else
+						divider_scroll_top.setVisibility(View.INVISIBLE);
 				}
-			}
-				
-			invalidateOptionsMenu();
-			updateFilter();
-			updateNotification();
+			};
+			
+			adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			spinner.setAdapter(adapter);
+			spinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener()
+			{
+					@Override
+					public void onItemSelected(AdapterView<?> p1, View p2, int p3, long p4)
+					{
+						updatePreview.run();
+					}
+
+					@Override
+					public void onNothingSelected(AdapterView<?> p1)
+					{
+						
+					}
+			});
+			
+			edit_count.setText("" + Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).getString("learnAddCount", "10")));
+			edit_count.setOnEditorActionListener(new EditText.OnEditorActionListener()
+			{
+					@Override
+					public boolean onEditorAction(TextView p1, int p2, KeyEvent p3)
+					{
+						updatePreview.run();
+						return true;
+					}
+			});
+			
+			plus.setOnClickListener(new View.OnClickListener()
+			{
+					@Override
+					public void onClick(View p1)
+					{
+						edit_count.setText("" + (Integer.parseInt(edit_count.getText().toString()) + 1));
+						
+						updatePreview.run();
+					}
+			});
+			minus.setOnClickListener(new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View p1)
+					{
+						int count = Integer.parseInt(edit_count.getText().toString());
+						
+						if (count > 1)
+							edit_count.setText("" + (count - 1));
+
+						updatePreview.run();
+					}
+				});
+			
+			updatePreview.run();
+			
+			alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel", new AlertDialog.OnClickListener()
+			{
+					@Override
+					public void onClick(DialogInterface p1, int p2)
+					{
+						p1.cancel();
+					}
+			});
+			alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Learn", new AlertDialog.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface p1, int p2)
+					{
+						int count = 0;
+						int count1 = Integer.parseInt(edit_count.getText().toString());
+						
+						ArrayList<Vocabulary> vocabulary1 = spinner.getSelectedItemPosition() == 0 ? vocabulary : vocabulary_filtered;
+						for (int i = 0; i < vocabulary1.size() && count < count1; ++i)
+						{
+							if (!vocabulary1.get(i).learned)
+							{
+								vocabulary1.get(i).learned = true;
+								++count;
+							}
+						}
+
+						PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("learnAddCount", "" + count1).commit();
+						
+						invalidateOptionsMenu();
+						onVocabularyChanged();
+					}
+				});
+			
+			alertDialog.setView(v);
+			alertDialog.show();
 		}
 		else if (id == R.id.item_learn_add_all)
 		{
@@ -513,8 +697,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				v.learned = true;
 
 			invalidateOptionsMenu();
-			updateFilter();
-			updateNotification();
+			onVocabularyChanged();
 		}
 		else if (id == R.id.item_learn_remove_all)
 		{
@@ -522,145 +705,100 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				v.learned = false;
 
 			invalidateOptionsMenu();
-			updateFilter();
-			updateNotification();
+			onVocabularyChanged();
 		}
 		else if (id == R.id.item_open_jisho) 
 		{
-			searchJisho(vocabulary.get(vocabulary_selected).kanji);
+			jishoHelper.search(vocabulary.get(vocabulary_selected).kanji);
 			
             return true;
         }
 		else if (id == R.id.item_open_jisho_kanji) 
 		{
-			searchJisho(vocabulary.get(vocabulary_selected).kanji + "%23kanji");
+			jishoHelper.search(vocabulary.get(vocabulary_selected).kanji + "%23kanji");
 
             return true;
         }
         else if (id == R.id.item_edit) 
 		{
-			Fragment fragment = new AddFragment(true);
-			
-			fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_left));
-			fragment.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-
-			fragment.setAllowEnterTransitionOverlap(false);
-			fragment.setAllowReturnTransitionOverlap(false);
-			
-			FragmentManager fragmentManager = getFragmentManager();
-			fragmentManager.beginTransaction()
-				.replace(R.id.content_frame, fragment)
-				.addToBackStack("edit")
-				.commit();
-			
+			changeFragment(getEditFragment(), "edit");
+		
             return true;
         }
 		else if (id == R.id.item_reset) 
 		{
-			AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-			alertDialog.setTitle("Reset");
-			alertDialog.setMessage("Do you really want to reset this vocabulary? All progress and statistics will be lost!");
-			alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Reset",
-				new DialogInterface.OnClickListener() 
+			dialogHelper.createDialog("Reset", "Do you really want to reset this vocabulary? All progress and statistics will be lost!", "Reset", new DialogInterface.OnClickListener() 
 				{
 					public void onClick(DialogInterface dialog, int which) 
 					{
 						vocabulary.get(vocabulary_selected).reset();
 
-						home.recyclerView.getAdapter().notifyItemRemoved(vocabulary_selected);
-						home.recyclerView.getAdapter().notifyItemChanged(0);
-
-						Fragment fragment = new VocabularyFragment();
-						fragment.setSharedElementEnterTransition(TransitionInflater.from(MainActivity.this).inflateTransition(R.transition.change_image_transform));
-						fragment.setSharedElementReturnTransition(TransitionInflater.from(MainActivity.this).inflateTransition(R.transition.change_image_transform));
-
-						fragment.setEnterTransition(TransitionInflater.from(MainActivity.this).inflateTransition(android.R.transition.slide_right));
-						fragment.setReturnTransition(TransitionInflater.from(MainActivity.this).inflateTransition(android.R.transition.fade));
-
-						FragmentManager fragmentManager = getFragmentManager();
-						fragmentManager.beginTransaction()
-							.replace(R.id.content_frame, fragment)
-							.addToBackStack("detail_refresh")
-							.commit();
+						updateFilter();
+						refreshDetailView();
 
 						dialog.dismiss();
 					}
 				});
-			alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",
-				new DialogInterface.OnClickListener() 
+			
+
+            return true;
+        }
+		else if (id == R.id.item_reset_category) 
+		{
+			dialogHelper.createDialog("Reset", "Do you really want to reset the category of this vocabulary? You'll have to review it again.", "Reset", new DialogInterface.OnClickListener() 
 				{
 					public void onClick(DialogInterface dialog, int which) 
 					{
+						vocabulary.get(vocabulary_selected).lastChecked = 0;
+						vocabulary.get(vocabulary_selected).category = 1;;
+						
+						updateFilter();
+						refreshDetailView();
+
 						dialog.dismiss();
 					}
 				});
-			alertDialog.show();
+
 
             return true;
         }
 		else if (id == R.id.item_delete) 
 		{
-			AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-			alertDialog.setTitle("Delete");
-			alertDialog.setMessage("Do you really want to delete this vocabulary?");
-			alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Delete",
-				new DialogInterface.OnClickListener() 
+			dialogHelper.createDialog("Delete", "Do you really want to delete this vocabulary?", "Delete", new DialogInterface.OnClickListener() 
 				{
 					public void onClick(DialogInterface dialog, int which) 
 					{
 						vocabulary.get(vocabulary_selected).remove(vocabulary);
-					
-						home.recyclerView.getAdapter().notifyItemRemoved(vocabulary_selected);
-						home.recyclerView.getAdapter().notifyItemChanged(0);
-						
-						getFragmentManager().popBackStack();
-						
+
+						updateFilter();
+
+						onBackPressed();
+
 						dialog.dismiss();
 					}
 				});
-			alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",
-				new DialogInterface.OnClickListener() 
-				{
-					public void onClick(DialogInterface dialog, int which) 
-					{
-						dialog.dismiss();
-					}
-				});
-			alertDialog.show();
 			
             return true;
         }
 		else if (id == R.id.item_show) 
 		{
-			Fragment fragment = new VocabularyFragment();
-			fragment.setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-			fragment.setSharedElementReturnTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-
-			fragment.setAllowEnterTransitionOverlap(false);
-			fragment.setAllowReturnTransitionOverlap(false);
-			
-			fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_top));
-			fragment.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-			
-			changeFragment(fragment, "detail");
+			changeFragment(getDetailFragment(), "detail");
 
             return true;
         }
 		else if (id == R.id.item_learn_add)
 		{
 			vocabulary.get(vocabulary_selected).learned = true;
-	
 			invalidateOptionsMenu();
-			updateFilter();
-			updateNotification();
+			
+			onVocabularyChanged();
 		}
 		else if (id == R.id.item_learn_remove)
 		{
 			vocabulary.get(vocabulary_selected).learned = false;
-		
 			invalidateOptionsMenu();
-			updateFilter();
-			updateNotification();
+			
+			onVocabularyChanged();
 		}
 		else if (id == R.id.item_cheat)
 		{
@@ -678,22 +816,12 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 			v.answered_reading = false;
 			v.answered_correct = true;
 			
-			updateFilter();
-			updateNotification();
-			saveHandler.save();
+			System.arraycopy(v.category_history, 1, v.category_history, 0, v.category_history.length - 1);
+			v.category_history[v.category_history.length - 1] = v.category;
 			
-			Fragment fragment = new VocabularyFragment();
-			fragment.setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-			fragment.setSharedElementReturnTransition(TransitionInflater.from(this).inflateTransition(R.transition.change_image_transform));
-
-			fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_right));
-			fragment.setReturnTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
-
-			FragmentManager fragmentManager = getFragmentManager();
-			fragmentManager.beginTransaction()
-				.replace(R.id.content_frame, fragment)
-				.addToBackStack("detail_refresh")
-				.commit();
+			onVocabularyChanged();
+			refreshDetailView();
+			saveHandler.save();
 		}
 		
         return super.onOptionsItemSelected(item);
@@ -728,8 +856,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 						{
 							dialog.dismiss();
 
-							Vocabulary.ImportType importType = Vocabulary.ImportType.values()[spinner.getSelectedItemPosition()];
-							Vocabulary.Type type = Vocabulary.Type.values()[spinner1.getSelectedItemPosition()];
+							ImportType importType = ImportType.values()[spinner.getSelectedItemPosition()];
+							VocabularyType type = VocabularyType.values()[spinner1.getSelectedItemPosition()];
 							
 							try
 							{
@@ -743,9 +871,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 									saveHandler.importVocabulary(line, importType, type, learned.isChecked());
 								}
 
-								updateFilter();
+								onVocabularyChanged();
 								saveHandler.save();
-								updateNotification();
 
 								dialogHelper.createDialog("Import", "Imported " + (vocabulary.size() - size) + ((vocabulary.size() - size) == 1 ? " new vocabulary!" : " new vocabularies!"));
 							
@@ -762,7 +889,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 					{
 						public void onClick(DialogInterface dialog, int which) 
 						{
-							dialog.dismiss();
+							dialog.cancel();
 						}
 					});
 				alertDialog.show();
@@ -799,8 +926,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		
 		if (item == 0)
 			fragment = home;
+			
 		else if (item == 1)
 			fragment = add;
+			
 		else if (item == 2)
 		{
 			this.updateQuiz();
@@ -816,23 +945,27 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				dialogHelper.createDialog("Quiz", "Learn new vocabularies or come back later!");
 			}
 		}
-		else
-		{
+		else if (item == 3)
 			fragment = quiz_grammar;
+			
+		else if (item == 5)
+		{
+			this.startActivityForResult(new Intent().setClass(this, SettingsActivity.class), 0);
+			drawerLayout.closeDrawer(recyclerView);
+			return;
 		}
+			
+		else
+			return;
 	
-		FragmentManager fragmentManager = getFragmentManager();
-		fragmentManager.beginTransaction()
-			.replace(R.id.content_frame, fragment)
-			.addToBackStack("tab")
-			.commit();
-
+		changeFragment(fragment, "tab");
+		
 		drawerLayout.closeDrawer(recyclerView);
 	}
 
-	public void showPopup(final View v)
+	public void showVocabularyPopup(final View v)
 	{
-		vocabulary_selected = vocabulary.indexOf(vocabulary_filtered.get(home.recyclerView.getChildAdapterPosition((LinearLayout)((CardView)v.getParent()).getParent()) - 1));
+		vocabulary_selected = vocabulary.indexOf(vocabulary_filtered.get(home.recyclerView.getChildAdapterPosition((View)((View)((View)v.getParent()).getParent()).getParent()) - 1));
 		
 		PopupMenu popup = new PopupMenu(this, v)
 		{
@@ -851,8 +984,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 								public void onClick(DialogInterface dialog, int which) 
 								{
 									vocabulary.get(vocabulary_selected).remove(vocabulary);
-									home.recyclerView.getAdapter().notifyItemRemoved(vocabulary_selected + 1);
-									home.recyclerView.getAdapter().notifyItemChanged(0);
+									onVocabularyChanged();
 									
 									dialog.dismiss();
 								}
@@ -862,7 +994,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 							{
 								public void onClick(DialogInterface dialog, int which) 
 								{
-									dialog.dismiss();
+									dialog.cancel();
 								}
 							});
 						alertDialog.show();
@@ -870,35 +1002,24 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 						return true;
 
 					case R.id.detail:
-						onVocabularyClicked((View)v.getParent());
+						onVocabularyClicked((View)((View) v.getParent()).getParent());
 						return true;
 						
 					case R.id.edit:
-						Fragment fragment = new AddFragment(true);
-
-						fragment.setEnterTransition(TransitionInflater.from(MainActivity.this).inflateTransition(android.R.transition.slide_left));
-						fragment.setReturnTransition(TransitionInflater.from(MainActivity.this).inflateTransition(android.R.transition.fade));
-						
-						FragmentManager fragmentManager = getFragmentManager();
-						fragmentManager.beginTransaction()
-							.replace(R.id.content_frame, fragment)
-							.addToBackStack("edit")
-							.commit();
+						changeFragment(getEditFragment(), "edit");
 						
 						return true;
 						
 					case R.id.learn_add:
 						vocabulary.get(vocabulary_selected).learned = true;
-			
-						updateFilter();
-						updateNotification();
+						onVocabularyChanged();
+						
 						return true;
 						
 					case R.id.learn_remove:
 						vocabulary.get(vocabulary_selected).learned = false;
+						onVocabularyChanged();
 						
-						updateFilter();
-						updateNotification();
 						return true;
 						
 					default:
@@ -913,12 +1034,41 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		popup.show();
 	}
 	
+	public void showStrokeOrderPopup(final View v)
+	{
+		PopupMenu popup = new PopupMenu(this, v)
+		{
+			@Override
+			public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item)
+			{
+				switch (item.getItemId()) 
+				{
+					case R.id.open_jisho_kanji:
+						jishoHelper.search(vocabulary.get(vocabulary_selected).kanji + "%23kanji");
+						return true;
+						
+					case R.id.settings:
+						startActivityForResult(new Intent().setClass(MainActivity.this, SettingsActivity.class), 0);
+						
+						return true;
+						
+					default:
+						return super.onMenuItemSelected(menu, item);
+				}
+			}
+		};
+		MenuInflater inflater = popup.getMenuInflater();
+		inflater.inflate(R.menu.stroke_order, popup.getMenu());
+		popup.show();
+	}
+	
 	@Override
 	protected void onPause()
 	{
 		super.onPause();
 		
 		saveHandler.save();
+		dbHelper.close();
 	}
 	
 
@@ -930,8 +1080,26 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		saveHandler.load();
 	}
 	
+	public void onVocabularyChanged()
+	{
+		updateFilter();
+		updateNotification();
+	}
+	
+	public void refreshDetailView()
+	{
+		getFragmentManager().popBackStack();
+		
+		Fragment fragment = getDetailFragment();
+		fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.slide_bottom));
+		changeFragment(fragment, "");
+	}
+	
 	public void updateNotification()
 	{
+		if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean("notification", true))
+			return;
+			
 		long nextReview = 0;
 		for (Vocabulary v : vocabulary)
 		{
@@ -965,6 +1133,23 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		alarmManager.set(AlarmManager.RTC_WAKEUP, nextReview, pendingIntent);
 	}
 	
+	public Fragment getDetailFragment()
+	{
+		DetailFragment detail = new DetailFragment();
+		detail.setTransitions(this);
+		
+		return detail;
+	}
+	
+
+	public Fragment getEditFragment()
+	{
+		EditFragment edit = new EditFragment();
+		edit.setTransitions(this);
+
+		return edit;
+	}
+	
 	public void changeFragment(Fragment fragment, String backStack)
 	{
 		FragmentManager fragmentManager = getFragmentManager();
@@ -982,12 +1167,13 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				.addToBackStack(backStack)
 				.commit();
 		}
-		
 	}
 	
 	public void setTap(Fragment fragment)
 	{
 		invalidateOptionsMenu();
+		
+		this.currentFragment = fragment;
 		
 		if (fragment == home)
 		{
@@ -1014,7 +1200,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 			setTitle(item_names[1]);
 			tap = Tap.ADD;
 		}
-		else if (fragment instanceof AddFragment)
+		else if (fragment instanceof EditFragment)
 		{
 			setTitle("Edit " + vocabulary.get(vocabulary_selected).kanji);
 			tap = Tap.EDIT;
@@ -1028,7 +1214,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 			setTitle(item_names[2] + ", " + vocabulary_learned.size() + (vocabulary_learned.size() == 1 ? " vocabulary" : " vocabularies"));
 			tap = Tap.QUIZ;
 		}
-		else if (fragment instanceof VocabularyFragment)
+		else if (fragment instanceof DetailFragment)
 		{
 			setTitle(vocabulary.get(vocabulary_selected).correctAnswer(QuestionType.KANJI));
 			tap = Tap.DETAIL;
@@ -1072,7 +1258,34 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 			boxes.add(box);
 		}
 
+		final ScrollView scroll_preview = (ScrollView) v.findViewById(R.id.scroll_show_boxes);
+		final View divider_scroll_top = v.findViewById(R.id.divider_scroll_top);
+		final View divider_scroll_bottom = v.findViewById(R.id.divider_scroll_bottom);
+
+		scroll_preview.setOnScrollChangeListener(
+			new View.OnScrollChangeListener()
+			{
+				@Override
+				public void onScrollChange(View p1, int p2, int p3, int p4, int p5)
+				{
+					if (scroll_preview.canScrollVertically(1)) 
+						divider_scroll_bottom.setVisibility(View.VISIBLE);
+					else
+						divider_scroll_bottom.setVisibility(View.INVISIBLE);
+
+					if (scroll_preview.canScrollVertically(-1)) 
+						divider_scroll_top.setVisibility(View.VISIBLE);
+					else
+						divider_scroll_top.setVisibility(View.INVISIBLE);
+
+				}
+			});
 		
+		
+		divider_scroll_bottom.setVisibility(View.VISIBLE);
+		divider_scroll_top.setVisibility(View.INVISIBLE);
+		
+	
 		alertDialog.setView(v);		
 		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK",
 			new DialogInterface.OnClickListener() 
@@ -1081,9 +1294,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 				{
 					dialog.dismiss();
 
-					sortType = Vocabulary.SortType.values()[spinner.getSelectedItemPosition()];
-					viewType = Vocabulary.ViewType.values()[spinner1.getSelectedItemPosition()];
-					showType = Vocabulary.ShowType.values()[spinner2.getSelectedItemPosition()];
+					sortType = SortType.values()[spinner.getSelectedItemPosition()];
+					viewType = ViewType.values()[spinner1.getSelectedItemPosition()];
+					showType = ShowType.values()[spinner2.getSelectedItemPosition()];
 
 					for (int i = 0; i < show.length; ++i)
 						show[i] = boxes.get(i).isChecked();
@@ -1096,28 +1309,29 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 	
 	public void updateFilter()
 	{
+		String queryText = null;
+		
+		if (this.queryText != null)
+			queryText = this.queryText.toLowerCase();
+		
 		vocabulary_filtered.clear();
 		for (Vocabulary v : vocabulary)
 		{
 			if (show[v.type.ordinal()]
-			&& (showType == Vocabulary.ShowType.ALL || showType == Vocabulary.ShowType.LEARNED && v.learned || showType == Vocabulary.ShowType.UNLEARNED && !v.learned)
-			&& (queryText == null || queryText.isEmpty() || v.searched(queryText)))
+			&& (showType == ShowType.ALL || showType == ShowType.LEARNED && v.learned || showType == ShowType.UNLEARNED && !v.learned)
+			&& (queryText == null || queryText.isEmpty() || v.searched(queryText) > 0))
 				vocabulary_filtered.add(v);
 		}
 		
-		Collections.sort(vocabulary_filtered);
+		if (queryText == null || queryText.isEmpty())
+			Collections.sort(vocabulary_filtered);
+		else
+			Collections.sort(vocabulary_filtered, searchComparator);
 		
-		if (home != null)
+		if (home != null && home.recyclerView != null)
 		{
 			home.recyclerView.getAdapter().notifyDataSetChanged();
 		}
-	}
-	
-	public void searchJisho(String query)
-	{
-		Intent i = new Intent(Intent.ACTION_VIEW);
-		i.setData(Uri.parse("http://jisho.org/search/" + query));
-		startActivity(i);
 	}
 	
 	public void updateQuiz()
@@ -1181,7 +1395,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 					
 					if (!vocabulary_learned.contains(vocabulary.get(vocabulary_selected)))
 					{
-						quiz.answer = Answer.CORRECT;
+						quiz.answer = Answer.SKIP;
 						quiz.next();
 					}
 				
@@ -1209,6 +1423,6 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 		QUIZ,
 		QUIZ_GRAMMAR,
 		DETAIL,
-		EDIT
+		EDIT,
 	}
 }

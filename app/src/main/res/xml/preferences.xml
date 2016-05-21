@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+		android:title="General">
+
+        <CheckBoxPreference
+			android:key="notification"
+			android:title="Enable notifications"
+			android:summary="Get notified when there are new vocabularies to review" 
+			android:defaultValue="true"/>
+		
+		<EditTextPreference
+			android:key="learnAddCount"
+			android:title="Number of vocabularies to learn"
+			android:summary="Edit number of vocabularies to add at once" 
+			android:defaultValue="10"
+			android:inputType="number"
+			android:digits="0123456789"
+		/>
+		
+		<CheckBoxPreference
+			android:key="soundLearn"
+			android:title="Play sound when learning new vocabularies"
+			android:summary="Auto play sound when learning new vocabularies. Requires internet. Not all vocabularies have sound" 
+			android:defaultValue="true"/>
+		
+		<CheckBoxPreference
+			android:key="soundQuiz"
+			android:title="Play sound in quiz"
+			android:summary="Auto play sound in quiz. Requires internet. Not all vocabularies have sound" 
+			android:defaultValue="false"/>
+    </PreferenceCategory>
+	
+	<PreferenceCategory
+		android:title="Quiz">
+
+        <CheckBoxPreference
+			android:key="savePoint"
+			android:title="Enable save points"
+			android:summary="Set the category of a vocabulary to the last save point instead of 1 when answered wrong in quiz" 
+			android:defaultValue="true"/>
+		
+		<EditTextPreference
+			android:key="savePoints"
+			android:title="Edit save points"
+			android:summary="Edit list of save points" 
+			android:dependency="savePoint"
+			android:layout="?android:attr/preferenceLayoutChild"
+			android:defaultValue="3; 6;"
+			android:digits="0123456789; "
+			/>
+		
+    </PreferenceCategory>
+
+</PreferenceScreen>

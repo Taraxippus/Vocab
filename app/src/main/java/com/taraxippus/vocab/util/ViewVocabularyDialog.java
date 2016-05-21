@@ -2,13 +2,12 @@ package com.taraxippus.vocab.util;
 
 import android.app.*;
 import android.content.*;
+import android.preference.*;
 import android.support.v7.view.menu.*;
 import android.support.v7.widget.*;
-import android.transition.*;
 import android.view.*;
 import android.widget.*;
 import com.taraxippus.vocab.*;
-import com.taraxippus.vocab.fragment.*;
 import com.taraxippus.vocab.vocabulary.*;
 
 import android.support.v7.widget.PopupMenu;
@@ -20,12 +19,15 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 	
 	private GestureDetector gestureDetector; 
 	
-	final TextView kanji, reading, meaning, type;
+	final TextView kanji, reading, meaning, type, notes;
 	final EditText practice;
+	final LinearLayout layout_notes;
+	final ImageButton sound;
+	final ImageButton stroke_order;
 	
 	int index = 0;
 	
-	public ViewVocabularyDialog(MainActivity main)
+	public ViewVocabularyDialog(final MainActivity main)
 	{
 		this.main = main;
 		
@@ -34,17 +36,40 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 		alertDialog = new AlertDialog.Builder(main).create();
 		alertDialog.setOnDismissListener(this);
 		
-		final View v = main.getLayoutInflater().inflate(R.layout.learn, null);
+		final View v = main.getLayoutInflater().inflate(R.layout.view_vocabulary_dialog, null);
 		kanji = (TextView)v.findViewById(R.id.kanji_text);
 		reading = (TextView)v.findViewById(R.id.reading_text);
 		meaning = (TextView)v.findViewById(R.id.meaning_text);
 		type = (TextView)v.findViewById(R.id.type);
+		notes = (TextView)v.findViewById(R.id.notes_text);
 		practice = (EditText)v.findViewById(R.id.answer_text);
 		
-		v.findViewById(R.id.overflow_button).setOnClickListener(this);
+		layout_notes = (LinearLayout) v.findViewById(R.id.layout_notes);
 		
+		v.findViewById(R.id.overflow_button).setOnClickListener(this);
 		v.setOnTouchListener(this);
 		
+		sound = (ImageButton) v.findViewById(R.id.sound);
+		sound.setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					main.vocabulary_learned_new.get(index).playSound();
+				}
+			});
+		
+		stroke_order = (ImageButton) v.findViewById(R.id.stroke_order);
+		stroke_order.setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					main.vocabulary_learned_new.get(index).showStrokeOrder();
+				}
+			});
+		
+			
 		alertDialog.setView(v);
 		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Next",
 			new DialogInterface.OnClickListener() 
@@ -86,7 +111,7 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 				}
 			});
 			
-			updateView();
+		updateView();
 	}
 	
 	public void updateView()
@@ -96,12 +121,37 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 		kanji.setText(vocab.correctAnswer(QuestionType.KANJI));
 		reading.setText(vocab.correctAnswer(QuestionType.READING));
 		meaning.setText(vocab.correctAnswer(QuestionType.MEANING_INFO));
+		notes.setText(vocab.notes.isEmpty() ? "" : vocab.notes);
+		layout_notes.setVisibility(vocab.notes.isEmpty() ? View.GONE : View.VISIBLE);
 		type.setText(vocab.getType());
+		sound.setVisibility(View.GONE);
+		stroke_order.setVisibility((main.jishoHelper.offlineStrokeOrder() || main.jishoHelper.isInternetAvailable()) && vocab.reading.length != 0 ? View.VISIBLE : View.GONE);
 
+		vocab.prepareSound(new OnProcessSuccessListener()
+			{
+				@Override
+				public void onProcessSuccess(Object... args)
+				{
+					main.runOnUiThread(new Runnable()
+					{
+							@Override
+							public void run()
+							{
+								sound.setVisibility(View.VISIBLE);
+							}
+					});
+				}
+			});
+		
 		alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(main.vocabulary_learned_new.size() > index + 1);
 		alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(index > 0);
 		
 		practice.getText().clear();
+		
+		if (PreferenceManager.getDefaultSharedPreferences(main).getBoolean("soundLearn", true))
+		{
+			main.vocabulary_learned_new.get(index).playSound();
+		}
 	}
 	
 	public void removeCurrent()
@@ -143,32 +193,18 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 					case R.id.detail:
 						alertDialog.dismiss();
 						main.vocabulary_selected = main.vocabulary.indexOf(main.vocabulary_learned_new.get(index));
+		
+						main.changeFragment(main.getDetailFragment(), "detail");
 						
-						Fragment fragment = new VocabularyFragment();
-						fragment.setSharedElementEnterTransition(TransitionInflater.from(main).inflateTransition(R.transition.change_image_transform));
-						fragment.setSharedElementReturnTransition(TransitionInflater.from(main).inflateTransition(R.transition.change_image_transform));
-
-						fragment.setAllowEnterTransitionOverlap(false);
-						fragment.setAllowReturnTransitionOverlap(false);
-
-						fragment.setEnterTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.slide_top));
-						fragment.setReturnTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.fade));
-
-						FragmentManager fragmentManager = main.getFragmentManager();
-						fragmentManager.beginTransaction()
-							.replace(R.id.content_frame, fragment)
-							.addToBackStack("detail")
-							.commit();
-							
 						return true;
 					
 					case R.id.open_jisho:
-						main.searchJisho(kanji.getText().toString());
+						main.jishoHelper.search(kanji.getText().toString());
 						
 						return true;
 						
 					case R.id.open_jisho_kanji:
-						main.searchJisho(kanji.getText().toString() + "%23kanji");
+						main.jishoHelper.search(kanji.getText().toString() + "%23kanji");
 
 						return true;
 						
@@ -183,7 +219,7 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 						
 						if (main.vocabulary.get(main.vocabulary_selected) == main.vocabulary_learned_new.get(index))
 						{
-							main.quiz.answer = Answer.CORRECT;
+							main.quiz.answer = Answer.SKIP;
 							main.quiz.next();
 							
 							main.setTap(main.quiz);

@@ -5,5 +5,6 @@ public enum Answer
 	CORRECT,
 	SIMILIAR,
 	RETRY,
-	WRONG
+	SKIP,
+	WRONG,
 }

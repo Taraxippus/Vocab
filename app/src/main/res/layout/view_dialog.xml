@@ -2,14 +2,14 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical"
-	android:paddingTop="16dp"
-	android:paddingLeft="24dp">
+	android:paddingTop="16dp">
 
 	<LinearLayout
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:orientation="horizontal"
-		android:paddingBottom="16dp">
+		android:paddingBottom="16dp"
+		android:paddingLeft="24dp">
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -35,7 +35,8 @@
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:orientation="horizontal"
-		android:paddingBottom="8dp">
+		android:paddingBottom="8dp"
+		android:paddingLeft="24dp">
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -57,17 +58,13 @@
 
 	</LinearLayout>
 	
-	<View
-		android:layout_width="match_parent"
-		android:layout_height="1dp"
-		android:background="?android:attr/listDivider"/>
-	
 	<LinearLayout
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:orientation="horizontal"
 		android:paddingTop="8dp"
-		android:paddingBottom="8dp">
+		android:paddingBottom="8dp"
+		android:paddingLeft="24dp">
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -89,19 +86,33 @@
 
 	</LinearLayout>
 
+	<View
+		android:id="@+id/divider_scroll_top"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:background="?android:attr/listDivider"/>
+	
 	<ScrollView
 		android:layout_width="fill_parent" 
-		android:layout_height="fill_parent">
+		android:layout_height="175dp"
+		android:id="@+id/scroll_show_boxes">
 
 		<LinearLayout
 			android:id="@+id/show_boxes"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
 			android:orientation="vertical"
-			android:scrollbars="vertical">
+			android:scrollbars="vertical"
+			android:paddingLeft="24dp">
 			
 		</LinearLayout>
 		
 	</ScrollView>
+	
+	<View
+		android:id="@+id/divider_scroll_bottom"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:background="?android:attr/listDivider"/>
 	
 </LinearLayout>

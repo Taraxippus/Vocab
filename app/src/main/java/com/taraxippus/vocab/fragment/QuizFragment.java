@@ -4,6 +4,7 @@ import android.animation.*;
 import android.app.*;
 import android.content.*;
 import android.os.*;
+import android.preference.*;
 import android.support.v7.view.menu.*;
 import android.support.v7.widget.*;
 import android.text.*;
@@ -13,6 +14,7 @@ import android.view.*;
 import android.widget.*;
 import android.widget.TextView.*;
 import com.taraxippus.vocab.*;
+import com.taraxippus.vocab.util.*;
 import com.taraxippus.vocab.vocabulary.*;
 import java.util.*;
 
@@ -29,6 +31,13 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 	TextView solution_text;
 	TextView category_text;
 	TextView level_up_text;
+	CardView card_stroke_order;
+	LinearLayout layout_stroke_order;
+	
+	ImageView sound;
+	ImageView sound2;
+	ImageView stroke_order;
+	ImageView stroke_order2;
 	
 	Animator disappear;
 	Animator appear;
@@ -38,6 +47,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 	QuestionType question_type = QuestionType.KANJI;
 	
 	public Vocabulary vocabulary;
+	public boolean retype;
 	
 	final Random random = new Random();
 	
@@ -46,13 +56,23 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 	public QuizFragment()
 	{
 		super();
+		
+	}
+
+	public void setTransitions(MainActivity main)
+	{
+		this.setEnterTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.slide_top));
+		this.setReturnTransition(TransitionInflater.from(main).inflateTransition(android.R.transition.fade));
+
+		this.setAllowEnterTransitionOverlap(false);
+		this.setAllowReturnTransitionOverlap(false);
 	}
 	
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 	{
 		this.main = (MainActivity)getActivity();
-		
+	
         View v = inflater.inflate(R.layout.quiz, container, false);
 
 		question_text = (TextView)v.findViewById(R.id.question_text);
@@ -88,7 +108,74 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			
 		final ImageButton button_overflow = (ImageButton) v.findViewById(R.id.overflow_button);
 		button_overflow.setOnClickListener(this);
+		
+		View.OnClickListener listener = new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					vocabulary.playSound();
+				}
+			};
+		sound = (ImageButton) v.findViewById(R.id.sound);
+		sound.setOnClickListener(listener);
+		sound2 = (ImageButton) v.findViewById(R.id.sound2);
+		sound2.setOnClickListener(listener);
+		
+		layout_stroke_order = (LinearLayout) v.findViewById(R.id.layout_stroke_order);
+		card_stroke_order = (CardView) v.findViewById(R.id.card_stroke_order);
+		final ProgressBar progress_stroke_order = (ProgressBar) v.findViewById(R.id.stroke_order_progress);
+		final ImageButton stroke_order3 = (ImageButton) v.findViewById(R.id.stroke_order3);
+		
+		card_stroke_order.setVisibility(View.INVISIBLE);
+		listener = new View.OnClickListener()
+		{
+				@Override
+				public void onClick(View p1)
+				{
+					next();
+				}
+		};
+		card_stroke_order.setOnClickListener(listener);
+		stroke_order3.setOnClickListener(listener);
+		
+		listener = new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				vocabulary.showStrokeOrder(layout_stroke_order, new OnProcessSuccessListener()
+				{
+						@Override
+						public void onProcessSuccess(Object[] args)
+						{
+							progress_stroke_order.setVisibility(View.GONE);
+						}
+					
+				}, true, true);
+			
+				Animator appear = ViewAnimationUtils.createCircularReveal(card_stroke_order, 0, card_stroke_order.getHeight(), 0, Math.max(card_stroke_order.getWidth(), card_stroke_order.getHeight()));
 
+				appear.addListener(new AnimatorListenerAdapter() 
+					{
+						@Override
+						public void onAnimationStart(Animator animation) 
+						{
+							super.onAnimationStart(animation);
+							card_stroke_order.setVisibility(View.VISIBLE);
+							progress_stroke_order.setVisibility(View.VISIBLE);
+						}
+					});
+
+				appear.start();
+			}
+		};
+		stroke_order = (ImageButton) v.findViewById(R.id.stroke_order);
+		stroke_order.setOnClickListener(listener);
+		stroke_order2 = (ImageButton) v.findViewById(R.id.stroke_order2);
+		stroke_order2.setOnClickListener(listener);
+		
+		answer = Answer.SKIP;
 		next();
 		
 		return v;
@@ -98,22 +185,21 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 	
 	public void onAnswered(String ans)
 	{
-		if (card_solution.getVisibility() == View.VISIBLE)
+		if (card_solution.getVisibility() == View.VISIBLE || card_stroke_order.getVisibility() == View.VISIBLE)
 		{
 			next();
 			return;
 		}
 		
 		input = ans;
-		int category = vocabulary.category;
 		
 		if (ans.isEmpty())
 			return;
-		else if (answer_type == answer_type.READING && !Vocabulary.isKana(ans))
+		else if (answer_type == answer_type.READING && !StringHelper.isKana(ans))
 			answer = Answer.RETRY;
 		else
-			answer = vocabulary.answer(ans, answer_type, question_type);
-		
+			answer = vocabulary.getAnswer(ans, answer_type, question_type);
+			
 		answer_text.getText().clear();
 		
 		if (answer == Answer.CORRECT)
@@ -121,9 +207,9 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			solution_icon.setText("✔");
 			solution_text.setText("Correct");
 			
-			if (vocabulary.answered_kanji && (vocabulary.answered_reading || vocabulary.reading.length <= 0) && vocabulary.answered_meaning && vocabulary.answered_correct)
+			if (!retype && (answer_type == QuestionType.KANJI || vocabulary.answered_kanji) && (answer_type == QuestionType.READING || vocabulary.answered_reading || vocabulary.reading.length == 0) && (answer_type == QuestionType.MEANING || vocabulary.answered_meaning))
 			{
-				level_up_text.setText("+1");
+				level_up_text.setText(vocabulary.answered_correct ? "+1" : "+0");
 			}
 			else
 			{
@@ -137,16 +223,19 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 				solution_icon.setText("✖");
 				solution_text.setText("Not quite:\n" + vocabulary.correctAnswer(answer_type));
 				
-				level_up_text.setText("-0");
+				if (retype)
+					level_up_text.setText("");
+				else
+					level_up_text.setText("-0");
 			}
 			else
 			{
 				solution_icon.setText("✔");
 				solution_text.setText("Close enough");
 				
-				if (vocabulary.answered_kanji && vocabulary.answered_reading && vocabulary.answered_meaning && vocabulary.answered_correct)
+				if (!retype && (answer_type == QuestionType.KANJI || vocabulary.answered_kanji) && (answer_type == QuestionType.READING || vocabulary.answered_reading || vocabulary.reading.length == 0) && (answer_type == QuestionType.MEANING || vocabulary.answered_meaning))
 				{
-					level_up_text.setText("+1");
+					level_up_text.setText(vocabulary.answered_correct ? "+1" : "+0");
 				}
 				else
 				{
@@ -159,7 +248,14 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			solution_icon.setText("✖");
 			solution_text.setText("Correct answer was:\n" + vocabulary.correctAnswer(answer_type));
 			
-			level_up_text.setText("-" + (category - vocabulary.category));
+			if (retype)
+				level_up_text.setText("");
+			else
+				level_up_text.setText("-" + (vocabulary.category - vocabulary.getLastSavePoint()));
+			
+			if (PreferenceManager.getDefaultSharedPreferences(main).getBoolean("soundQuiz", false) && answer_type == QuestionType.READING)
+					vocabulary.playSound();
+
 		}
 		else if (answer == Answer.RETRY)
 		{
@@ -167,6 +263,27 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			solution_text.setText("Enter the correct " + type_text.getText().toString() + (answer_type == QuestionType.READING ? " in Hiragana" : ""));
 			
 			level_up_text.setText("");
+		}
+		
+		if (answer == Answer.RETRY)
+		{
+			sound2.setVisibility(View.GONE);
+			stroke_order2.setVisibility(View.GONE);
+		}
+		else
+		{
+			stroke_order2.setVisibility((main.jishoHelper.offlineStrokeOrder() || main.jishoHelper.isInternetAvailable()) && vocabulary.reading.length != 0 ? View.VISIBLE : View.GONE);
+			sound2.setVisibility(View.GONE);
+			if (vocabulary.answered_reading || answer_type == QuestionType.READING)
+				vocabulary.prepareSound(new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object[] args)
+					{
+						sound2.setVisibility(View.VISIBLE);
+					}
+
+				});
 		}
 		
 		appear = ViewAnimationUtils.createCircularReveal(card_solution, card_solution.getWidth() / 2, card_solution.getHeight() / 2, 0, Math.max(card_solution.getWidth(), card_solution.getHeight()));
@@ -186,8 +303,38 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 	
 	public void next()
 	{
-		if (answer != Answer.RETRY)
+		if (card_stroke_order == null)
+			return;
+		
+		if (card_stroke_order.getVisibility() == View.VISIBLE)
 		{
+			Animator disappear = ViewAnimationUtils.createCircularReveal(card_stroke_order, 0, card_stroke_order.getHeight(), Math.max(card_stroke_order.getWidth(), card_stroke_order.getHeight()), 0);
+
+			disappear.addListener(new AnimatorListenerAdapter() 
+				{
+					@Override
+					public void onAnimationEnd(Animator animation) 
+					{
+						super.onAnimationEnd(animation);
+						card_stroke_order.setVisibility(View.INVISIBLE);
+						layout_stroke_order.removeAllViewsInLayout();
+					}
+				});
+
+			disappear.start();
+			return;
+		}
+		
+		if (vocabulary != null && answer != Answer.RETRY && answer != answer.SKIP && !retype)
+		{
+			vocabulary.answer(input, answer_type, question_type);
+			category_text.setText("" + vocabulary.category);
+		}
+			
+		if (answer != Answer.RETRY && answer != Answer.WRONG)
+		{
+			retype = false;
+			
 			if (vocabulary != null && vocabulary.answered_kanji && vocabulary.answered_meaning && (vocabulary.answered_reading || vocabulary.reading.length <= 0))
 			{
 				if (vocabulary.answered_correct)
@@ -199,8 +346,11 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 				vocabulary.answered_meaning = false;
 				vocabulary.answered_reading = false;
 				vocabulary.answered_correct = true;
-				main.vocabulary_learned.remove(vocabulary);
 				
+				System.arraycopy(vocabulary.category_history, 1, vocabulary.category_history, 0, vocabulary.category_history.length - 1);
+				vocabulary.category_history[vocabulary.category_history.length - 1] = vocabulary.category;
+				
+				main.vocabulary_learned.remove(vocabulary);
 				main.saveHandler.save();
 				
 				main.setTap(this);
@@ -209,7 +359,8 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			if (main.vocabulary_learned.isEmpty())
 			{
 				main.dialogHelper.createDialog("Completed Quiz!", "Finished quiz! Learn new vocabularies or come back later!");
-				main.changeFragment(main.home, null);
+				main.changeFragment(main.home, "quiz");
+				main.updateNotification();
 				
 				return;
 			}
@@ -228,8 +379,18 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 				
 			if (tmp.size() == 0)
 				return;
+				
+			Collections.shuffle(tmp);
+			Collections.sort(tmp, new Comparator<QuestionType>()
+			{
+					@Override
+					public int compare(QuestionType p1, QuestionType p2)
+					{
+						return (int) Math.signum(vocabulary.getSuccessRate(p1) - vocabulary.getSuccessRate(p2));
+					}
+			});
 			
-			answer_type = tmp.get(random.nextInt(tmp.size()));
+			answer_type = tmp.get(0);
 			
 			tmp.clear();
 			if (answer_type != QuestionType.KANJI)
@@ -242,35 +403,51 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			question_type = tmp.get(random.nextInt(tmp.size()));
 			
 			question_text.setText(vocabulary.question(question_type));
+			
 			if (question_type == question_type.KANJI)
-			{
 				question_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, question_text.getText().length() > 6 ? 45 : 55);
-			}
+			
 			else if (question_type == question_type.READING)
-			{
 				question_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, question_text.getText().length() > 10 ? 40 : question_text.getText().length() > 6 ? 45 : 50);
-			}
+	
 			else if (question_type == question_type.MEANING)
-			{
 				question_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, question_text.getText().length() > 30 ? 35 : question_text.getText().length() > 20 ? 40 : (question_text.getText().length() > 10 ? 45 : 50));
-			}
 			
 			if (answer_type == QuestionType.MEANING)
-			{
 				answer_text.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
-			}
 			else
-			{
 				answer_text.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-			}
 			
 			type_text.setText((answer_type == QuestionType.MEANING ? "MEANING" : answer_type == QuestionType.KANJI ? (vocabulary.reading.length == 0 ? "KANA" : "KANJI") : "READING"));
 			category_text.setText("" + vocabulary.category);
+			
+			sound.setVisibility(View.GONE);
+			if (main.jishoHelper.isInternetAvailable() && (question_type == QuestionType.READING || question_type == QuestionType.KANJI && answer_type != QuestionType.READING && vocabulary.answered_reading))
+				vocabulary.prepareSound(new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object[] args)
+					{
+						sound.setVisibility(View.VISIBLE);
+					}
+				
+				});
+			stroke_order.setVisibility((main.jishoHelper.offlineStrokeOrder() || main.jishoHelper.isInternetAvailable()) && vocabulary.reading.length != 0 && question_type == QuestionType.KANJI ? View.VISIBLE : View.GONE);
+			
+			if (main.jishoHelper.isInternetAvailable() && PreferenceManager.getDefaultSharedPreferences(main).getBoolean("soundQuiz", false))
+			{
+				if (question_type == QuestionType.READING || question_type == QuestionType.KANJI && answer_type != QuestionType.READING)
+				{
+					vocabulary.playSound();
+				}
+			}
 		}
+		else if (answer == Answer.WRONG)
+			retype = true;
 		
 		if (card_solution != null && card_solution.getVisibility() == View.VISIBLE)
 		{
-			disappear = ViewAnimationUtils.createCircularReveal(card_solution, card_solution.getWidth() / 2, card_solution.getHeight() / 2, card_solution.getWidth(), 0);
+			disappear = ViewAnimationUtils.createCircularReveal(card_solution, card_solution.getWidth() / 2, card_solution.getHeight() / 2, Math.max(card_solution.getWidth(), card_solution.getHeight()), 0);
 
 			disappear.addListener(new AnimatorListenerAdapter() 
 				{
@@ -300,25 +477,16 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 				@Override
 				public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item)
 				{
-					Fragment fragment;
-					FragmentManager fragmentManager;
-					
 					switch (item.getItemId()) 
 					{
-						case R.id.detail:
-							fragment = new VocabularyFragment();
-							fragment.setSharedElementEnterTransition(TransitionInflater.from(getActivity()).inflateTransition(R.transition.change_image_transform));
-							fragment.setSharedElementReturnTransition(TransitionInflater.from(getActivity()).inflateTransition(R.transition.change_image_transform));
-
-							fragment.setEnterTransition(TransitionInflater.from(getActivity()).inflateTransition(android.R.transition.slide_top));
-							fragment.setReturnTransition(TransitionInflater.from(getActivity()).inflateTransition(android.R.transition.fade));
-
-							fragmentManager = getFragmentManager();
-							fragmentManager.beginTransaction()
-								.replace(R.id.content_frame, fragment)
-								.addToBackStack("detail")
-								.commit();
+						case R.id.retry:
+							answer = Answer.RETRY;
+							next();
+							return true;
 							
+						case R.id.detail:
+							main.changeFragment(main.getDetailFragment(), "detail");
+						
 							return true;
 
 						case R.id.show_solutions:
@@ -415,6 +583,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener
 			};
 			MenuInflater inflater = popup.getMenuInflater();
 			inflater.inflate(R.menu.quiz, popup.getMenu());
+			popup.getMenu().findItem(R.id.retry).setVisible(answer == Answer.WRONG || answer == Answer.SIMILIAR);
 			popup.show();
 		}
 	}

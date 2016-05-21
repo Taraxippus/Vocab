@@ -9,6 +9,9 @@
         android:targetSdkVersion="21" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -16,13 +19,14 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <receiver
-            android:name="com.taraxippus.vocab.AlarmReceiver"
+            android:name="com.taraxippus.vocab.util.AlarmReceiver"
             android:process=":remote" />
 
         <activity
             android:name="com.taraxippus.vocab.MainActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" >
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
@@ -39,6 +43,31 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.taraxippus.vocab.SettingsActivity"
+            android:label="Settings"
+            android:parentActivityName="com.taraxippus.vocab.MainActivity"
+            android:screenOrientation="portrait" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+
+            <intent-filer>
+                <action android:name=".SettingsActivity" />
+
+                <category android:name="android.intent.category.PREFERENCE" />
+                <category android:name="android.intent.category.NOTIFICATION_PREFERENCES" />
+            </intent-filer>
+        </activity>
+        <activity
+            android:name="com.taraxippus.vocab.QuizActivity"
+            android:label="Quiz"
+            android:parentActivityName="com.taraxippus.vocab.MainActivity"
+            android:screenOrientation="portrait" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
         </activity>
     </application>
 
