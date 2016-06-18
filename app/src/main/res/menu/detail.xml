@@ -1,0 +1,47 @@
+<menu 
+	xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+	
+	<item
+		android:id="@+id/item_learn_add"
+		android:icon="@drawable/learn_add"
+		android:title="Add to learned vocabularies"
+		app:showAsAction="ifRoom" />
+
+	<item
+		android:id="@+id/item_learn_remove"
+		android:icon="@drawable/learn_remove"
+		android:title="Remove from learned vocabularies"
+		app:showAsAction="ifRoom" />
+
+	<item
+		android:id="@+id/item_edit"
+		android:icon="@drawable/edit"
+		android:title="Edit"
+		app:showAsAction="ifRoom"/>
+	
+    <item
+		android:id="@+id/item_open_jisho"
+		android:title="Show vocabulary on jisho.org"/>
+	
+	<item
+		android:id="@+id/item_open_jisho_kanji"
+		android:title="Show kanji on jisho.org"/>
+	
+	<item
+		android:id="@+id/item_reset"
+		android:title="Reset stats"/>
+	
+	<item
+		android:id="@+id/item_reset_category"
+		android:title="Reset category"/>
+	
+	<item
+		android:id="@+id/item_delete"
+		android:title="Delete"/>
+	
+	<item
+		android:id="@+id/item_cheat"
+		android:title="Cheat level up"/>
+	
+</menu>

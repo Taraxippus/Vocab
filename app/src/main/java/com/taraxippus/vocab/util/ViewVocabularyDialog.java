@@ -12,7 +12,7 @@ import com.taraxippus.vocab.vocabulary.*;
 
 import android.support.v7.widget.PopupMenu;
 
-public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, View.OnClickListener, View.OnTouchListener, GestureDetector.OnGestureListener
+public class ViewVocabularyDialog implements View.OnClickListener, View.OnTouchListener, GestureDetector.OnGestureListener
 {
 	final MainActivity main;
 	public final AlertDialog alertDialog;
@@ -34,9 +34,8 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 		gestureDetector = new GestureDetector(main, this);
 		
 		alertDialog = new AlertDialog.Builder(main).create();
-		alertDialog.setOnDismissListener(this);
 		
-		final View v = main.getLayoutInflater().inflate(R.layout.view_vocabulary_dialog, null);
+		final View v = main.getLayoutInflater().inflate(R.layout.dialog_view, null);
 		kanji = (TextView)v.findViewById(R.id.kanji_text);
 		reading = (TextView)v.findViewById(R.id.reading_text);
 		meaning = (TextView)v.findViewById(R.id.meaning_text);
@@ -55,7 +54,7 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 				@Override
 				public void onClick(View v)
 				{
-					main.vocabulary_learned_new.get(index).playSound();
+					main.vocabulary_learned_new.get(index).playSound(main);
 				}
 			});
 		
@@ -65,7 +64,7 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 				@Override
 				public void onClick(View v)
 				{
-					main.vocabulary_learned_new.get(index).showStrokeOrder();
+					//main.vocabulary_learned_new.get(index).showStrokeOrder();
 				}
 			});
 		
@@ -125,21 +124,14 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 		layout_notes.setVisibility(vocab.notes.isEmpty() ? View.GONE : View.VISIBLE);
 		type.setText(vocab.getType());
 		sound.setVisibility(View.GONE);
-		stroke_order.setVisibility((main.jishoHelper.offlineStrokeOrder() || main.jishoHelper.isInternetAvailable()) && vocab.reading.length != 0 ? View.VISIBLE : View.GONE);
+		stroke_order.setVisibility(JishoHelper.isStrokeOrderAvailable(main) ? View.VISIBLE : View.GONE);
 
-		vocab.prepareSound(new OnProcessSuccessListener()
+		vocab.prepareSound(main, new OnProcessSuccessListener()
 			{
 				@Override
 				public void onProcessSuccess(Object... args)
 				{
-					main.runOnUiThread(new Runnable()
-					{
-							@Override
-							public void run()
-							{
-								sound.setVisibility(View.VISIBLE);
-							}
-					});
+					sound.setVisibility(View.VISIBLE);
 				}
 			});
 		
@@ -150,7 +142,7 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 		
 		if (PreferenceManager.getDefaultSharedPreferences(main).getBoolean("soundLearn", true))
 		{
-			main.vocabulary_learned_new.get(index).playSound();
+			main.vocabulary_learned_new.get(index).playSound(main);
 		}
 	}
 	
@@ -172,21 +164,13 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 	}
 	
 	@Override
-	public void onDismiss(DialogInterface p1)
-	{
-		if (main.viewVocabularyDialog == this)
-		{
-			main.viewVocabularyDialog = null;
-		}
-	}
-	
-	@Override
 	public void onClick(View v)
 	{
-		PopupMenu popup = new PopupMenu(main, v)
+		PopupMenu popup = new PopupMenu(main, v);
+		popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
 		{
 			@Override
-			public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item)
+			public boolean onMenuItemClick(MenuItem item)
 			{
 				switch (item.getItemId()) 
 				{
@@ -194,17 +178,17 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 						alertDialog.dismiss();
 						main.vocabulary_selected = main.vocabulary.indexOf(main.vocabulary_learned_new.get(index));
 		
-						main.changeFragment(main.getDetailFragment(), "detail");
+						//main.changeFragment(main.getDetailFragment(), "detail");
 						
 						return true;
 					
 					case R.id.open_jisho:
-						main.jishoHelper.search(kanji.getText().toString());
+						JishoHelper.search(main, kanji.getText().toString());
 						
 						return true;
 						
 					case R.id.open_jisho_kanji:
-						main.jishoHelper.search(kanji.getText().toString() + "%23kanji");
+						JishoHelper.search(main, kanji.getText().toString() + "%23kanji");
 
 						return true;
 						
@@ -217,23 +201,15 @@ public class ViewVocabularyDialog implements DialogInterface.OnDismissListener, 
 					case R.id.exclude:
 						main.vocabulary_learned.remove(main.vocabulary_learned_new.get(index));
 						
-						if (main.vocabulary.get(main.vocabulary_selected) == main.vocabulary_learned_new.get(index))
-						{
-							main.quiz.answer = Answer.SKIP;
-							main.quiz.next();
-							
-							main.setTap(main.quiz);
-						}
-						
 						removeCurrent();
 
 						return true;
 
 					default:
-						return super.onMenuItemSelected(menu, item);
+						return false;
 				}
 			}
-		};
+		});
 		MenuInflater inflater = popup.getMenuInflater();
 		inflater.inflate(R.menu.vocabulary_show, popup.getMenu());
 		

@@ -3,15 +3,15 @@
 
     <item
         android:id="@+id/detail"
-        android:title="Show detailed information"/>
+        android:title="Show details"/>
 	
 	<item
         android:id="@+id/learn_add"
-        android:title="Add to learned vocabulary"/>
+        android:title="Add to learned vocabularies"/>
 	
 	<item
         android:id="@+id/learn_remove"
-        android:title="Remove from learned vocabulary"/>
+        android:title="Remove from learned vocabularies"/>
 	
     <item
         android:id="@+id/edit"

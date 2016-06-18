@@ -1,26 +1,19 @@
 package com.taraxippus.vocab.util;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
-import com.taraxippus.vocab.MainActivity;
-import com.taraxippus.vocab.R;
 
-public class DialogHelper
+public final class DialogHelper
 {
-	final MainActivity context;
+	private DialogHelper() {}
 	
-	public DialogHelper(MainActivity context)
+	public static void createDialog(Context context, String title, String message)
 	{
-		this.context = context;
-	}
-	
-	public void createDialog(String title, String message)
-	{
-		AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-		alertDialog.setOwnerActivity(context);
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
 		alertDialog.setTitle(title);
 		alertDialog.setMessage(message);
-		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK",
+		alertDialog.setPositiveButton("OK",
 			new DialogInterface.OnClickListener() 
 			{
 				public void onClick(DialogInterface dialog, int which) 
@@ -31,19 +24,18 @@ public class DialogHelper
 		alertDialog.show();
 	}
 	
-	public void createDialog(String title, String message, DialogInterface.OnClickListener onOk)
+	public static void createDialog(Context context, String title, String message, DialogInterface.OnClickListener onOk)
 	{
-		createDialog(title, message, "OK", onOk);
+		createDialog(context, title, message, "OK", onOk);
 	}
 		
-	public void createDialog(String title, String message, String ok, DialogInterface.OnClickListener onOk)
+	public static void createDialog(Context context, String title, String message, String ok, DialogInterface.OnClickListener onOk)
 	{
-		AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-		alertDialog.setOwnerActivity(context);
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
 		alertDialog.setTitle(title);
 		alertDialog.setMessage(message);
-		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, ok, onOk);
-		alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener()
+		alertDialog.setPositiveButton(ok, onOk);
+		alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
 			{
 				@Override
 				public void onClick(DialogInterface dialog, int which)
@@ -54,10 +46,9 @@ public class DialogHelper
 		alertDialog.show();
 	}
 
-	public void createDialog(String title, String message, String neutral, DialogInterface.OnClickListener onNeutral, String ok, DialogInterface.OnClickListener onOk)
+	public static void createDialog(Context context, String title, String message, String neutral, DialogInterface.OnClickListener onNeutral, String ok, DialogInterface.OnClickListener onOk)
 	{
 		AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-		alertDialog.setOwnerActivity(context);
 		alertDialog.setTitle(title);
 		alertDialog.setMessage(message);
 		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, ok, onOk);
@@ -72,12 +63,10 @@ public class DialogHelper
 			});
 		alertDialog.show();
 	}
-	
 
-	public void createDialog(String title, String message, String neutral, DialogInterface.OnClickListener onNeutral, String ok, DialogInterface.OnClickListener onOk, boolean reversed)
+	public static void createDialog(Context context, String title, String message, String neutral, DialogInterface.OnClickListener onNeutral, String ok, DialogInterface.OnClickListener onOk, boolean reversed)
 	{
 		AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-		alertDialog.setOwnerActivity(context);
 		alertDialog.setTitle(title);
 		alertDialog.setMessage(message);
 		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, ok, onOk);

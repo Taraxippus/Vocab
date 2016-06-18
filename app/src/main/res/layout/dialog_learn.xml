@@ -1,0 +1,96 @@
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+    
+	android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical" >
+
+	<TextView
+		android:id="@+id/text_which"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Which:" />
+
+	<Spinner
+		android:id="@+id/spinner_which"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true"
+		android:layout_marginTop="16dp"
+		android:layout_marginBottom="16dp" />
+	
+	<Button
+		android:id="@+id/button_plus"
+		android:layout_width="32dp"
+		android:layout_height="32dp"
+		android:layout_below="@id/spinner_which"
+		android:layout_alignParentRight="true"
+		android:layout_marginRight="8dp"
+		style="?android:attr/borderlessButtonStyle"
+		android:background="?attr/selectableItemBackgroundBorderless"
+		android:text="+"
+		android:textSize="24dp"
+		android:textColor="@color/accent" />
+	
+	<EditText
+		android:id="@+id/text_edit_count"
+		android:layout_width="50dp"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/spinner_which"
+		android:layout_toLeftOf="@id/button_plus"
+		android:inputType="number" />
+	
+	<Button
+		android:id="@+id/button_minus"
+		android:layout_width="32dp"
+		android:layout_height="32dp"
+		android:layout_below="@id/spinner_which"
+		android:layout_toLeftOf="@id/text_edit_count"
+		style="?android:attr/borderlessButtonStyle"
+		android:background="?attr/selectableItemBackgroundBorderless"
+		android:text="-"
+		android:textSize="24dp"
+		android:textColor="@color/accent" />
+	
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/spinner_which"
+		android:layout_alignParentLeft="true"
+		android:layout_toLeftOf="@id/button_minus"
+		android:paddingLeft="24dp"
+		android:text="Count:"  />
+	
+	<View
+		android:id="@+id/divider_scroll_top"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_below="@id/text_edit_count"
+		android:layout_marginTop="16dp"
+		android:background="?android:attr/listDivider"/>
+
+	<View
+		android:id="@+id/divider_scroll_bottom"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_alignParentBottom="true"
+		android:background="?android:attr/listDivider"/>
+	
+	<ScrollView
+		android:id="@+id/scroll_preview"
+		android:layout_width="match_parent" 
+		android:layout_height="wrap_content"
+		android:layout_below="@id/divider_scroll_top"
+		android:layout_above="@id/divider_scroll_bottom">
+		
+		<TextView
+			android:id="@+id/text_preview"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:scrollbars="vertical"
+			android:paddingLeft="24dp" />
+		
+	</ScrollView>
+</RelativeLayout>

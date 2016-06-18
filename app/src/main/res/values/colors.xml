@@ -8,9 +8,4 @@
 	<item name="white" type="color">#FFFFFF</item>
 	<item name="gray" type="color">#8a000000</item>
 	<item name="black" type="color">#000000</item>
-	
-	<item name="navigationSelected" type="color">#EEEEEE</item>
-	<item name="navigationText" type="color">#dd000000</item>
-	<item name="navigationIcon" type="color">#FF757575</item>
-	
 </resources>

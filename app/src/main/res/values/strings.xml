@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="app_name">Vocab</string>
 	<string name="notification_id">com.taraxippus.vocab.nextreview</string>
-	<string name="search">Search vocabularies</string>
-	
+	<string name="search">Search Vocabularies</string>
 </resources>

@@ -1,18 +1,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     
 	<item
-        android:id="@+id/retry"
+        android:id="@+id/item_retry"
         android:title="Retry"/>
     
     <item
-        android:id="@+id/detail"
+        android:id="@+id/item_detail"
         android:title="Show vocabulary"/>
     
 	<item
-        android:id="@+id/show_solutions"
+        android:id="@+id/item_show_solutions"
         android:title="Show all possible solutions"/>
 	
 	<item
-        android:id="@+id/learn_remove"
-        android:title="Remove from learned vocabulary"/>
+        android:id="@+id/item_exclude"
+        android:title="Exclude from this quiz"/>
 </menu>

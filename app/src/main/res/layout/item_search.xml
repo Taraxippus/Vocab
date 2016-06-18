@@ -1,0 +1,114 @@
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:card_view="http://schemas.android.com/apk/res-auto"
+
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+	android:animateLayoutChanges="true">
+    
+	<android.support.v7.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginBottom="4dp"
+		card_view:cardCornerRadius="0dp"
+		card_view:cardElevation="2dp">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content" >
+
+			<ImageButton
+				android:id="@+id/button_stroke_order"
+				android:layout_width="24dp"
+				android:layout_height="24dp"
+				android:layout_alignParentRight="true"
+				android:layout_alignParentTop="true"
+				android:scaleType="center"
+				android:src="@drawable/stroke_order"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:clickable="true" />
+
+			<TextView
+				android:id="@+id/text_results"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@id/button_stroke_order"
+				android:layout_centerHorizontal="true"
+				android:padding="8dp"
+				android:textStyle="bold" />
+
+			<Button
+				android:id="@+id/button_jisho"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentLeft="true"
+				android:layout_below="@id/text_results"
+				android:text="Search on jisho.org"
+				android:textColor="@color/accent"
+				style="?android:attr/borderlessButtonStyle" />
+
+			<Button
+				android:id="@+id/button_filter"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentRight="true"
+				android:layout_below="@id/text_results"
+				android:text="Change filters"
+				android:textColor="@color/accent"
+				style="?android:attr/borderlessButtonStyle" />
+
+		</RelativeLayout>
+	</android.support.v7.widget.CardView>
+	
+	<android.support.v7.widget.CardView
+		android:id="@+id/card_stroke_order"
+		
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="4dp"
+		android:layout_marginBottom="4dp"
+		card_view:cardCornerRadius="0dp"
+		card_view:cardElevation="2dp"
+		android:visibility="gone" >
+
+		<RelativeLayout
+			android:id="@+id/layout_stroke_order"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content" >
+			
+			<ImageButton
+				android:id="@+id/button_overflow"
+				android:layout_width="34dp"
+				android:layout_height="40dp"
+				android:layout_alignParentTop="true"
+				android:layout_alignParentRight="true"
+				android:padding="0dp"
+				android:scaleType="center"
+				android:src="@drawable/overflow"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:onClick="showStrokeOrderPopup" />
+
+			<TextView
+				android:id="@+id/text_title_stroke_order"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentTop="true"
+				android:layout_alignParentLeft="true"
+				android:text="Strokeorder"
+				android:paddingTop="16dp"
+				android:paddingBottom="16dp"
+				android:paddingLeft="16dp"
+				android:textStyle="bold" />
+
+			<ProgressBar
+				android:id="@+id/progress_stroke_order"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@id/text_title_stroke_order"
+				android:layout_centerHorizontal="true"
+				android:padding="8dp" />
+			
+		</RelativeLayout>
+	</android.support.v7.widget.CardView>
+</LinearLayout>

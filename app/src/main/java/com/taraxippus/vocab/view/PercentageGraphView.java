@@ -7,6 +7,7 @@ import android.view.*;
 import com.taraxippus.vocab.*;
 import java.util.*;
 import android.support.v4.view.*;
+import android.text.TextPaint;
 
 public class PercentageGraphView extends View
 {
@@ -51,70 +52,121 @@ public class PercentageGraphView extends View
 		erasePaint.setColor(Color.TRANSPARENT);
 		erasePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
 
+		TypedValue typedValue = new TypedValue();
+		context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, typedValue, true);
+		
 		textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		textPaint.setStyle(Paint.Style.FILL);
-		textPaint.setColor(0);
-		textPaint.setAlpha((int) (0.45F * 255));
+		textPaint.setColor(context.getColor(typedValue.resourceId));
 		textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
 		textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-
 	}
 
-	public void setValues(String[] names1, float[] values1)
+	public void setValues(String[] names1, float[] values1, boolean sort, boolean removeZero)
 	{
 		values = new float[values1.length];
 		names = new String[names1.length];
+		largest = 0;
 
+		if (sort)
+		{
+			String swapString;
+			float swapInt;
+			for (int n = 0; n < values.length; n++)
+				for (int m = 0; m < values.length - 1 - n; m++) 
+					if (values1[m] > values1[m + 1]) 
+					{
+						swapString = names1[m];
+						names1[m] = names1[m + 1];
+						names1[m + 1] = swapString;
+						swapInt = values1[m];
+						values1[m] = values1[m + 1];
+						values1[m + 1] = swapInt;
+					}
+		}
+		
 		float sum = 0;
+		
+		for (int i = 0; i < values.length; ++i)
+			sum += values1[i];
+		
 		for (int i = 0; i < values.length; ++i)
 		{
 			names[i] = names1[i];
-			values[i] = values1[i];
-			sum += values[i];
-
-			if (values1[i] == 0 && i > 0 && values1[i - 1] == 0)
-			{
-				names[i] = names[i - 1] + ", " + names[i];
-				names[i - 1] = "";
-			}
-		}
-
-		for (int i = 0; i < values.length; ++i)
-		{
-			values[i] /= sum;
-
+			values[i] = values1[i] / sum;
+			
 			if (values[i] > values[largest])
 				largest = i;
+				
+			if (removeZero && values[i] == 0)
+				names[i] = "";
+			
+			else if (i > 0 && values[i - 1] + values[i] < 0.05F)
+			{
+				if (!names[i - 1].isEmpty())
+				{
+					names[i] = names[i - 1] + ", " + names[i];
+					names[i - 1] = "";
+				}
+					
+				values[i] += values[i - 1];
+				values[i - 1] = 0;
+			}
 		}
 
 		invalidate();
 	}
 
-	public void setValues(String[] names1, int[] values1)
+	public void setValues(String[] names1, int[] values1, boolean sort, boolean removeZero)
 	{
 		values = new float[values1.length];
 		names = new String[names1.length];
-
+		largest = 0;
+		
+		if (sort)
+		{
+			String swapString;
+			int swapInt;
+			for (int n = 0; n < values.length; n++)
+				for (int m = 0; m < values.length - 1 - n; m++) 
+					if (values1[m] > values1[m + 1]) 
+					{
+						swapString = names1[m];
+						names1[m] = names1[m + 1];
+						names1[m + 1] = swapString;
+						swapInt = values1[m];
+						values1[m] = values1[m + 1];
+						values1[m + 1] = swapInt;
+					}
+		}
+				
 		float sum = 0;
+		
+		for (int i = 0; i < values.length; ++i)
+			sum += values1[i];
+
 		for (int i = 0; i < values.length; ++i)
 		{
 			names[i] = names1[i];
-			values[i] = values1[i];
-			sum += values[i];
-
-			if (values1[i] == 0 && i > 0 && values1[i - 1] == 0)
-			{
-				names[i] = names[i - 1] + ", " + names[i];
-				names[i - 1] = "";
-			}
-		}
-
-		for (int i = 0; i < values.length; ++i)
-		{
-			values[i] /= sum;
+			values[i] = values1[i] / sum;
 
 			if (values[i] > values[largest])
 				largest = i;
+
+			if (removeZero && values[i] == 0)
+				names[i] = "";
+			
+			else if (i > 0 && values[i - 1] + values[i] < 0.05F)
+			{
+				if (!names[i - 1].isEmpty())
+				{
+					names[i] = names[i - 1] + ", " + names[i];
+					names[i - 1] = "";
+				}
+					
+				values[i] += values[i - 1];
+				values[i - 1] = 0;
+			}
 		}
 
 		invalidate();
@@ -151,16 +203,33 @@ public class PercentageGraphView extends View
 		}
 
 		sum = 0;
+		float x, y, lastY = Float.NaN;
 		for (int i = 0; i < values.length; ++i)
 		{
 			if (i == largest)
 				canvas.drawArc(circleSmall, -90 + sum * 360, values[i] * 360, true, circlePaintLargest);
 
-			textPaint.setTextAlign(Math.cos((sum + values[i] / 2F - 0.25F) * Math.PI * 2) >= 0 ? Paint.Align.LEFT : Paint.Align.RIGHT);
+			x = (float) Math.cos((sum + values[i] / 2F - 0.25F) * Math.PI * 2);
+			y = (float) Math.sin((sum + values[i] / 2F - 0.25F) * Math.PI * 2);
+			
+			textPaint.setTextAlign(y < -0.95 || y >= 0.95 ? Paint.Align.CENTER : x > 0 ? Paint.Align.LEFT : Paint.Align.RIGHT);
 
+			y = y * (size / 2F * 1.075F - textPaint.getTextSize() / 4F) + textPaint.getTextSize() / 4F;
+			
+			if (x > 0 && lastY == lastY && y - lastY < textPaint.getTextSize() * 1.05F)
+			{
+				y += (textPaint.getTextSize() * 1.05F - (y - lastY));
+				x = (float) Math.cos(Math.asin((y - textPaint.getTextSize() / 4F) / (size / 2F * 1.075F - textPaint.getTextSize() / 4F)));
+			}
+			
+			x *= size / 2F * 1.075F;
+				
 			if (!names[i].isEmpty())
-				canvas.drawText(names[i] + " - " + ((int)(values[i] * 1000) / 10F) + "℅", canvas.getWidth() / 2F + (float)Math.cos((sum + values[i] / 2F - 0.25F) * Math.PI * 2) * size / 2F * 1.05F, canvas.getHeight() / 2F + (float)Math.sin((sum + values[i] / 2F - 0.25F) * Math.PI * 2) * (size / 2F * 1.05F - textPaint.getTextSize() / 4F) + textPaint.getTextSize() / 4F, textPaint);
-
+			{
+				canvas.drawText(names[i] + " - " + ((int)(values[i] * 1000) / 10F) + "℅", canvas.getWidth() / 2F + x, canvas.getHeight() / 2F + y, textPaint);
+				lastY = y;
+			}
+				
 			sum += values[i];
 		}
 	}

@@ -5,7 +5,7 @@ public enum ImportType
 {
 	MERGE,
 	REPLACE,
-	REPLACE_KEEEP_STATS,
+	REPLACE_KEEP_STATS,
 	KEEP,
 	ASK
 }

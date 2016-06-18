@@ -36,7 +36,6 @@ public class FragmentLinearLayout extends LinearLayout
 	{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
- 
             mInsets[0] = insets.left;
             mInsets[1] = insets.top;
             mInsets[2] = insets.right;

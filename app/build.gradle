@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.taraxippus.vocab"
-        minSdkVersion 14
+        minSdkVersion 21
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
@@ -20,6 +20,8 @@ android {
 }
 
 dependencies {
+	compile 'com.android.support:gridlayout-v7:+'
+	compile 'com.android.support:design:+'
 	compile 'com.android.support:appcompat-v7:+'
 	compile 'com.android.support:recyclerview-v7:+'
 	compile 'com.android.support:cardview-v7:+'

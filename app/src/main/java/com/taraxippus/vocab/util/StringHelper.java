@@ -5,9 +5,50 @@ public class StringHelper
 {
 	public static String trim(String oldString) 
 	{
-		return com.google.common.base.CharMatcher.WHITESPACE.trimFrom(oldString);
+		final int length = oldString.length();
+		
+		if (length == 0)
+			return oldString;
+		
+		int offset = 0, offset2 = length - 1;
+		
+		int codePoint = oldString.codePointAt(offset);
+		if (isWhitespace(codePoint))
+			for (; offset < length ;)
+			{
+				codePoint = oldString.codePointAt(offset);
+
+				if (!isWhitespace(codePoint))
+					break;
+		
+				offset += Character.charCount(codePoint);
+			}
+		
+		codePoint = oldString.codePointAt(offset2);
+		
+		if (isWhitespace(codePoint))
+			for (; offset2 > offset ;)
+			{
+				codePoint = oldString.codePointAt(offset2);
+
+				if (!isWhitespace(codePoint))
+					break;
+
+				offset2 -= Character.charCount(codePoint);
+			}
+		
+		return offset == offset2 + 1 ? "" : oldString.substring(offset, offset2 + 1);
 	}
 
+	public static boolean isWhitespace(int c)
+	{
+		return c >= 0x0009 && c <= 0x000D
+			|| c == 0x0085 || c == 0x2028 || c == 0x2029 || c == 0x0020 
+			|| c == 0x3000 || c == 0x1680 || c >= 0x2000 && c <= 0x2006
+			|| c >= 0x2008 && c <= 0x200A || c == 0x205F || c == 0x00A0 
+			|| c == 0x2007 || c == 0x202F;
+	}
+	
 	public static boolean isKana(String s)
 	{
 		String trimed = trim(s);
@@ -221,7 +262,8 @@ public class StringHelper
 		return kanjiCount > 0 && kanjiCount == kanjiCount2;
 	}
 	
-	private static final String seperator = "\\";
+	private static final char seperator = '\\';
+	private static final String seperator_regex = "\\\\";
 	
 	public static String toString(String[] in)
 	{
@@ -231,9 +273,23 @@ public class StringHelper
 			if (i > 0)
 				sb.append(seperator);
 				
-			sb.append(in[i]);
+			sb.append(in[i].replace(seperator, '/'));
 		}
 		
+		return sb.toString();
+	}
+	
+	public static String toString(ArrayList<String> in)
+	{
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < in.size(); ++i)
+		{
+			if (i > 0)
+				sb.append(seperator);
+
+			sb.append(in.get(i).replace(seperator, '/'));
+		}
+
 		return sb.toString();
 	}
 	
@@ -251,19 +307,69 @@ public class StringHelper
 		return sb.toString();
 	}
 	
+	public static String toString(ArrayList<Integer> in)
+	{
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < in.size(); ++i)
+		{
+			if (i > 0)
+				sb.append(seperator);
+
+			sb.append(in.get(i));
+		}
+
+		return sb.toString();
+	}
+	
+	public static String toString(boolean[] in)
+	{
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < in.length; ++i)
+		{
+			if (i > 0)
+				sb.append(seperator);
+
+			if (in[i])
+				sb.append("1");
+		}
+
+		return sb.toString();
+	}
+	
 	public static String[] toStringArray(String in)
 	{
-		return in.split(seperator);
+		if (in == null || in.isEmpty())
+			return new String[0];
+		
+		return in.split(seperator_regex);
 	}
 	
 	public static int[] toIntArray(String in)
 	{
+		if (in == null || in.isEmpty())
+
+			return new int[0];
+			
 		final String[] array = toStringArray(in);
 		final int[] out = new int[array.length];
 		
 		for (int i = 0; i < out.length; ++i)
 			out[i] = Integer.parseInt(array[i]);
 		
+		return out;
+	}
+	
+	public static boolean[] toBooleanArray(String in)
+	{
+		if (in == null || in.isEmpty())
+			return new boolean[0];
+
+		final String[] array = toStringArray(in);
+		final boolean[] out = new boolean[array.length];
+
+		for (int i = 0; i < out.length; ++i)
+			out[i] = !array[i].isEmpty();
+
 		return out;
 	}
 }

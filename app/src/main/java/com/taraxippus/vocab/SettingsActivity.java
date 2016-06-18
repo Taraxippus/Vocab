@@ -1,9 +1,9 @@
 package com.taraxippus.vocab;
 
-import android.os.*;
-import android.preference.*;
-import android.support.v7.app.*;
-import android.support.v7.widget.*;
+import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
+import com.taraxippus.vocab.fragment.FragmentActivitySettings;
 
 public class SettingsActivity extends ActionBarActivity 
 {
@@ -12,7 +12,7 @@ public class SettingsActivity extends ActionBarActivity
 	{
         super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.settings_activity);
+		setContentView(R.layout.main);
 
 		Toolbar toolbar = (Toolbar) findViewById(R.id.tool_bar);
 		setSupportActionBar(toolbar);
@@ -21,23 +21,7 @@ public class SettingsActivity extends ActionBarActivity
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
         getFragmentManager().beginTransaction()
-			.replace(R.id.content_frame, new SettingsFragment())
+			.replace(R.id.content_frame, new FragmentActivitySettings())
 			.commit();
     }
-
-	public class SettingsFragment extends PreferenceFragment
-	{
-		public SettingsFragment()
-		{
-			super();
-		}
-		
-		@Override
-		public void onCreate(Bundle savedInstanceState)
-		{
-			super.onCreate(savedInstanceState);
-
-			addPreferencesFromResource(R.xml.preferences);
-		}
-	}
 }

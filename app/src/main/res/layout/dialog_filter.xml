@@ -1,0 +1,97 @@
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+	<TextView
+		android:id="@+id/text_sort"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_alignParentTop="true" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Sort by:" />
+
+	<Spinner
+		android:id="@+id/spinner_sort"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true"
+		android:layout_alignParentTop="true" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+
+	<TextView
+		android:id="@+id/text_view"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_sort" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Item size:" />
+
+	<Spinner
+		android:id="@+id/spinner_view"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true" 
+		android:layout_alignLeft="@id/spinner_sort"
+		android:layout_below="@id/spinner_sort" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+
+	<TextView
+		android:id="@+id/text_show"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_view" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Show:" />
+
+	<Spinner
+		android:id="@+id/spinner_show"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true" 
+		android:layout_alignLeft="@id/spinner_sort"
+		android:layout_below="@id/spinner_view" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+
+	<View
+		android:id="@+id/divider_scroll_top"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_below="@id/spinner_show"
+		android:layout_marginTop="16dp"
+		android:background="?android:attr/listDivider"/>
+
+	<View
+		android:id="@+id/divider_scroll_bottom"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_alignParentBottom="true"
+		android:background="?android:attr/listDivider"/>
+
+	<ScrollView
+		android:id="@+id/scroll_show_boxes"
+		android:layout_width="match_parent" 
+		android:layout_height="0dp"
+		android:layout_below="@id/divider_scroll_top"
+		android:layout_above="@id/divider_scroll_bottom">
+
+		<LinearLayout
+			android:id="@+id/layout_show_boxes"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:scrollbars="vertical"
+			android:paddingLeft="24dp">
+		</LinearLayout>
+	</ScrollView>
+</RelativeLayout>

@@ -1,0 +1,41 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+	<group 
+		android:checkableBehavior="single"
+		android:id="@+id/group_main" >
+
+        <item
+            android:id="@+id/item_home"
+            android:checked="true"
+            android:icon="@drawable/home"
+            android:title="Home" />
+		
+		<item
+            android:id="@+id/item_add"
+            android:icon="@drawable/add"
+			android:checkable="false"
+            android:title="Add Vocabulary" />
+		
+		<item
+            android:id="@+id/item_quiz"
+            android:checked="false"
+            android:icon="@drawable/quiz"
+            android:title="Quiz" />
+		
+		<item
+            android:id="@+id/item_quiz_grammar"
+            android:checked="false"
+            android:icon="@drawable/quiz_grammar"
+            android:title="Grammar Quiz" />
+		
+    </group>
+	<group 
+		android:id="@+id/group_settings" >
+		
+        <item
+            android:id="@+id/item_settings"
+            android:icon="@drawable/settings"
+            android:title="Settings" />
+
+    </group>
+</menu>

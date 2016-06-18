@@ -17,8 +17,6 @@ public class Vocabulary implements Comparable<Vocabulary>
 {
 	public static final Random random = new Random();
 	
-	public final MainActivity main;
-	
 	public final String kanji;
 	public final String[] reading;
 	public final String[] reading_trimed;
@@ -64,9 +62,8 @@ public class Vocabulary implements Comparable<Vocabulary>
 	public String soundFile = "";
 	public String imageFile = "";
 	
-	public Vocabulary(MainActivity main, VocabularyType type, String kanji, String[] reading, String[] meaning, String additionalInfo, String notes)
+	public Vocabulary(VocabularyType type, String kanji, String[] reading, String[] meaning, String additionalInfo, String notes)
 	{
-		this.main = main;
 		this.type = type;
 		
 		this.kanji = kanji;
@@ -164,7 +161,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 				String additionalInfo_merged = additionalInfo + (!additionalInfo.isEmpty() && !old.additionalInfo.isEmpty() && ! old.additionalInfo.equalsIgnoreCase(additionalInfo) ? ", " : "") + (old.additionalInfo.equalsIgnoreCase(additionalInfo) ? "" : old.additionalInfo);
 				String notes_merged = notes + (!notes.isEmpty() && !old.notes.isEmpty() && ! old.notes.equalsIgnoreCase(notes) ? ", " : "") + (old.notes.equalsIgnoreCase(notes) ? "" : old.notes);
 				
-				Vocabulary merged = new Vocabulary(main, type, old.kanji, reading.toArray(new String[reading.size()]), meaning.toArray(new String[meaning.size()]), additionalInfo_merged, notes_merged);
+				Vocabulary merged = new Vocabulary(type, old.kanji, reading.toArray(new String[reading.size()]), meaning.toArray(new String[meaning.size()]), additionalInfo_merged, notes_merged);
 				
 				for (int i = 0; i < merged.reading_used.length; ++i)
 					merged.reading_used[i] = reading_used.get(i);
@@ -216,7 +213,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 				
 				position = old;
 			}
-			else if (importType == ImportType.REPLACE_KEEEP_STATS)
+			else if (importType == ImportType.REPLACE_KEEP_STATS)
 			{
 				Vocabulary old = vocabulary.get(position = vocabulary.indexOf(this)).remove(vocabulary);
 
@@ -345,10 +342,10 @@ public class Vocabulary implements Comparable<Vocabulary>
 		
 		vocabulary.add(position, this);
 		
-		if (vocabulary == main.vocabulary)
-			if (main.show[type.ordinal()] && (main.showType == ShowType.ALL || main.showType == ShowType.LEARNED && learned || main.showType == ShowType.UNLEARNED && !learned))
-				main.vocabulary_filtered.add(this);
-		
+//		if (vocabulary == ((MainActivity) main).vocabulary)
+//			if (((MainActivity) main).show[type.ordinal()] && (((MainActivity) main).showType == ShowType.ALL || ((MainActivity) main).showType == ShowType.LEARNED && learned || ((MainActivity) main).showType == ShowType.UNLEARNED && !learned))
+//				((MainActivity) main).vocabulary_filtered.add(this);
+//		
 		return this;
 	}
 	
@@ -366,36 +363,10 @@ public class Vocabulary implements Comparable<Vocabulary>
 		
 		vocabulary.remove(this);
 		
-		if (vocabulary == main.vocabulary)
-			main.vocabulary_filtered.remove(this);
-		
+//		if (vocabulary == ((MainActivity) main).vocabulary)
+//			((MainActivity) main).vocabulary_filtered.remove(this);
+//		
 		return this;
-	}
-	
-	public void reset()
-	{
-		category = 1;
-		
-		category_history[category_history.length - 1] = category;
-		for (int i = 0; i < category_history.length - 1; ++i)
-			category_history[i] = -1;
-			
-		timesChecked_kanji = timesCorrect_kanji = streak_kanji =  0;
-		timesChecked_reading = timesCorrect_reading = streak_reading = 0;
-		timesChecked_meaning = timesCorrect_meaning = streak_meaning = 0;
-		lastChecked = 0;
-		
-		for (int i = 0; i < reading_used.length; ++i)
-			reading_used[i] = 0;
-			
-		for (int i = 0; i < meaning_used.length; ++i)
-			meaning_used[i] = 0;
-			
-		answered_correct = true;
-		answered_kanji = answered_reading = answered_meaning = false;
-		learned = false;
-		
-		streak_kanji = streak_kanji_best = streak_reading = streak_reading_best = streak_meaning = streak_meaning_best = 0;
 	}
 	
 	public Answer getAnswer(String answer, QuestionType type, QuestionType question)
@@ -459,7 +430,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 		return Answer.WRONG;
 	}
 	
-	public Answer answer(String answer, QuestionType type, QuestionType question)
+	public Answer answer(Context context, String answer, QuestionType type, QuestionType question)
 	{
 		answer = StringHelper.trim(answer);
 		answer = answer.replace("・", "");
@@ -599,7 +570,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 		
 		answered_correct = false;
 		
-		category = getLastSavePoint();
+		category = getLastSavePoint(context);
 			
 		return Answer.WRONG;
 	}
@@ -811,24 +782,24 @@ public class Vocabulary implements Comparable<Vocabulary>
 		return searchResult;
 	}
 	
-	public void prepareSound(OnProcessSuccessListener listener)
+	public void prepareSound(final Context context, OnProcessSuccessListener listener)
 	{
 		if ("-".equals(soundFile))
 		{
 			return;
 		}
 		
-		if (main.jishoHelper.isInternetAvailable())
+		if (JishoHelper.isInternetAvailable(context))
 		{
 			if (soundFile == null || soundFile.isEmpty())
-				main.jishoHelper.playSoundFile(this, listener);
+				JishoHelper.findSoundFile(context, this, listener);
 			
 			else
 				listener.onProcessSuccess();
 		}
 	}
 	
-	public void playSound()
+	public void playSound(final Context context)
 	{
 		if ("-".equals(soundFile))
 		{
@@ -837,12 +808,12 @@ public class Vocabulary implements Comparable<Vocabulary>
 		
 		if (soundFile == null || soundFile.isEmpty())
 		{
-			main.jishoHelper.playSoundFile(this, new OnProcessSuccessListener()
+			JishoHelper.findSoundFile(context, this, new OnProcessSuccessListener()
 			{
 				@Override
 				public void onProcessSuccess(Object... args)
 				{
-					playSound();
+					playSound(context);
 				}
 			});
 			return;
@@ -850,9 +821,9 @@ public class Vocabulary implements Comparable<Vocabulary>
 		
 		try
 		{
-			if (!main.jishoHelper.isInternetAvailable())
+			if (!JishoHelper.isInternetAvailable(context))
 			{
-				Toast.makeText(main, "No internet connection", Toast.LENGTH_SHORT).show();
+				Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
 				return;
 			}
 			
@@ -875,7 +846,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 					@Override
 					public void onPrepared(MediaPlayer p1)
 					{
-						((AudioManager) main.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 						
 						p1.start();
 					}
@@ -885,10 +856,10 @@ public class Vocabulary implements Comparable<Vocabulary>
 					@Override
 					public void onCompletion(MediaPlayer p1)
 					{
+						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).abandonAudioFocus(listener);
+						
 						p1.stop();
 						p1.release();
-						
-						((AudioManager) main.getSystemService(Context.AUDIO_SERVICE)).abandonAudioFocus(listener);
 					}
 			});
 		}
@@ -896,85 +867,6 @@ public class Vocabulary implements Comparable<Vocabulary>
 		{
 			e.printStackTrace();
 		}
-	}
-	
-	public void showStrokeOrder()
-	{
-		if (!main.jishoHelper.offlineStrokeOrder() && !main.jishoHelper.isInternetAvailable())
-		{
-			Toast.makeText(main, "No internet connection", Toast.LENGTH_SHORT).show();
-			return;
-		}
-		
-		AlertDialog alertDialog = new AlertDialog.Builder(main).create();
-		View v = main.getLayoutInflater().inflate(R.layout.stroke_order_dialog, null);
-
-		v.findViewById(R.id.overflow_button).setOnClickListener(new View.OnClickListener()
-		{
-				@Override
-				public void onClick(View v)
-				{
-					
-				}
-			
-		});
-		
-		final LinearLayout layout_kanji = (LinearLayout) v.findViewById(R.id.layout_kanji);
-	
-		showStrokeOrder(layout_kanji, null, false, false);
-		
-		alertDialog.setView(v);		
-		alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK",
-			new DialogInterface.OnClickListener() 
-			{
-				public void onClick(DialogInterface dialog, int which) 
-				{
-					dialog.dismiss();
-				}
-			});
-		
-		alertDialog.show();
-	}
-	
-	public void showStrokeOrder(final LinearLayout add, final OnProcessSuccessListener listener, boolean accent, boolean horizontal)
-	{
-		if (!main.jishoHelper.offlineStrokeOrder() && !main.jishoHelper.isInternetAvailable())
-		{
-			Toast.makeText(main, "No internet connection", Toast.LENGTH_SHORT).show();
-			return;
-		}
-
-		char[] kanji = new char[this.kanji.length()];
-		this.kanji.getChars(0, this.kanji.length(), kanji, 0);
-		String[] hex = new String[kanji.length];
-
-		for (int i = 0; i < kanji.length; ++i)
-		{
-			hex[i] = Integer.toHexString(kanji[i]);
-			while (hex[i].length() < 5)
-			{
-				hex[i] = "0" + hex[i];
-			}
-		}
-		
-		final int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, main.getResources().getDisplayMetrics());
-		final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, !horizontal ? LinearLayout.LayoutParams.FILL_PARENT : size);
-		params.gravity = Gravity.CENTER;
-
-		main.jishoHelper.createStrokeOrderView(hex, new OnProcessSuccessListener()
-			{
-
-				@Override
-				public void onProcessSuccess(Object... args)
-				{
-					if (listener != null)
-					{
-						listener.onProcessSuccess();
-					}
-					
-					add.addView((View) args[0], params);
-				}
-			}, accent, horizontal);
 	}
 	
 	public static final ArrayList<String> types = new ArrayList<>();
@@ -989,8 +881,8 @@ public class Vocabulary implements Comparable<Vocabulary>
 		types.add("None");
 		types.add("Other");
 		types.add("Noun");
-		types.add("I-adjective");
-		types.add("Na-adjective");
+		types.add("I-Adjective");
+		types.add("Na-Adjective");
 		types.add("Ru-Verb");
 		types.add("U-Verb");
 		types.add("Adverb");
@@ -1004,10 +896,10 @@ public class Vocabulary implements Comparable<Vocabulary>
 		types_import.add("Keep old");
 		types_import.add("Ask every time");
 		
-		types_sort.add("Category");
-		types_sort.add("Category (Reversed)");
-		types_sort.add("Date added");
-		types_sort.add("Date added (Reversed)");
+		types_sort.add("Category ascending");
+		types_sort.add("Category descending");
+		types_sort.add("Date added ascending");
+		types_sort.add("Date added descending");
 		types_sort.add("Vocabulary type");
 		types_sort.add("Next review");
 		
@@ -1015,7 +907,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 		types_view.add("Medium");
 		types_view.add("Small");
 		
-		types_show.add("All");
+		types_show.add("All vocabularies");
 		types_show.add("Learned vocabularies");
 		types_show.add("Other vocabularies");
 	}
@@ -1052,6 +944,11 @@ public class Vocabulary implements Comparable<Vocabulary>
 		if (!learned)
 			return 0;
 		
+		return getNextReview(category);
+	}
+	
+	public static long getNextReview(int category)
+	{
 		switch (category)
 		{
 			case 0:
@@ -1091,9 +988,9 @@ public class Vocabulary implements Comparable<Vocabulary>
 		}
 	}
 	
-	public int getLastSavePoint()
+	public int getLastSavePoint(Context context)
 	{
-		if (!PreferenceManager.getDefaultSharedPreferences(main).getBoolean("savePoint", true) || (category <= 3))
+		if (!PreferenceManager.getDefaultSharedPreferences(context).getBoolean("savePoint", true) || (category <= 3))
 		{
 			if ((float)(timesCorrect_kanji + timesCorrect_reading + timesCorrect_meaning) / (timesChecked_kanji + timesChecked_reading + timesChecked_meaning) < 0.75F)
 				return 0;
@@ -1135,21 +1032,21 @@ public class Vocabulary implements Comparable<Vocabulary>
 	@Override
 	public int compareTo(Vocabulary p1)
 	{
-		switch (main.sortType)
-		{
-			case CATEGORY_REVERSED:
-				return p1.learned ? (this.learned ? (category < p1.category ? 1 : (category == p1.category ? 0 : -1)) : 1) : (this.learned ? -1 : 0);
-			case TIME_ADDED:
-				return (int)Math.signum(p1.added - added);
-			case TIME_ADDED_REVERSED:
-				return (int)Math.signum(added - p1.added);
-			case TYPE:
-				return (int)Math.signum(type.ordinal() - p1.type.ordinal());
-			case NEXT_REVIEW:
+//		switch (((MainActivity) main).sortType)
+//		{
+//			case CATEGORY_REVERSED:
+//				return p1.learned ? (this.learned ? (category < p1.category ? 1 : (category == p1.category ? 0 : -1)) : 1) : (this.learned ? -1 : 0);
+//			case TIME_ADDED:
+//				return (int)Math.signum(p1.added - added);
+//			case TIME_ADDED_REVERSED:
+//				return (int)Math.signum(added - p1.added);
+//			case TYPE:
+//				return (int)Math.signum(type.ordinal() - p1.type.ordinal());
+//			case NEXT_REVIEW:
 				return p1.learned ? (this.learned ? (lastChecked + getNextReview() < p1.lastChecked + p1.getNextReview() ? -1 : (lastChecked + getNextReview() == p1.lastChecked + p1.getNextReview() ? 0 : 1)) : 1) : (this.learned ? -1 : 0);
-			default:
-				return p1.learned ? (this.learned ? (category < p1.category ? -1 : (category == p1.category ? 0 : 1)) : 1) : (this.learned ? -1 : 0);
-		}
+//			default:
+//				return p1.learned ? (this.learned ? (category < p1.category ? -1 : (category == p1.category ? 0 : 1)) : 1) : (this.learned ? -1 : 0);
+//		}
 	}
 
 	public enum Type_old

@@ -16,8 +16,8 @@ public class GraphView extends View
 	final Paint bottomPaint;
 	final Paint textPaint;
 
-	final int[] values = new int[30];
-	final int[] values2 = new int[30];
+	int[] values;
+	int[] values2;
 	int tallest;
 	int best;
 
@@ -49,17 +49,27 @@ public class GraphView extends View
 		textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
 		textPaint.setTextAlign(Paint.Align.CENTER);
 
+		TypedValue typedValue = new TypedValue();
+		context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, typedValue, true);
+		
 		bottomPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		bottomPaint.setStyle(Paint.Style.STROKE);
-		bottomPaint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()));
-		bottomPaint.setColor(0);
-		bottomPaint.setAlpha((int) (0.54F * 128));
-
-		Random random = new Random();
-		for (int i = 0; i < 30; ++i)
+		bottomPaint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
+		bottomPaint.setColor(context.getColor(typedValue.resourceId));
+		
+		setValues(new int[] {2}, new int[] {1});
+	}
+	
+	public void setValues(int[] values1, int[] values12)
+	{
+		values = new int[values1.length];
+		values2 = new int[values12.length];
+		tallest = 0;
+		
+		for (int i = 0; i < values1.length; ++i)
 		{
-			values[i] = random.nextInt(50);
-			values2[i] = random.nextInt(values[i] + 1);
+			values[i] = values1[i];
+			values2[i] = values12[i];
 
 			if (values[i] > values[tallest])
 				tallest = i;
@@ -68,14 +78,15 @@ public class GraphView extends View
 				|| (float) values2[i] / values[i] == (float) values2[best] / values[best] && values2[i] > values2[best])
 				best = i;
 		}
-
+		
+		onSizeChanged(getWidth(), getHeight(), getWidth(), getHeight());
+		invalidate();
 	}
 
 	public GraphView(Context context)
 	{
 		this(context, null);
 	}
-	
 
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) 
@@ -85,23 +96,23 @@ public class GraphView extends View
 		width = w;
 		height = h;
 		
-		linePaint.setStrokeWidth(w / 64);
-		linePaint2.setStrokeWidth(w / 64);
-		linePaint_alpha.setStrokeWidth(w / 64);
-		linePaint2_alpha.setStrokeWidth(w / 64);
+		linePaint.setStrokeWidth(w / (values.length + 1F) / 2F);
+		linePaint2.setStrokeWidth(w / (values.length + 1F) / 2F);
+		linePaint_alpha.setStrokeWidth(w / (values.length + 1F) / 2F);
+		linePaint2_alpha.setStrokeWidth(w / (values.length + 1F) / 2F);
 	}
 
 	@Override
 	public void onDraw(Canvas canvas)
 	{
-		for (int i = 0; i < 30; ++i)
+		for (int i = 0; i < values.length; ++i)
 		{
-			canvas.drawLine(canvas.getWidth() / 31F * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / 31F * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F, (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2_alpha : linePaint_alpha);
-			canvas.drawLine(canvas.getWidth() / 31F * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / 31F * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F,  (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2 : linePaint);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2_alpha : linePaint_alpha);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(),  (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2 : linePaint);
 		}
 
-		canvas.drawText("" + values2[best] + " / " + values[best], canvas.getWidth() / 31F * (best + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F - textPaint.getTextSize() * 1.5F) * (1F - values[best] / (float)values[tallest]) + textPaint.getTextSize() * 1F, textPaint);
+		canvas.drawText("" + values2[best] + " / " + values[best], canvas.getWidth() / (values.length + 1F) * (best + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[best] / (float)values[tallest]) + textPaint.getTextSize() * 1F, textPaint);
 
-		canvas.drawLine(0, canvas.getHeight(), canvas.getWidth(), canvas.getHeight(), bottomPaint);
+		canvas.drawLine(0, canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F, canvas.getWidth(), canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F, bottomPaint);
 	}
 }
