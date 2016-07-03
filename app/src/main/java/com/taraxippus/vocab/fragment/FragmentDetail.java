@@ -1,5 +1,6 @@
 package com.taraxippus.vocab.fragment;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Context;
@@ -16,19 +17,25 @@ import android.transition.ChangeTransform;
 import android.transition.TransitionInflater;
 import android.transition.TransitionSet;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import com.taraxippus.vocab.AddActivity;
+import com.taraxippus.vocab.ActivityAdd;
+import com.taraxippus.vocab.ActivityDetail;
+import com.taraxippus.vocab.ActivityMain;
+import com.taraxippus.vocab.ActivitySettings;
 import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.util.DialogHelper;
+import com.taraxippus.vocab.dialog.DialogHelper;
 import com.taraxippus.vocab.util.JishoHelper;
+import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.OnProcessSuccessListener;
 import com.taraxippus.vocab.view.LineGraphView;
 import com.taraxippus.vocab.view.PercentageGraphView;
@@ -38,30 +45,25 @@ import com.taraxippus.vocab.vocabulary.Vocabulary;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import android.view.Menu;
-import com.taraxippus.vocab.MainActivity;
-import android.view.MenuInflater;
-import com.taraxippus.vocab.vocabulary.ImportType;
 
 public class FragmentDetail extends Fragment
 {
-	DBHelper dbHelper;
-	Vocabulary vocabulary;
+	private DBHelper dbHelper;
+	private Vocabulary vocabulary;
 	
 	public FragmentDetail() {}
 
 	public Fragment setDefaultTransitions(Context context)
 	{
 		this.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
-		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.fade));
+		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
 
 		TransitionSet set = new TransitionSet();
-        set.setOrdering(TransitionSet.ORDERING_TOGETHER);
-
 		set.addTransition(new ChangeTransform());
-		set.addTransition(new ChangeBounds());
+		ChangeBounds changeBounds = new ChangeBounds();
+		changeBounds.setResizeClip(false);
+		set.addTransition(changeBounds);
 
 		this.setSharedElementEnterTransition(set);
 		this.setSharedElementReturnTransition(set);
@@ -84,15 +86,19 @@ public class FragmentDetail extends Fragment
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 	{
-		final View v = inflater.inflate(R.layout.fragment_detail, container, false);
-		
+		return inflater.inflate(R.layout.fragment_detail, container, false);
+	}
+
+	@Override
+	public void onViewCreated(View v, Bundle savedInstanceState)
+	{
 		int id = getArguments().getInt("id");
 		vocabulary = dbHelper.getVocabulary(id);
 		
 		if (vocabulary == null)
 		{
-			System.out.println("Couldn`\'t find vocabulary; id=" + id);
-			return v;
+			getFragmentManager().popBackStack();
+			return;
 		}
 		
 		v.findViewById(R.id.card_kanji).setTransitionName("card" + id);
@@ -141,18 +147,47 @@ public class FragmentDetail extends Fragment
 				}
 			});
 		
-		
+		v.findViewById(R.id.button_overflow).setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View view)
+				{
+					PopupMenu popup = new PopupMenu(getContext(), view);
+					popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+						{
+							@Override
+							public boolean onMenuItemClick(MenuItem item)
+							{
+								switch (item.getItemId()) 
+								{
+									case R.id.item_open_jisho_kanji:
+										JishoHelper.search(getContext(), vocabulary.kanji + "%23kanji");
+										return true;
+									case R.id.item_settings:
+										getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
+										return true;
+									default:
+										return false;
+								}
+							}
+						});
+					MenuInflater inflater = popup.getMenuInflater();
+					inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
+					popup.show();
+				}
+			});
+			
 		final ImageButton sound = (ImageButton) v.findViewById(R.id.button_sound);
 		sound.setOnClickListener(new View.OnClickListener()
 			{
 				@Override
 				public void onClick(View v)
 				{
-					vocabulary.playSound(getContext());
+					vocabulary.playSound(dbHelper);
 				}
 		});
 		
-		vocabulary.prepareSound(getContext(), new OnProcessSuccessListener()
+		vocabulary.prepareSound(dbHelper, new OnProcessSuccessListener()
 		{
 				@Override
 				public void onProcessSuccess(Object... args)
@@ -172,33 +207,27 @@ public class FragmentDetail extends Fragment
 		else if (this.vocabulary.notes.isEmpty())
 			v.findViewById(R.id.card_notes).setVisibility(View.GONE);
 	
-		if (this.vocabulary.sameReading.isEmpty())
-			v.findViewById(R.id.card_same_reading).setVisibility(View.GONE);
-			
-		if (this.vocabulary.sameMeaning.isEmpty())
-			v.findViewById(R.id.card_same_meaning).setVisibility(View.GONE);
-			
-		if (!this.vocabulary.sameMeaning.isEmpty() && !this.vocabulary.sameReading.isEmpty())
+		if (this.vocabulary.sameReading.length == 0)
 		{
-			View card = v.findViewById(R.id.card_same_reading);
-			LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) card.getLayoutParams();
-			params.bottomMargin = 0;
-			card.setLayoutParams(params);
-			card = v.findViewById(R.id.card_same_meaning);
-			params = (LinearLayout.LayoutParams) card.getLayoutParams();
-			params.topMargin = 0;
-			card.setLayoutParams(params);
+			v.findViewById(R.id.text_title_same_reading).setVisibility(View.GONE);
+			v.findViewById(R.id.recycler_same_reading).setVisibility(View.GONE);
+		}
+			
+		if (this.vocabulary.sameMeaning.length == 0)
+		{
+			v.findViewById(R.id.text_title_same_meaning).setVisibility(View.GONE);
+			v.findViewById(R.id.recycler_same_meaning).setVisibility(View.GONE);
 		}
 		
-		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_meaning);
+		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new SynonymAdapter(dbHelper, recyclerView, vocabulary.sameReading));
+		recyclerView.setAdapter(new SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameReading));
 
-		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
+		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_meaning);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new SynonymAdapter(dbHelper, recyclerView, vocabulary.sameMeaning));
+		recyclerView.setAdapter(new SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameMeaning));
 
 		((TextView) v.findViewById(R.id.text_progress_total)).setText((vocabulary.timesCorrect_kanji + vocabulary.timesCorrect_reading + vocabulary.timesCorrect_meaning) + " / " + (vocabulary.timesChecked_kanji + vocabulary.timesChecked_reading + vocabulary.timesChecked_meaning));
 		final ProgressBar progress_total = (ProgressBar)v.findViewById(R.id.progress_total);
@@ -253,7 +282,7 @@ public class FragmentDetail extends Fragment
 			category_history.setVisibility(View.GONE);
 		
 		if (vocabulary.learned)
-			((TextView)v.findViewById(R.id.text_next_review)).setText("Next Review: " + (vocabulary.lastChecked + vocabulary.getNextReview() < System.currentTimeMillis() ? "Now" : new SimpleDateFormat().format(new Date(vocabulary.lastChecked + vocabulary.getNextReview()))));
+			((TextView)v.findViewById(R.id.text_next_review)).setText("Next Review: " + (vocabulary.nextReview < System.currentTimeMillis() ? "Now" : new SimpleDateFormat().format(new Date(vocabulary.nextReview))));
 		
 		((TextView) v.findViewById(R.id.text_last_checked)).setText("Last Checked: " + (vocabulary.lastChecked == 0 ? "Never" : new SimpleDateFormat().format(new Date(vocabulary.lastChecked))));
 		((TextView) v.findViewById(R.id.text_added)).setText("Added: " + (new SimpleDateFormat().format(new Date(vocabulary.added))));
@@ -280,7 +309,41 @@ public class FragmentDetail extends Fragment
 			}
 		}
 		
-		return v;
+//		ValueAnimator animator = ValueAnimator.ofFloat(35, 75);
+//		animator.setDuration(300);
+//		animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() 
+//		{
+//				@Override
+//				public void onAnimationUpdate(ValueAnimator valueAnimator) 
+//				{
+//					kanji.setTextSize(TypedValue.COMPLEX_UNIT_SP, (float) valueAnimator.getAnimatedValue());
+//				}
+//			});
+//		animator.start();
+//		
+//		animator = ValueAnimator.ofFloat(15, 20);
+//		animator.setDuration(300);
+//		animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() 
+//			{
+//				@Override
+//				public void onAnimationUpdate(ValueAnimator valueAnimator) 
+//				{
+//					reading.setTextSize(TypedValue.COMPLEX_UNIT_SP, (float) valueAnimator.getAnimatedValue());
+//				}
+//			});
+//		animator.start();
+//		
+//		animator = ValueAnimator.ofFloat(15, 20);
+//		animator.setDuration(300);
+//		animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() 
+//			{
+//				@Override
+//				public void onAnimationUpdate(ValueAnimator valueAnimator) 
+//				{
+//					meaning.setTextSize(TypedValue.COMPLEX_UNIT_SP, (float) valueAnimator.getAnimatedValue());
+//				}
+//			});
+//		animator.start();
 	}
 
 	@Override
@@ -298,7 +361,7 @@ public class FragmentDetail extends Fragment
 
 					return true;
 				case R.id.item_edit:
-					Intent intent = new Intent(getContext(), AddActivity.class);
+					Intent intent = new Intent(getContext(), ActivityAdd.class);
 					intent.putExtra("id", getArguments().getInt("id"));
 					startActivity(intent);
 
@@ -309,6 +372,8 @@ public class FragmentDetail extends Fragment
 							public void onClick(DialogInterface dialog, int which) 
 							{
 								dbHelper.resetVocabulary(getArguments().getInt("id"));
+								getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+								
 								refreshDetailView();
 								dialog.dismiss();
 							}
@@ -321,7 +386,9 @@ public class FragmentDetail extends Fragment
 						{
 							public void onClick(DialogInterface dialog, int which) 
 							{
-								dbHelper.resetVocabularyCategory(getArguments().getInt("id"));
+								dbHelper.resetVocabularyCategory(vocabulary.lastChecked, getArguments().getInt("id"));
+								getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+								
 								refreshDetailView();
 								dialog.dismiss();
 							}
@@ -335,9 +402,11 @@ public class FragmentDetail extends Fragment
 							public void onClick(DialogInterface dialog, int which) 
 							{
 								dbHelper.deleteVocabulary(getArguments().getInt("id"));
-	
-								getFragmentManager().popBackStack();
+								getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+								
+								
 								dialog.dismiss();
+								getFragmentManager().popBackStack();
 							}
 						});
 
@@ -345,22 +414,27 @@ public class FragmentDetail extends Fragment
 				
 				case R.id.item_learn_add:
 					dbHelper.updateVocabularyLearned(getArguments().getInt("id"), true);
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+				
 					refreshDetailView();
 					return true;
 				
 				case R.id.item_learn_remove:
 					dbHelper.updateVocabularyLearned(getArguments().getInt("id"), false);
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+				
 					refreshDetailView();
 					return true;
 				
 				case R.id.item_cheat:
-					vocabulary.answer(getContext(), vocabulary.kanji, QuestionType.KANJI, QuestionType.MEANING);
+					vocabulary.answer(dbHelper, getContext(), vocabulary.kanji, QuestionType.KANJI, QuestionType.MEANING);
 					if (vocabulary.reading.length > 0)
-						vocabulary.answer(getContext(), vocabulary.reading[0], QuestionType.READING, QuestionType.KANJI);
-					vocabulary.answer(getContext(), vocabulary.meaning[0], QuestionType.MEANING, QuestionType.KANJI);
+						vocabulary.answer(dbHelper, getContext(), vocabulary.reading[0], QuestionType.READING, QuestionType.KANJI);
+					vocabulary.answer(dbHelper, getContext(), vocabulary.meaning[0], QuestionType.MEANING, QuestionType.KANJI);
 
 					vocabulary.category++;
 					vocabulary.lastChecked = System.currentTimeMillis();
+					vocabulary.nextReview = vocabulary.lastChecked + Vocabulary.getNextReview(vocabulary.category);
 
 					vocabulary.answered_kanji = false;
 					vocabulary.answered_meaning = false;
@@ -370,7 +444,8 @@ public class FragmentDetail extends Fragment
 					System.arraycopy(vocabulary.category_history, 1, vocabulary.category_history, 0, vocabulary.category_history.length - 1);
 					vocabulary.category_history[vocabulary.category_history.length - 1] = vocabulary.category;
 
-					dbHelper.updateVocabulary(vocabulary, -1, ImportType.REPLACE);
+					dbHelper.updateVocabulary(vocabulary);
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
 					refreshDetailView();
 					return true;
 				
@@ -382,7 +457,7 @@ public class FragmentDetail extends Fragment
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater)
 	{
-		inflater.inflate(R.menu.detail, menu);
+		inflater.inflate(R.menu.fragment_detail, menu);
 		
 		super.onCreateOptionsMenu(menu, inflater);
 	}
@@ -398,10 +473,8 @@ public class FragmentDetail extends Fragment
 	
 	public void refreshDetailView()
 	{
-		getFragmentManager().popBackStack();
-		
-		this.setEnterTransition(TransitionInflater.from(getContext()).inflateTransition(android.R.transition.slide_bottom));
-		getFragmentManager().beginTransaction().replace(R.id.content_frame, this).addToBackStack("refresh").commit();
+		onViewCreated(getView(), null);
+		getActivity().invalidateOptionsMenu();
 	}
 	
 	@Override
@@ -409,10 +482,11 @@ public class FragmentDetail extends Fragment
 	{
 		super.onResume();
 
+		refreshDetailView();
 		getActivity().setTitle(vocabulary.kanji);
 		
-		if (getActivity() instanceof MainActivity)
-			((MainActivity) getActivity()).setDisplayHomeAsUp(true);
+		if (getActivity() instanceof ActivityMain)
+			((ActivityMain) getActivity()).setDisplayHomeAsUp(true);
 	}
 
 	@Override
@@ -420,8 +494,8 @@ public class FragmentDetail extends Fragment
 	{
 		super.onPause();
 		
-		if (getActivity() instanceof MainActivity)
-			((MainActivity) getActivity()).setDisplayHomeAsUp(false);
+		if (getActivity() instanceof ActivityMain)
+			((ActivityMain) getActivity()).setDisplayHomeAsUp(false);
 	}
 
 	@Override
@@ -432,7 +506,7 @@ public class FragmentDetail extends Fragment
 		dbHelper.close();
 	}
 	
-	private class DownloadImageTask extends AsyncTask<String, Void, Bitmap>
+	public static class DownloadImageTask extends AsyncTask<String, Void, Bitmap>
 	{
 		final ImageView bmImage;
 		final View progress;
@@ -486,24 +560,33 @@ public class FragmentDetail extends Fragment
 		}
 	}
 	
-	public class SynonymAdapter extends RecyclerView.Adapter<SynonymAdapter.SynonymViewHolder> implements View.OnClickListener
+	public static class SynonymAdapter extends RecyclerView.Adapter<SynonymAdapter.SynonymViewHolder> implements View.OnClickListener
 	{
 		@Override
 		public void onClick(View v)
 		{
-			Fragment fragment = new FragmentDetail().setDefaultTransitions(getContext());
-			Bundle bundle = new Bundle();
-			bundle.putInt("id", dbHelper.getId(data.get(view.getChildAdapterPosition(v)).kanji));
-			fragment.setArguments(bundle);
-			fragment.setEnterTransition(TransitionInflater.from(getContext()).inflateTransition(android.R.transition.slide_bottom));
-			
-			View text_kanji = v.findViewById(R.id.text_kanji);
-			FragmentTransaction ft = getActivity().getFragmentManager().beginTransaction()
-				.replace(R.id.content_frame, fragment)
-				.addToBackStack("detail")
-				.addSharedElement(v, v.getTransitionName())
-				.addSharedElement(text_kanji, text_kanji.getTransitionName());
-			ft.commit();
+			if (context.findViewById(R.id.layout_content) == null)
+			{
+				context.startActivity(new Intent(context, ActivityDetail.class).putExtra("id", data[view.getChildAdapterPosition(v)]));
+			}
+			else
+			{
+				Bundle bundle = new Bundle();
+				bundle.putInt("id", data[view.getChildAdapterPosition(v)]);
+				
+				Fragment fragment = new FragmentDetail().setDefaultTransitions(context);
+				fragment.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.fade));
+				fragment.setArguments(bundle);
+				fragment.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
+
+				View text_kanji = v.findViewById(R.id.text_kanji);
+				FragmentTransaction ft = context.getFragmentManager().beginTransaction()
+					.replace(R.id.layout_content, fragment)
+					.addToBackStack("detail")
+					.addSharedElement(v, v.getTransitionName())
+					.addSharedElement(text_kanji, text_kanji.getTransitionName());
+				ft.commit();
+			}
 		}
 
 		public class SynonymViewHolder extends RecyclerView.ViewHolder 
@@ -518,12 +601,14 @@ public class FragmentDetail extends Fragment
 			}
 		}
 
+		final Activity context;
 		final DBHelper dbHelper;
 		final RecyclerView view;
-		final ArrayList<Vocabulary> data;
+		final int[] data;
 
-		public SynonymAdapter(DBHelper dbHelper, RecyclerView view, ArrayList<Vocabulary> data)
+		public SynonymAdapter(Activity context, DBHelper dbHelper, RecyclerView view, int[] data)
 		{
+			this.context = context;
 			this.dbHelper = dbHelper;
 			this.view = view;
 			this.data = data;
@@ -541,18 +626,17 @@ public class FragmentDetail extends Fragment
 		@Override
 		public void onBindViewHolder(SynonymViewHolder holder, int position) 
 		{
-			Vocabulary v = data.get(position);
-			int pos = dbHelper.getId(v.kanji);
-
-			holder.itemView.setTransitionName("card" + pos);
-			holder.text_kanji.setTransitionName("kanji" + pos);
-			holder.text_kanji.setText(v.kanji);
+			int id = data[position];
+			
+			holder.itemView.setTransitionName("card" + id);
+			holder.text_kanji.setTransitionName("kanji" + id);
+			holder.text_kanji.setText(dbHelper.getString(id, "kanji"));
 		}
 
 		@Override
 		public int getItemCount() 
 		{
-			return data.size();
+			return data.length;
 		}
 	}
 }

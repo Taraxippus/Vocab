@@ -67,6 +67,9 @@ public class LineGraphView extends View
 
 	public void setValues(String unit, int... values1)
 	{
+		if (values1.length == 0)
+			return;
+			
 		this.unit = unit;
 		
 		int length = 0;
@@ -118,6 +121,9 @@ public class LineGraphView extends View
 
 	public void setValues(String unit, float... values1)
 	{
+		if (values1.length == 0)
+			return;
+			
 		this.unit = unit;
 		
 		int length = 0;
@@ -187,15 +193,20 @@ public class LineGraphView extends View
 			if (i == values.length - 1 || values[i] - values[i - 1] != 0 && (values[i] - values[i - 1]) != (values[i + 1] - values[i]))
 			{
 				canvas.drawCircle(paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * i, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[i] / values[tallest]), textPaint.getTextSize() / 4F, textPaint);
-				canvas.drawText(values[i] + unit, paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * i, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[i] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
+				
+				if (i == values.length - 1 || values[i + 1] - values[i] < values[i] - values[i - 1])
+					canvas.drawText(values[i] + unit, paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * i, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[i] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
 			}
 			
 		canvas.drawLine(width * paddingWidth + borderPaint.getStrokeWidth() / 2F, 0, width * paddingWidth + borderPaint.getStrokeWidth() / 2F, height, borderPaint);
 		canvas.drawLine(width * paddingWidth + borderPaint.getStrokeWidth(), height - borderPaint.getStrokeWidth() / 2F, width - width * paddingWidth, height - borderPaint.getStrokeWidth() / 2F, borderPaint);
 		
-		textPaint.setTextAlign(Paint.Align.LEFT);
 		canvas.drawCircle(borderPaint.getStrokeWidth() / 2F + width * paddingWidth, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[0] / values[tallest]), textPaint.getTextSize() / 4F, textPaint);
-		canvas.drawText(values[0] + unit, textPaint.getTextSize() * 0.25F + borderPaint.getStrokeWidth() / 2F + width * paddingWidth, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[0] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
-		textPaint.setTextAlign(Paint.Align.CENTER);
+		if (values[1] - values[0] < 1)
+		{
+			textPaint.setTextAlign(Paint.Align.LEFT);
+			canvas.drawText(values[0] + unit, textPaint.getTextSize() * 0.25F + borderPaint.getStrokeWidth() / 2F + width * paddingWidth, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[0] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
+			textPaint.setTextAlign(Paint.Align.CENTER);
+		}
 	}
 }

@@ -55,7 +55,6 @@
 				android:padding="0dp"
 				android:scaleType="center"
 				android:src="@drawable/overflow"
-				android:onClick="showVocabularyPopup"
 				android:background="?attr/selectableItemBackgroundBorderless" />
 			
 			<TextView

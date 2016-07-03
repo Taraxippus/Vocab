@@ -17,16 +17,16 @@
             android:title="Add Vocabulary" />
 		
 		<item
+            android:id="@+id/item_grammar"
+            android:checked="false"
+            android:icon="@drawable/grammar"
+            android:title="Grammar" />
+		
+		<item
             android:id="@+id/item_quiz"
             android:checked="false"
             android:icon="@drawable/quiz"
             android:title="Quiz" />
-		
-		<item
-            android:id="@+id/item_quiz_grammar"
-            android:checked="false"
-            android:icon="@drawable/quiz_grammar"
-            android:title="Grammar Quiz" />
 		
     </group>
 	<group 

@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.SearchManager;
 import android.content.ClipboardManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
@@ -18,6 +20,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.text.format.DateFormat;
 import android.transition.TransitionInflater;
+import android.transition.TransitionSet;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -32,15 +35,16 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import com.taraxippus.vocab.AddActivity;
-import com.taraxippus.vocab.MainActivity;
-import com.taraxippus.vocab.QuizActivity;
+import com.taraxippus.vocab.ActivityAdd;
+import com.taraxippus.vocab.ActivityQuiz;
+import com.taraxippus.vocab.ActivitySettings;
 import com.taraxippus.vocab.R;
+import com.taraxippus.vocab.dialog.DialogHelper;
 import com.taraxippus.vocab.dialog.FilterDialog;
 import com.taraxippus.vocab.dialog.ImportDialog;
 import com.taraxippus.vocab.dialog.LearnNextDialog;
-import com.taraxippus.vocab.util.DialogHelper;
 import com.taraxippus.vocab.util.JishoHelper;
+import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.view.GraphView;
 import com.taraxippus.vocab.view.LineGraphView;
@@ -59,25 +63,36 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 
-public class FragmentHome extends Fragment implements SearchView.OnQueryTextListener
+public class FragmentHome extends Fragment implements SearchView.OnQueryTextListener, SharedPreferences.OnSharedPreferenceChangeListener
 {
 	public RecyclerView recyclerView;
 	public SharedPreferences preferences;	
 	public DBHelper dbHelper;
 	
+	public int[] vocabularies;
+	public ViewType viewType;
 	public String searchQuery;
+	public SortType sortType;
 	
 	public FragmentHome() {}
 	
 	public Fragment setDefaultTransitions(Context context)
 	{
-		this.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_left));
-		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.fade));
-
+		TransitionSet enter = new TransitionSet();
+		enter.addTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_left).excludeTarget(R.id.card_stats, true).excludeChildren(R.id.layout_search, true));
+		enter.addTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_top).addTarget(R.id.card_stats).addTarget(R.id.layout_search));
+		this.setEnterTransition(enter);
+		
+		TransitionSet exit = new TransitionSet();
+		exit.addTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_right).excludeTarget(R.id.card_stats, true).excludeChildren(R.id.layout_search, true));
+		exit.addTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_top).addTarget(R.id.card_stats).addTarget(R.id.layout_search));
+		this.setExitTransition(exit);
+		
 		this.setAllowEnterTransitionOverlap(false);
 		this.setAllowReturnTransitionOverlap(false);
-
+		
 		return this;
 	}
 
@@ -85,13 +100,14 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		
 		setHasOptionsMenu(true);
 		
 		dbHelper = new DBHelper(getContext());
 		preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+		
+		preferences.registerOnSharedPreferenceChangeListener(this);
 	}
-	
+
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 	{
@@ -105,7 +121,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		
 		recyclerView = (RecyclerView) v.findViewById(R.id.recycler_vocabulary);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        recyclerView.setAdapter(new HomeAdapter((MainActivity) getActivity()));
+        recyclerView.setAdapter(new HomeAdapter());
 
 		final SwipeRefreshLayout swipeContainer = (SwipeRefreshLayout)v.findViewById(R.id.swipe);
 		swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() 
@@ -113,8 +129,9 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				@Override
 				public void onRefresh()
 				{
-					recyclerView.getAdapter().notifyDataSetChanged();
-					((MainActivity) getActivity()).updateNotification();
+					updateFilter();
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+					
 					swipeContainer.setRefreshing(false);
 				} 
 			});
@@ -125,7 +142,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater)
 	{
-		inflater.inflate(R.menu.home, menu);
+		inflater.inflate(R.menu.fragment_home, menu);
 		SearchManager searchManager = (SearchManager) getContext().getSystemService(Context.SEARCH_SERVICE);
 		SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.item_search));
 		searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
@@ -143,7 +160,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				return true;
 				
 			case R.id.item_add:
-				startActivity(new Intent(getContext(), AddActivity.class));
+				startActivity(new Intent(getContext(), ActivityAdd.class));
             	return true;
         
 			case R.id.item_learn_add_next:
@@ -175,9 +192,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				return true;
 
 			case R.id.item_export:
-//			String filename = "vocabularies_" + new SimpleDateFormat("yyyy_MM_dd_HH:mm").format(new Date()) + ".txt";
-//			saveHandler.exportVocabulary(filename);
-//			DialogHelper.createDialog(this, "Export", "Exported " + vocabulary.size() + (vocabulary.size() == 1 ? " vocabulary" : " vocabularies") + " to file \"" + filename + "\" in documents!");
+				dbHelper.exportToFile();
 				return true;
 
 			case R.id.item_load:
@@ -208,7 +223,9 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						public void onClick(DialogInterface dialog, int which) 
 						{
 							dbHelper.deleteVocabularies(ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")));
-
+							updateFilter();
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+							
 							dialog.dismiss();
 						}
 					}, 
@@ -217,7 +234,9 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						public void onClick(DialogInterface dialog, int which) 
 						{
 							dbHelper.deleteVocabularies();
-
+							updateFilter();
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+							
 							dialog.dismiss();
 						}
 					});
@@ -228,10 +247,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					{
 						public void onClick(DialogInterface dialog, int which) 
 						{
-							ArrayList<Integer> vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")));
-							for (Integer i : vocabularies)
-								dbHelper.resetVocabulary(i);
+							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), null);
+							dbHelper.resetVocabulary(vocabularies);
 
+							updateFilter();
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+							
 							dialog.dismiss();
 						}
 					}, 
@@ -239,10 +260,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					{
 						public void onClick(DialogInterface dialog, int which) 
 						{
-							ArrayList<Integer> vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.ALL, null);
-							for (Integer i : vocabularies)
-								dbHelper.resetVocabulary(i);
+							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.ALL, null, null);
+							dbHelper.resetVocabulary(vocabularies);
 
+							updateFilter();
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+							
 							dialog.dismiss();
 						}
 					});
@@ -250,10 +273,44 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 
 			case R.id.item_learn_add_all:
 				dbHelper.updateVocabulariesLearned(true);
+				updateFilter();
+				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
 				return true;
 
 			case R.id.item_learn_remove_all:
 				dbHelper.updateVocabulariesLearned(false);
+				updateFilter();
+				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+				return true;
+				
+			case R.id.item_debug:
+				SQLiteDatabase db = dbHelper.getWritableDatabase();
+				Cursor res =  db.rawQuery("SELECT id, reading, meaning, reading_used, meaning_used, sameReading, sameMeaning, category_history FROM vocab", null);
+				if (res.getCount() <= 0)
+				{
+					res.close();
+					return true;
+				}
+
+				res.moveToFirst();
+
+				final ContentValues contentValues = new ContentValues();
+				
+				do
+				{
+					contentValues.put("reading", StringHelper.toString(StringHelper.toStringArray(res.getString(1))));
+					contentValues.put("meaning", StringHelper.toString(StringHelper.toStringArray(res.getString(2))));
+					contentValues.put("reading_used", StringHelper.toString(StringHelper.toStringArray(res.getString(3))));
+					contentValues.put("meaning_used", StringHelper.toString(StringHelper.toStringArray(res.getString(4))));
+					contentValues.put("sameReading", StringHelper.toString(StringHelper.toStringArray(res.getString(5))));
+					contentValues.put("sameMeaning", StringHelper.toString(StringHelper.toStringArray(res.getString(6))));
+					contentValues.put("category_history", StringHelper.toString(StringHelper.toStringArray(res.getString(7))));
+					
+					db.update("vocab", contentValues, "id = ?", new String[] {"" + res.getInt(res.getColumnIndex("id"))});
+				}
+				while(res.moveToNext());
+
+				res.close();
 				return true;
 		}
 
@@ -271,9 +328,33 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	{
 		searchQuery = query;
 		recyclerView.scrollToPosition(0);
-		//updateFilter();
+		updateFilter();
 
 		return true;
+	}
+
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences p1, String key)
+	{
+		switch (key)
+		{
+			case "show":
+			case "sortType":
+			case "viewType":
+			case "showType":
+			case "vocabulariesChanged":
+				updateFilter();
+				break;
+		}
+	}
+	
+	public void updateFilter()
+	{
+		vocabularies = dbHelper.getVocabularies((sortType = SortType.values()[preferences.getInt("sortType", 0)]), ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), searchQuery);
+		viewType = ViewType.values()[preferences.getInt("viewType", 1)];
+		
+		if (recyclerView != null)
+			recyclerView.getAdapter().notifyDataSetChanged();
 	}
 	
 	@Override
@@ -306,20 +387,19 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				ImportDialog dialog = new ImportDialog();
 				dialog.setArguments(bundle);
 				dialog.show(getFragmentManager(), "import");
-
-				return;
 			}
 			else if (requestCode == 1)
 			{
 				try
 				{
 					dbHelper.loadFromFile(new FileInputStream(getActivity().getContentResolver().openFileDescriptor(data.getData(), "r").getFileDescriptor()));
+					updateFilter();
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
 				}
 				catch (FileNotFoundException e)
 				{
 					e.printStackTrace();
 				}
-				return;
 			}
 		}
 
@@ -332,6 +412,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		super.onResume();
 
 		getActivity().setTitle("Home");
+		updateFilter();
 	}
 
 	@Override
@@ -340,6 +421,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		super.onDestroy();
 		
 		dbHelper.close();
+		preferences.unregisterOnSharedPreferenceChangeListener(this);
 	}
 
 	public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements View.OnClickListener
@@ -348,16 +430,18 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		public void onClick(final View v)
 		{
 			if (v.getId() == R.id.button_filter)
-				new FilterDialog().show(main.getFragmentManager(), "filter");
+				new FilterDialog().show(getFragmentManager(), "filter");
 
 			else if (v.getId() == R.id.button_jisho)
-				JishoHelper.search(getContext(), main.queryText);
+				JishoHelper.search(getContext(), searchQuery);
 				
 			else if (v.getId() == R.id.button_start_quiz)
-				getContext().startActivity(new Intent(getContext(), QuizActivity.class));
+				getContext().startActivity(new Intent(getContext(), ActivityQuiz.class));
 				
 			else if (v.getId() == R.id.button_overflow)
 			{
+				final int index = recyclerView.getChildAdapterPosition((View) ((View) ((View) v.getParent()).getParent()).getParent());
+				final int id = vocabularies[index - 1];
 				PopupMenu popup = new PopupMenu(getContext(), v);
 				popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
 					{
@@ -366,65 +450,121 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						{
 							switch (item.getItemId()) 
 							{
-//								case R.id.delete:
-//									DialogHelper.createDialog(getContext(), "Delete", "Do you really want to delete this vocabulary?", 
-//									"Delete", new DialogInterface.OnClickListener() 
-//										{
-//											public void onClick(DialogInterface dialog, int which) 
-//											{
-//												vocabulary.get(vocabulary_selected).remove(vocabulary);
-//												onVocabularyChanged();
-//
-//												dialog.dismiss();
-//											}
-//										});
-//
-//									return true;
-//
-//								case R.id.detail:
-//									onVocabularyClicked((View)((View) v.getParent()).getParent());
-//									return true;
-//
-//								case R.id.edit:
-//									ActivityOptions options1 = ActivityOptions.makeClipRevealAnimation(findViewById(R.id.content_frame), 0, 0, 0, 0);
-//									Intent intent1 = new Intent(MainActivity.this, AddActivity.class);
-//									intent1.putExtra("id", 0);//dbHelper.getId(vocabulary.get(vocabulary_selected).kanji));
-//									startActivity(intent1, options1.toBundle());
-//
-//									return true;
-//
-//								case R.id.learn_add:
-//									vocabulary.get(vocabulary_selected).learned = true;
-//									onVocabularyChanged();
-//
-//									return true;
-//
-//								case R.id.learn_remove:
-//									vocabulary.get(vocabulary_selected).learned = false;
-//									onVocabularyChanged();
-//
-//									return true;
-//
+								case R.id.delete:
+									DialogHelper.createDialog(getContext(), "Delete", "Do you really want to delete this vocabulary?", 
+									"Delete", new DialogInterface.OnClickListener() 
+										{
+											public void onClick(DialogInterface dialog, int which) 
+											{
+												dbHelper.deleteVocabulary(id);
+										
+												int[] vocabularies1 = new int[vocabularies.length - 1];
+												System.arraycopy(vocabularies, 0, vocabularies1, 0, index - 1);
+												System.arraycopy(vocabularies, index, vocabularies1, index - 1, vocabularies.length - index);
+												vocabularies = vocabularies1;
+												notifyItemRemoved(index);
+
+												dialog.dismiss();
+											}
+										});
+
+									return true;
+
+								case R.id.detail:
+									onClick((View)((View) v.getParent()).getParent());
+									return true;
+
+								case R.id.edit:
+									Intent intent1 = new Intent(getContext(), ActivityAdd.class);
+									intent1.putExtra("id", id);
+									startActivity(intent1);
+
+									return true;
+
+								case R.id.learn_add:
+									dbHelper.updateVocabularyLearned(id, true);
+									updateFilter();
+
+									return true;
+
+								case R.id.learn_remove:
+									dbHelper.updateVocabularyLearned(id, false);
+									updateFilter();
+
+									return true;
+
 								default:
 									return false;
 							}
 						}
 					});
 				MenuInflater inflater = popup.getMenuInflater();
-				inflater.inflate(R.menu.vocabulary, popup.getMenu());
-//				popup.getMenu().findItem(R.id.learn_add).setVisible(!vocabulary.get(vocabulary_selected).learned);
-//				popup.getMenu().findItem(R.id.learn_remove).setVisible(vocabulary.get(vocabulary_selected).learned);
+				inflater.inflate(R.menu.item_vocabulary, popup.getMenu());
+				boolean learned = dbHelper.getInt(id, "learned") == 1;
+				popup.getMenu().findItem(R.id.learn_add).setVisible(!learned);
+				popup.getMenu().findItem(R.id.learn_remove).setVisible(learned);
 				popup.show();
 			}
+			else if (v.getId() == R.id.button_overflow)
+			{
+				v.findViewById(R.id.button_overflow).setOnClickListener(new View.OnClickListener()
+					{
+						@Override
+						public void onClick(View view)
+						{
+							PopupMenu popup = new PopupMenu(getContext(), view);
+							popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+								{
+									@Override
+									public boolean onMenuItemClick(MenuItem item)
+									{
+										switch (item.getItemId()) 
+										{
+											case R.id.item_open_jisho_kanji:
+												JishoHelper.search(getContext(), searchQuery + "%23kanji");
+												return true;
+											case R.id.item_settings:
+												getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
+												return true;
+											default:
+												return false;
+										}
+									}
+								});
+							MenuInflater inflater = popup.getMenuInflater();
+							inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
+							popup.show();
+						}
+					});
+			}
 			else
-				main.onVocabularyClicked(v);
+			{
+				Fragment fragment = new FragmentDetail().setDefaultTransitions(getContext());
+
+				Bundle bundle = new Bundle();
+				bundle.putInt("id", vocabularies[recyclerView.getChildAdapterPosition((View) v.getParent()) - 1]);
+				fragment.setArguments(bundle);
+
+				View v1 = v.findViewById(R.id.text_kanji);
+				View v2 = v.findViewById(R.id.text_reading);
+				View v3 = v.findViewById(R.id.text_meaning);
+
+				getFragmentManager().beginTransaction()
+					.replace(R.id.layout_content, fragment)
+					.addToBackStack("")
+					.addSharedElement(v, v.getTransitionName())
+					.addSharedElement(v1, v1.getTransitionName())
+					.addSharedElement(v2, v2.getTransitionName())
+					.addSharedElement(v3, v3.getTransitionName())
+					.commit();
+			}
 		}
 
 		public class StatsViewHolder extends RecyclerView.ViewHolder 
 		{
 			final TextView text_progress_learned, text_progress_total,
 			text_progress_kanji, text_progress_reading, text_progress_meaning,
-			text_date, text_next_review, date_next_review;
+			text_date, text_next_review_values, date_next_review;
 			
 			final ProgressBar progress_learned, progress_total,
 			progress_kanji, progress_meaning, progress_reading;
@@ -469,7 +609,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				text_progress_meaning = (TextView) v.findViewById(R.id.text_progress_meaning);
 				
 				text_date = (TextView) v.findViewById(R.id.text_date);
-				text_next_review = (TextView) v.findViewById(R.id.text_next_review);
+				text_next_review_values = (TextView) v.findViewById(R.id.text_next_review_values);
 				date_next_review = (TextView) v.findViewById(R.id.date_next_review);
 				
 				progress_learned = (ProgressBar) v.findViewById(R.id.progress_learned);
@@ -503,6 +643,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				
 				v.findViewById(R.id.button_jisho).setOnClickListener(HomeAdapter.this);
 				v.findViewById(R.id.button_filter).setOnClickListener(HomeAdapter.this);
+				v.findViewById(R.id.button_overflow).setOnClickListener(HomeAdapter.this);
 				(button_stroke_order = v.findViewById(R.id.button_stroke_order)).setOnClickListener(new View.OnClickListener()
 				{
 						@Override
@@ -520,7 +661,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 									final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
 									params.addRule(RelativeLayout.BELOW, R.id.text_title_stroke_order);
 
-									JishoHelper.addStrokeOrderView(getContext(), main.queryText, layout_stroke_order, params, progress_stroke_order, false, true);
+									JishoHelper.addStrokeOrderView(getContext(), searchQuery, layout_stroke_order, params, progress_stroke_order, false, true);
 								}
 							}
 						}
@@ -552,13 +693,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			}
 		}
 
-		final MainActivity main;
-
-		public HomeAdapter(MainActivity main)
-		{
-			this.main = main;
-		}
-
+		
 		@Override
 		public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
 		{
@@ -576,8 +711,8 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		@Override
 		public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) 
 		{
-			int type = getItemViewType(position);
-			if (type == 0)
+			int viewHolderType = getItemViewType(position);
+			if (viewHolderType == 0)
 			{
 				StatsViewHolder holder1 = (StatsViewHolder) holder;
 				
@@ -589,7 +724,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				final ArrayList<Integer> categories_count = new ArrayList<>();
 				categories_count.add(0);
 				
-				Cursor res = dbHelper.getReadableDatabase().rawQuery("SELECT category, learned, type, lastChecked, timesChecked_kanji, timesChecked_reading, timesChecked_meaning, timesCorrect_kanji, timesCorrect_reading, timesCorrect_meaning FROM vocab", null);
+				Cursor res = dbHelper.getReadableDatabase().rawQuery("SELECT category, learned, type, nextReview, timesChecked_kanji, timesChecked_reading, timesChecked_meaning, timesCorrect_kanji, timesCorrect_reading, timesCorrect_meaning FROM vocab", null);
 				int count = res.getCount();
 				if (count > 0)
 				{
@@ -605,7 +740,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						if (res.getInt(res.getColumnIndex("learned")) == 1)
 						{
 							vCategory = res.getInt(res.getColumnIndex("category"));
-							vNextReview = res.getLong(res.getColumnIndex("lastChecked")) + Vocabulary.getNextReview(vCategory);
+							vNextReview = res.getLong(res.getColumnIndex("nextReview"));
 
 							while (categories_count.size() <= vCategory + 1)
 								categories_count.add(0);
@@ -661,7 +796,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				holder1.button_start_quiz.setVisibility(review[0] > 0 ? View.VISIBLE : View.GONE);
 					
 				holder1.text_progress_learned.setText(learned_total + " / " + count);
-				holder1.progress_learned.setMax(main.vocabulary.size());
+				holder1.progress_learned.setMax(count);
 				holder1.progress_learned.setProgress(learned_total - critical);
 				holder1.progress_learned.setSecondaryProgress(learned_total);
 
@@ -690,9 +825,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				int[] review1 = StringHelper.toIntArray(preferences.getString("review1", ""));
 				int[] review2 = StringHelper.toIntArray(preferences.getString("review2", ""));
 				
-				Calendar calendar = Calendar.getInstance();
+				GregorianCalendar calendar = new GregorianCalendar();
 				calendar.setTimeInMillis(lastDate);
-				int days = Calendar.getInstance().get(Calendar.DATE) - calendar.get(Calendar.DATE);
+				int days = new GregorianCalendar().get(Calendar.DAY_OF_YEAR) - calendar.get(Calendar.DAY_OF_YEAR);
+				if (days < 0)
+					days += calendar.isLeapYear(calendar.get(Calendar.YEAR)) ? 366 : 365;
+					
 				if (days > 30 || review1.length != 30)
 				{
 					review1 = new int[30];
@@ -717,23 +855,23 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				
 				holder1.graph_reviewed.setValues(review1, review2);
 				
-				calendar = Calendar.getInstance();
+				calendar = new GregorianCalendar();
 				calendar.add(Calendar.DAY_OF_YEAR, -30);
-				holder1.text_date.setText(DateFormat.getDateFormat(main).format(calendar.getTime()));
+				holder1.text_date.setText(DateFormat.getDateFormat(getContext()).format(calendar.getTime()));
 
-				holder1.text_next_review.setText(
-					"Vocabularies to review now: " + review[0]+ "\n"
-					+ "Vocabularies to review in the next hour: " + review[1] + "\n"
-					+ "Vocabularies to review in the next day: " + review[24]
+				holder1.text_next_review_values.setText(
+					review[0] + "\n"
+					+ review[1] + "\n"
+					+ review[24]
 				);
 				holder1.date_next_review.setText("Next Review: " + (nextReview < System.currentTimeMillis() ? "Now" : nextReview == 0 ? "Never" : new SimpleDateFormat().format(new Date(nextReview))));
 			}
-			else if (type == 1)
+			else if (viewHolderType == 1)
 			{
 				SearchViewHolder holder1 = (SearchViewHolder) holder;
 				
 				holder1.button_stroke_order.setVisibility(JishoHelper.isStrokeOrderAvailable(getContext()) && StringHelper.isKanaOrKanji(searchQuery) ? View.VISIBLE : View.GONE);
-				holder1.text_results.setText(main.vocabulary_filtered.size() + " results for search \"" + searchQuery + "\"");
+				holder1.text_results.setText(vocabularies.length + " results for search \"" + searchQuery + "\"");
 				holder1.card_stroke_order.setVisibility(View.GONE);
 				
 				if (holder1.progress_stroke_order.getVisibility() == View.GONE)
@@ -745,104 +883,104 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			else
 			{
 				VocabularyViewHolder holder1 = (VocabularyViewHolder) holder;
-				Vocabulary v = main.vocabulary_filtered.get(position - 1);
+				
+				int id = vocabularies[position - 1];
 
-				if ((main.queryText == null || main.queryText.isEmpty()) && newCategory(position - 1, v))
+				Cursor res = dbHelper.getReadableDatabase().rawQuery("SELECT type, category, learned, kanji, reading, meaning, additionalInfo, showInfo, nextReview FROM vocab WHERE id = ?", new String[] {"" + id});
+				res.moveToFirst();
+
+				boolean learned = res.getInt(res.getColumnIndex("learned")) == 1;
+				int category = res.getInt(res.getColumnIndex("category"));
+				String kanji = res.getString(res.getColumnIndex("kanji"));
+				String[] reading = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading")));
+				String[] meaning = StringHelper.toStringArray(res.getString(res.getColumnIndex("meaning")));
+				String additionalInfo = res.getString(res.getColumnIndex("additionalInfo"));
+				boolean showInfo = res.getInt(res.getColumnIndex("showInfo")) == 1;
+				long nextReview = res.getLong(res.getColumnIndex("nextReview"));
+				int type = res.getInt(res.getColumnIndex("type"));
+				
+				holder1.text_category.setVisibility(View.GONE);
+				
+				if ((searchQuery == null || searchQuery.isEmpty()))
 				{
-					holder1.text_category.setVisibility(View.VISIBLE);
-
-					if (main.sortType == SortType.CATEGORY || main.sortType == SortType.CATEGORY_REVERSED)
-						holder1.text_category.setText(!v.learned ? "Not in learned vocabulary" : v.category == 0 ? "Critical vocabularies" : "Category " + v.category);
-					
-					else if (main.sortType == SortType.TYPE)
-						holder1.text_category.setText(Vocabulary.types.get(v.type.ordinal()));
-				
-					else if (main.sortType == SortType.NEXT_REVIEW)
+					if (sortType == SortType.CATEGORY || sortType == SortType.CATEGORY_REVERSED)
 					{
-						holder1.text_category.setText((!v.learned ? "Not in learned vocabulary" : v.lastChecked + v.getNextReview() < System.currentTimeMillis() ? "Review now" 
-										 : v.lastChecked + v.getNextReview() < System.currentTimeMillis() + 1000 * 60 * 60 ? "Review in the next hour"
-										 : v.lastChecked + v.getNextReview() < System.currentTimeMillis() + 1000 * 60 * 60 * 48  ? "Review in " + ((v.lastChecked + v.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60 + 1) + " hours"
-										 : "Review in " + ((v.lastChecked + v.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60 / 24 + 1) + " days"));
+						if (position == 1 || dbHelper.getInt(vocabularies[position - 2], "category") != category)
+						{
+							holder1.text_category.setVisibility(View.VISIBLE);
+							holder1.text_category.setText(category == 0 ? "Critical vocabularies" : "Category " + category);
+						}
 					}
-					else
-						holder1.text_category.setText("");
+					else if (sortType == SortType.TYPE)
+					{
+						if (position == 1 || dbHelper.getInt(vocabularies[position - 2], "type") != type)
+						{
+							holder1.text_category.setVisibility(View.VISIBLE);
+							holder1.text_category.setText(Vocabulary.types.get(type));
+						}
+					}
+					else if (sortType == SortType.NEXT_REVIEW)
+					{
+						long nextReview1 = position == 1 ? 0 : dbHelper.getLong(vocabularies[position - 2], "nextReview");
+						if (position == 1 || learned != (dbHelper.getInt(vocabularies[position - 2], "learned") == 1)
+						|| learned && (
+						nextReview >= System.currentTimeMillis() && nextReview1 < System.currentTimeMillis()
+						|| nextReview >= System.currentTimeMillis() + 1000 * 60 * 60 && nextReview1 < System.currentTimeMillis() + 1000 * 60 * 60
+						|| nextReview >= System.currentTimeMillis() && (nextReview - System.currentTimeMillis() < 1000 * 60 * 60 * 48 ? 
+						((int)(nextReview - System.currentTimeMillis()) / 1000 / 60 / 60 > (int)((nextReview1 - System.currentTimeMillis()) / 1000 / 60 / 60))
+						: ((int)((nextReview - System.currentTimeMillis()) / 1000 / 60 / 60 / 24) > (int)(((nextReview1 - System.currentTimeMillis()) / 1000 / 60 / 60 / 24))
+						))))
+						{
+							holder1.text_category.setVisibility(View.VISIBLE);
+							holder1.text_category.setText((!learned ? "Not yet learned" : nextReview < System.currentTimeMillis() ? "Review now" 
+														  : nextReview < System.currentTimeMillis() + 1000 * 60 * 60 ? "Review in the next hour"
+														  : nextReview < System.currentTimeMillis() + 1000 * 60 * 60 * 48  ? "Review in " + ((nextReview - System.currentTimeMillis()) / 1000 / 60 / 60 + 1) + " hours"
+														  : "Review in " + ((nextReview - System.currentTimeMillis()) / 1000 / 60 / 60 / 24 + 1) + " days"));
+						}
+					}
 				}
-				else
-					holder1.text_category.setVisibility(View.GONE);
+					
+				res.close();
 				
-
-				int id = dbHelper.getId(v.kanji);
-
 				holder1.card_vocabulary.setTransitionName("card" + id);
-				holder1.text_kanji.setText(v.correctAnswer(QuestionType.KANJI));
+				holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, showInfo));
 				holder1.text_kanji.setTransitionName("kanji" + id);
 				
-				holder1.text_reading.setText(v.correctAnswer(QuestionType.READING));
+				holder1.text_reading.setText(Vocabulary.correctAnswer(QuestionType.READING, kanji, reading, meaning, additionalInfo, showInfo));
 				holder1.text_reading.setTransitionName("reading" + id);
 				
-				holder1.text_meaning.setText(v.correctAnswer(QuestionType.MEANING));
+				holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.MEANING, kanji, reading, meaning, additionalInfo, showInfo));
 				holder1.text_meaning.setTransitionName("meaning" + id);
 
-				if (main.viewType == ViewType.LARGE)
+				if (viewType == ViewType.LARGE)
 				{
 					holder1.text_kanji.setTextSize(TypedValue.COMPLEX_UNIT_SP, 50);
 					holder1.text_reading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 					holder1.text_meaning.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 				}
-				else if (main.viewType == ViewType.MEDIUM)
+				else if (viewType == ViewType.MEDIUM)
 				{
 					holder1.text_kanji.setTextSize(TypedValue.COMPLEX_UNIT_SP, 35);
 					holder1.text_reading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
 					holder1.text_meaning.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
 				}
-				else if (main.viewType == ViewType.SMALL)
+				else if (viewType == ViewType.SMALL)
 				{
 					holder1.text_kanji.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
 					holder1.text_reading.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
 					holder1.text_meaning.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
 				}
 
-				holder1.text_reading.setVisibility(v.reading.length > 0 ? View.VISIBLE : View.GONE);
-
-				holder1.image_check.setVisibility(v.learned ? View.VISIBLE : View.GONE);
-				holder1.image_check.setImageResource(v.category == 0 ? R.drawable.alert : R.drawable.check);
-			}
-		}
-
-		public boolean newCategory(int position, Vocabulary v)
-		{
-			Vocabulary v1 = v;
-
-			if (position > 0)
-				v1 = main.vocabulary_filtered.get(position - 1);
-
-			switch (main.sortType)
-			{
-				case CATEGORY:
-				case CATEGORY_REVERSED:
-					return position == 0 || v.category != v1.category && v.learned || v.learned != v1.learned;
-
-				case TYPE:
-					return position == 0 || v.type != v1.type;
-
-				case NEXT_REVIEW:
-					return position == 0 || v.learned != v1.learned || v.learned &&
-						( v.lastChecked + v.getNextReview() >= System.currentTimeMillis() && v1.lastChecked + v1.getNextReview() < System.currentTimeMillis()
-						|| v.lastChecked + v.getNextReview() >= System.currentTimeMillis() + 1000 * 60 * 60 && v1.lastChecked + v1.getNextReview() < System.currentTimeMillis() + 1000 * 60 * 60
-						|| v.lastChecked + v.getNextReview() >= System.currentTimeMillis() && (v.lastChecked + v.getNextReview() - System.currentTimeMillis() < 1000 * 60 * 60 * 48 ? 
-						((int)(v.lastChecked + v.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60 > (int)((v1.lastChecked + v1.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60))
-						: ((int)((v.lastChecked + v.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60 / 24) > (int)(((v1.lastChecked + v1.getNextReview() - System.currentTimeMillis()) / 1000 / 60 / 60 / 24))
-						)));
-
-				default:
-					return false;
+				holder1.text_reading.setVisibility(reading.length > 0 ? View.VISIBLE : View.GONE);
+				holder1.image_check.setVisibility(learned ? View.VISIBLE : View.GONE);
+				holder1.image_check.setImageResource(category == 0 ? R.drawable.alert : R.drawable.check);
 			}
 		}
 
 		@Override
 		public int getItemCount() 
 		{
-			return main.vocabulary_filtered.size() + 1;
+			return vocabularies.length + 1;
 		}
 
 		@Override

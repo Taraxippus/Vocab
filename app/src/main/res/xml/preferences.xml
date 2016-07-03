@@ -31,6 +31,7 @@
 			android:title="Play sound in quiz"
 			android:summary="Auto play sound in quiz. Requires internet. Not all vocabularies have sound" 
 			android:defaultValue="false"/>
+		
     </PreferenceCategory>
 	
 	<PreferenceCategory

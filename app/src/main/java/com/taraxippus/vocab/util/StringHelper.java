@@ -142,6 +142,11 @@ public class StringHelper
 		return c;
 	}
 
+	public static boolean equalsKana(String s1, String s2)
+	{
+		return s1.replace("・", "").equals(s2.replace("・", ""));
+	}
+	
 	public static boolean similiarMeaning(String s1, String s2)
 	{
 		if (s1.length() < 3 || Math.abs(s1.length() - s2.length()) > 1)
@@ -263,31 +268,31 @@ public class StringHelper
 	}
 	
 	private static final char seperator = '\\';
-	private static final String seperator_regex = "\\\\";
+	private static final String seperatorString = "\\";
+	private static final String seperatorRegex = "\\\\";
 	
 	public static String toString(String[] in)
 	{
 		final StringBuilder sb = new StringBuilder();
+		sb.append(seperator);
+		
 		for (int i = 0; i < in.length; ++i)
 		{
-			if (i > 0)
-				sb.append(seperator);
-				
 			sb.append(in[i].replace(seperator, '/'));
+			sb.append(seperator);
 		}
 		
 		return sb.toString();
 	}
 	
-	public static String toString(ArrayList<String> in)
+	public static String toString(ArrayList<?> in)
 	{
 		final StringBuilder sb = new StringBuilder();
+		sb.append(seperator);
 		for (int i = 0; i < in.size(); ++i)
 		{
-			if (i > 0)
-				sb.append(seperator);
-
-			sb.append(in.get(i).replace(seperator, '/'));
+			sb.append(in.get(i).toString().replace(seperator, '/'));
+			sb.append(seperator);
 		}
 
 		return sb.toString();
@@ -296,26 +301,12 @@ public class StringHelper
 	public static String toString(int[] in)
 	{
 		final StringBuilder sb = new StringBuilder();
+		sb.append(seperator);
+		
 		for (int i = 0; i < in.length; ++i)
 		{
-			if (i > 0)
-				sb.append(seperator);
-
 			sb.append(in[i]);
-		}
-
-		return sb.toString();
-	}
-	
-	public static String toString(ArrayList<Integer> in)
-	{
-		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < in.size(); ++i)
-		{
-			if (i > 0)
-				sb.append(seperator);
-
-			sb.append(in.get(i));
+			sb.append(seperator);
 		}
 
 		return sb.toString();
@@ -324,13 +315,12 @@ public class StringHelper
 	public static String toString(boolean[] in)
 	{
 		final StringBuilder sb = new StringBuilder();
+		sb.append(seperator);
+		
 		for (int i = 0; i < in.length; ++i)
 		{
-			if (i > 0)
-				sb.append(seperator);
-
-			if (in[i])
-				sb.append("1");
+			sb.append(in[i] ? '1' : '0');
+			sb.append(seperator);
 		}
 
 		return sb.toString();
@@ -338,18 +328,17 @@ public class StringHelper
 	
 	public static String[] toStringArray(String in)
 	{
-		if (in == null || in.isEmpty())
+		if (in == null || in.startsWith(seperatorString) ? in.length() <= 2 : in.isEmpty())
 			return new String[0];
 		
-		return in.split(seperator_regex);
+		if (in.startsWith(seperatorString))
+			in = in.substring(1, in.length() - 1);
+			
+		return in.split(seperatorRegex);
 	}
 	
 	public static int[] toIntArray(String in)
 	{
-		if (in == null || in.isEmpty())
-
-			return new int[0];
-			
 		final String[] array = toStringArray(in);
 		final int[] out = new int[array.length];
 		
@@ -361,14 +350,11 @@ public class StringHelper
 	
 	public static boolean[] toBooleanArray(String in)
 	{
-		if (in == null || in.isEmpty())
-			return new boolean[0];
-
 		final String[] array = toStringArray(in);
 		final boolean[] out = new boolean[array.length];
 
 		for (int i = 0; i < out.length; ++i)
-			out[i] = !array[i].isEmpty();
+			out[i] = array[i].equals("1");
 
 		return out;
 	}

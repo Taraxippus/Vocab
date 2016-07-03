@@ -59,14 +59,14 @@ public class PercentageView extends View implements ValueAnimator.AnimatorUpdate
 		textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
 		textPaint.setTextAlign(Paint.Align.CENTER);
 		
-		value = 0.8F;
+		value = 0.0F;
 	}
 
 	public void setValue(float value)
 	{
 		this.value = value;
 		
-		adjustTextSize("" + (int)(value * 100) + "%");
+		adjustTextSize("100%");
 		invalidate();
 	}
 
@@ -126,4 +126,16 @@ public class PercentageView extends View implements ValueAnimator.AnimatorUpdate
 	{
 		invalidate();
 	}
+	
+    @Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
+    {
+        final int originalWidth = MeasureSpec.getSize(widthMeasureSpec);
+        final int originalHeight = MeasureSpec.getSize(heightMeasureSpec);
+		
+        if (originalWidth > originalHeight)
+			super.onMeasure(MeasureSpec.makeMeasureSpec(originalHeight, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(originalHeight, MeasureSpec.EXACTLY));
+        else
+        	super.onMeasure(MeasureSpec.makeMeasureSpec(originalWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(originalWidth, MeasureSpec.EXACTLY));
+    }
 }

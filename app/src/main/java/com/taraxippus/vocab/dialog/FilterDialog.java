@@ -21,6 +21,7 @@ import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import com.taraxippus.vocab.util.StringHelper;
+import java.util.Arrays;
 
 public class FilterDialog extends DialogFragment
 {
@@ -32,6 +33,8 @@ public class FilterDialog extends DialogFragment
 		final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(getContext());
+		alertDialog.setTitle("Filter");
+		
 		View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_filter, null);
 
 		final Spinner spinner_sort = (Spinner) v.findViewById(R.id.spinner_sort);

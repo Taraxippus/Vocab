@@ -8,10 +8,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.CardView;
 import android.support.v7.widget.PopupMenu;
 import android.text.InputType;
 import android.transition.TransitionInflater;
@@ -30,7 +31,8 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
-import com.taraxippus.vocab.DetailActivity;
+import com.taraxippus.vocab.ActivityDetail;
+import com.taraxippus.vocab.ActivityLearn;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.util.JishoHelper;
 import com.taraxippus.vocab.util.OnProcessSuccessListener;
@@ -44,11 +46,12 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Random;
-import com.taraxippus.vocab.vocabulary.ImportType;
+import com.taraxippus.vocab.dialog.DialogHelper;
+import com.taraxippus.vocab.ActivitySettings;
 
 public class FragmentActivityQuiz extends Fragment implements View.OnClickListener
 {
-	CardView card_question, card_solution, card_stroke_order;
+	View card_question, card_solution, card_stroke_order;
 	TextView text_question, text_type, text_solution_icon, text_solution,
 	text_category, text_level_up;
 	
@@ -66,6 +69,10 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 	QuestionType question_type = QuestionType.KANJI;
 	
 	ArrayList<Vocabulary> vocabularies;
+	ArrayList<Vocabulary> newVocabularies;
+	final ArrayList<String> vocabularies_plus = new ArrayList<>();
+	final ArrayList<String> vocabularies_neutral = new ArrayList<>();
+	final ArrayList<String> vocabularies_minus = new ArrayList<>();
 	int progress, maxProgress,
 	timesChecked_kanji, timesChecked_reading, timesChecked_meaning,
 	timesCorrect_kanji, timesCorrect_reading, timesCorrect_meaning;
@@ -84,11 +91,11 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 	public Fragment setDefaultTransitions(Context context)
 	{
 		this.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_top));
-		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.fade));
+		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_top));
 
 		this.setAllowEnterTransitionOverlap(false);
 		this.setAllowReturnTransitionOverlap(false);
-
+		
 		return this;
 	}
 	
@@ -98,8 +105,34 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 		super.onCreate(savedInstanceState);
 		
 		dbHelper = new DBHelper(getContext());
+	
+		vocabularies = new ArrayList<>();
+		newVocabularies = new ArrayList<>();
 		
-		vocabularies = dbHelper.getQuizVocabularies();
+		SQLiteDatabase db = dbHelper.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT * FROM vocab WHERE learned = 1 AND nextReview < ?", new String[] {"" + System.currentTimeMillis()});
+	
+		if (res.getCount() <= 0)
+			res.close();
+		
+		else
+		{
+			res.moveToFirst();
+
+			Vocabulary v;
+			do
+			{
+				v = dbHelper.getVocabulary(res);
+				
+				if (v.lastChecked == 0)
+					newVocabularies.add(v);
+				else
+					vocabularies.add(v);
+			}
+			while (res.moveToNext());
+
+			res.close();
+		}
 		
 		progress = 0;
 		maxProgress = 0;
@@ -118,21 +151,90 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				progress++;
 		}
 		
+		if (!newVocabularies.isEmpty())
+		{
+			AlertDialog.Builder alertDialog = new AlertDialog.Builder(getContext());
+			alertDialog.setTitle("New Vocabularies");
+			alertDialog.setMessage("There are some new vocabularies in this quiz, which you haven't learned yet. Do you still want to include them in this review?");
+			alertDialog.setPositiveButton("Include", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						dialog.dismiss();
+						
+						vocabularies.addAll(newVocabularies);
+						newVocabularies.clear();
+						
+						progress = 0;
+						maxProgress = 0;
+						for (Vocabulary v : vocabularies)
+						{
+							if (v.reading.length == 0)
+								maxProgress += 2;
+							else
+								maxProgress += 3;
+
+							if (v.answered_kanji)
+								progress++;
+							if (v.reading.length > 0 && v.answered_reading)
+								progress++;
+							if (v.answered_meaning)
+								progress++;
+						}
+						
+						setTitle();
+					}
+				});
+			alertDialog.setNeutralButton("Learn now", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						getContext().startActivity(new Intent(getContext(), ActivityLearn.class));
+						dialog.dismiss();
+						newVocabularies.clear();
+					}
+				});
+			alertDialog.setNegativeButton("Exclude", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						dialog.cancel();
+						newVocabularies.clear();
+						
+						if (vocabularies.isEmpty())
+						{
+							answer = Answer.SKIP;
+							next();
+						}
+					}
+				});
+			alertDialog.setCancelable(false);
+			alertDialog.show();
+		}
+			
 		preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		
+		setHasOptionsMenu(true);
 		setTitle();
 	}
 	
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 	{
-        View v = inflater.inflate(R.layout.activity_quiz, container, false);
+        return inflater.inflate(R.layout.activity_quiz, container, false);
+	}
 
+	@Override
+	public void onViewCreated(View v, Bundle savedInstanceState)
+	{
 		progress_quiz = (ProgressBar)v.findViewById(R.id.progress_quiz);
 		text_question = (TextView)v.findViewById(R.id.text_question);
 		text_type = (TextView)v.findViewById(R.id.text_type);
-		card_question = (CardView)v.findViewById(R.id.card_question);
-		card_solution = (CardView)v.findViewById(R.id.card_solution);
+		card_question = v.findViewById(R.id.card_question);
+		card_solution = v.findViewById(R.id.card_solution);
 		card_solution.setVisibility(View.INVISIBLE);
 		card_solution.setOnClickListener(this);
 		text_solution_icon = (TextView)v.findViewById(R.id.text_solution_icon);
@@ -168,7 +270,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				@Override
 				public void onClick(View v)
 				{
-					vocabulary.playSound(getContext());
+					vocabulary.playSound(dbHelper);
 				}
 			};
 			
@@ -178,7 +280,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 		button_sound2.setOnClickListener(listener);
 		
 		layout_stroke_order = (RelativeLayout) v.findViewById(R.id.layout_stroke_order);
-		card_stroke_order = (CardView) v.findViewById(R.id.card_stroke_order);
+		card_stroke_order = v.findViewById(R.id.card_stroke_order);
 		final ProgressBar progress_stroke_order = (ProgressBar) v.findViewById(R.id.progress_stroke_order);
 		final ImageButton stroke_order3 = (ImageButton) v.findViewById(R.id.button_stroke_order3);
 		
@@ -200,7 +302,8 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			public void onClick(View v)
 			{
 				final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
-				params.addRule(RelativeLayout.CENTER_IN_PARENT, 0);
+				params.addRule(RelativeLayout.CENTER_IN_PARENT);
+				params.addRule(RelativeLayout.BELOW,R.id.button_overflow_stroke_order);
 				JishoHelper.addStrokeOrderView(getContext(), vocabulary.kanji, layout_stroke_order, params, progress_stroke_order, true, true);
 				
 				Animator appear = ViewAnimationUtils.createCircularReveal(card_stroke_order, 0, card_stroke_order.getHeight(), 0, Math.max(card_stroke_order.getWidth(), card_stroke_order.getHeight()));
@@ -224,10 +327,10 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 		button_stroke_order2 = (ImageButton) v.findViewById(R.id.button_stroke_order2);
 		button_stroke_order2.setOnClickListener(listener);
 		
+		v.findViewById(R.id.button_overflow_stroke_order).setOnClickListener(this);
+		
 		answer = Answer.SKIP;
 		next();
-		
-		return v;
     }
 	
 	String input;
@@ -247,7 +350,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 		else if (answer_type == answer_type.READING && !StringHelper.isKana(ans))
 			answer = Answer.RETRY;
 		else
-			answer = vocabulary.getAnswer(ans, answer_type, question_type);
+			answer = vocabulary.getAnswer(dbHelper, ans, answer_type, question_type);
 			
 		text_answer.getText().clear();
 		
@@ -303,7 +406,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				text_level_up.setText("-" + (vocabulary.category - vocabulary.getLastSavePoint(getContext())));
 			
 			if (preferences.getBoolean("soundQuiz", false) && answer_type == QuestionType.READING)
-					vocabulary.playSound(getContext());
+					vocabulary.playSound(dbHelper);
 
 		}
 		else if (answer == Answer.RETRY)
@@ -324,7 +427,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			button_stroke_order2.setVisibility(JishoHelper.isStrokeOrderAvailable(getContext()) ? View.VISIBLE : View.GONE);
 			button_sound2.setVisibility(View.GONE);
 			if (vocabulary.answered_reading || answer_type == QuestionType.READING)
-				vocabulary.prepareSound(getContext(), new OnProcessSuccessListener()
+				vocabulary.prepareSound(dbHelper, new OnProcessSuccessListener()
 				{
 					@Override
 					public void onProcessSuccess(Object[] args)
@@ -375,7 +478,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 		
 		if (vocabulary != null && answer != Answer.RETRY && answer != answer.SKIP && !retype)
 		{
-			vocabulary.answer(getContext(), input, answer_type, question_type);
+			vocabulary.answer(dbHelper, getContext(), input, answer_type, question_type);
 			text_category.setText("" + vocabulary.category);
 			
 			if (answer_type == QuestionType.KANJI)
@@ -399,7 +502,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				if (answer == Answer.CORRECT || answer == Answer.SIMILIAR)
 					timesCorrect_meaning++;
 			}
-			
+				
 			history_quiz.add((timesCorrect_kanji + timesCorrect_reading + timesCorrect_meaning) / (float) (timesChecked_kanji + timesChecked_reading + timesChecked_meaning));
 		}
 			
@@ -444,10 +547,19 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 					.apply();
 
 				if (vocabulary.answered_correct)
+				{
 					vocabulary.category++;
-
+					vocabularies_plus.add(vocabulary.kanji);
+				}
+				else if (vocabulary.category_history[vocabulary.category_history.length - 1] == vocabulary.category)
+					vocabularies_neutral.add(vocabulary.kanji);
+					
+				else
+					vocabularies_minus.add(vocabulary.kanji);
+					
 				vocabulary.lastChecked = System.currentTimeMillis();
-
+				vocabulary.nextReview = vocabulary.lastChecked + Vocabulary.getNextReview(vocabulary.category);
+				
 				vocabulary.answered_kanji = false;
 				vocabulary.answered_meaning = false;
 				vocabulary.answered_reading = false;
@@ -461,29 +573,40 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			}
 			
 			if (vocabulary != null)
-				dbHelper.updateVocabulary(vocabulary, -1, ImportType.REPLACE);
+				dbHelper.updateVocabulary(vocabulary);
 			
 			if (vocabularies.isEmpty())
 			{
-				float[] history_quiz = new float[this.history_quiz.size()];
-				for (int i = 0; i < history_quiz.length; ++i)
-					history_quiz[i] = this.history_quiz.get(i);
-				
-				Fragment fragment = new FragmentActivityQuizFinish().setDefaultTransitions(getContext());
-				Bundle bundle = new Bundle();
-				bundle.putFloatArray("history_quiz", history_quiz);
-				bundle.putInt("timesChecked_kanji", timesChecked_kanji);
-				bundle.putInt("timesChecked_reading", timesChecked_reading);
-				bundle.putInt("timesChecked_meaning", timesChecked_meaning);
-				bundle.putInt("timesCorrect_kanji", timesCorrect_kanji);
-				bundle.putInt("timesCorrect_reading", timesCorrect_reading);
-				bundle.putInt("timesCorrect_meaning", timesCorrect_meaning);
-				fragment.setArguments(bundle);
-				getFragmentManager().beginTransaction().replace(R.id.content_frame, fragment).commit();
-				return;
+				if (!newVocabularies.isEmpty())
+				{
+					vocabulary = newVocabularies.get(0);
+				}
+				else
+				{
+					float[] history_quiz = new float[this.history_quiz.size()];
+					for (int i = 0; i < history_quiz.length; ++i)
+						history_quiz[i] = this.history_quiz.get(i);
+
+					Fragment fragment = new FragmentActivityQuizFinish().setDefaultTransitions(getContext());
+					Bundle bundle = new Bundle();
+					bundle.putFloatArray("history_quiz", history_quiz);
+					bundle.putInt("timesChecked_kanji", timesChecked_kanji);
+					bundle.putInt("timesChecked_reading", timesChecked_reading);
+					bundle.putInt("timesChecked_meaning", timesChecked_meaning);
+					bundle.putInt("timesCorrect_kanji", timesCorrect_kanji);
+					bundle.putInt("timesCorrect_reading", timesCorrect_reading);
+					bundle.putInt("timesCorrect_meaning", timesCorrect_meaning);
+					bundle.putStringArrayList("vocabularies_plus", vocabularies_plus);
+					bundle.putStringArrayList("vocabularies_neutral", vocabularies_neutral);
+					bundle.putStringArrayList("vocabularies_minus", vocabularies_minus);
+					fragment.setArguments(bundle);
+					getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment).commit();
+					return;
+				}
 			}
+			else
+				vocabulary = vocabularies.get(random.nextInt(vocabularies.size()));
 			
-			vocabulary = vocabularies.get(random.nextInt(vocabularies.size()));
 			
 			ArrayList<QuestionType> tmp = new ArrayList<>();
 			if (!vocabulary.answered_kanji)
@@ -539,7 +662,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			
 			button_sound.setVisibility(View.GONE);
 			if (JishoHelper.isInternetAvailable(getContext()) && (question_type == QuestionType.READING || question_type == QuestionType.KANJI && answer_type != QuestionType.READING && vocabulary.answered_reading))
-				vocabulary.prepareSound(getContext(), new OnProcessSuccessListener()
+				vocabulary.prepareSound(dbHelper, new OnProcessSuccessListener()
 				{
 					@Override
 					public void onProcessSuccess(Object[] args)
@@ -554,7 +677,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			{
 				if (question_type == QuestionType.READING || question_type == QuestionType.KANJI && answer_type != QuestionType.READING)
 				{
-					vocabulary.playSound(getContext());
+					vocabulary.playSound(dbHelper);
 				}
 			}
 		}
@@ -602,7 +725,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 							return true;
 							
 						case R.id.item_detail:
-							Intent intent = new Intent(getContext(), DetailActivity.class);
+							Intent intent = new Intent(getContext(), ActivityDetail.class);
 							intent.putExtra("id", dbHelper.getId(vocabulary.kanji));
 							startActivity(intent);
 							
@@ -641,29 +764,20 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 								}
 							}
 							
-							if (question_type == QuestionType.READING && vocabulary.sameReading.size() > 0
-							|| question_type == QuestionType.MEANING && vocabulary.sameMeaning.size() > 0)
+							if (question_type == QuestionType.READING && vocabulary.sameReading.length > 0
+							|| question_type == QuestionType.MEANING && vocabulary.sameMeaning.length > 0)
 							{
-								for (Vocabulary v : (question_type == QuestionType.READING ? vocabulary.sameReading : vocabulary.sameMeaning))
+								for (int id : (question_type == QuestionType.READING ? vocabulary.sameReading : vocabulary.sameMeaning))
 								{
 									if (answer_type == QuestionType.KANJI)
 									{
 										message.append("\t- ");
-										message.append(v.kanji);
+										message.append(dbHelper.getString(id, "kanji"));
 										message.append("\n");
 									}
-									else if (answer_type == QuestionType.READING)
+									else 
 									{
-										for (String s : v.reading)
-										{
-											message.append("\t- ");
-											message.append(s);
-											message.append("\n");
-										}
-									}
-									else
-									{
-										for (String s : v.meaning)
+										for (String s : dbHelper.getStringArray(id, answer_type == QuestionType.READING ? "reading" : "meaning"))
 										{
 											message.append("\t- ");
 											message.append(s);
@@ -708,8 +822,33 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				}
 			});
 			MenuInflater inflater = popup.getMenuInflater();
-			inflater.inflate(R.menu.quiz, popup.getMenu());
+			inflater.inflate(R.menu.activity_quiz, popup.getMenu());
 			popup.getMenu().findItem(R.id.item_retry).setVisible(answer == Answer.WRONG || answer == Answer.SIMILIAR);
+			popup.show();
+		}
+		else if (view.getId() == R.id.button_overflow_stroke_order)
+		{
+			PopupMenu popup = new PopupMenu(getContext(), view);
+			popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+				{
+					@Override
+					public boolean onMenuItemClick(MenuItem item)
+					{
+						switch (item.getItemId()) 
+						{
+							case R.id.item_open_jisho_kanji:
+								JishoHelper.search(getContext(), vocabulary.kanji + "%23kanji");
+								return true;
+							case R.id.item_settings:
+								getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
+								return true;
+							default:
+								return false;
+						}
+					}
+				});
+			MenuInflater inflater = popup.getMenuInflater();
+			inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
 			popup.show();
 		}
 	}

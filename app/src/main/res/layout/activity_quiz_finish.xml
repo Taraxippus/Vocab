@@ -27,7 +27,7 @@
 					android:id="@+id/percentage_total"
 					android:layout_width="match_parent"
 					android:layout_height="200dp"
-				/>
+					android:layout_gravity="center" />
 			
 				<TextView
 					android:id="@+id/text_total_progress"
@@ -73,7 +73,6 @@
 						app:layout_gravity="fill_horizontal"
 						android:paddingTop="8dp"
 						android:gravity="center"
-						android:text="8 / 10"
 						android:textStyle="bold" />
 					
 					<TextView
@@ -98,7 +97,6 @@
 						app:layout_gravity="fill_horizontal"
 						android:paddingTop="8dp"
 						android:gravity="center"
-						android:text="8 / 10"
 						android:textStyle="bold" />
 					
 					<TextView
@@ -123,7 +121,6 @@
 						app:layout_gravity="fill_horizontal"
 						android:paddingTop="8dp"
 						android:gravity="center"
-						android:text="8 / 10"
 						android:textStyle="bold" />
 						
 				</android.support.v7.widget.GridLayout>
@@ -230,8 +227,7 @@
 					android:id="@+id/line_graph_review"
 					android:layout_width="match_parent"
 					android:layout_height="125dp"
-					android:layout_below="@id/text_line_graph_review"
-				/>
+					android:layout_below="@id/text_line_graph_review" />
 
 				<TextView
 					android:id="@+id/text_now"
@@ -264,6 +260,7 @@
 			<android.support.v7.widget.GridLayout
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
+				android:maxHeight="200dp"
 				android:padding="8dp"
 				app:orientation="vertical"
 				app:columnCount="3"
@@ -277,13 +274,14 @@
 					android:padding="8dp"
 					android:textStyle="bold" />
 			
-				<TextView
-					android:id="@+id/text_plus"
+				<android.support.v7.widget.RecyclerView
+					android:id="@+id/recycler_plus"
 					app:layout_columnWeight="1"
 					app:layout_gravity="fill_horizontal"
-					android:text="日本"
-					android:padding="8dp"
-					android:gravity="left" />
+					android:paddingTop="8dp" 
+					android:paddingBottom="8dp"
+					android:clipToPadding="false"
+					android:gravity="left"/>
 				
 				<TextView
 					app:layout_columnWeight="1"
@@ -293,13 +291,14 @@
 					android:padding="8dp"
 					android:textStyle="bold" />
 
-				<TextView
-					android:id="@+id/text_neutral"
+				<android.support.v7.widget.RecyclerView
+					android:id="@+id/recycler_neutral"
 					app:layout_columnWeight="1"
 					app:layout_gravity="fill_horizontal"
-					android:text="日本"
-					android:padding="8dp"
-					android:gravity="center" />
+					android:paddingTop="8dp" 
+					android:paddingBottom="8dp"
+					android:clipToPadding="false"
+					android:gravity="center"/>
 				
 				<TextView
 					app:layout_columnWeight="1"
@@ -309,13 +308,14 @@
 					android:padding="8dp"
 					android:textStyle="bold" />
 
-				<TextView
-					android:id="@+id/text_minus"
+				<android.support.v7.widget.RecyclerView
+					android:id="@+id/recycler_minus"
 					app:layout_columnWeight="1"
 					app:layout_gravity="fill_horizontal"
-					android:text="日本"
-					android:padding="8dp" 
-					android:gravity="right" />
+					android:paddingTop="8dp" 
+					android:paddingBottom="8dp"
+					android:clipToPadding="false"
+					android:gravity="right"/>
 				
 			</android.support.v7.widget.GridLayout>
 		</android.support.v7.widget.CardView>

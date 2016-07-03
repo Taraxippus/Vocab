@@ -62,6 +62,9 @@ public class GraphView extends View
 	
 	public void setValues(int[] values1, int[] values12)
 	{
+		if (values1.length == 0 || values1.length != values12.length)
+			return;
+			
 		values = new int[values1.length];
 		values2 = new int[values12.length];
 		tallest = 0;
@@ -72,11 +75,11 @@ public class GraphView extends View
 			values2[i] = values12[i];
 
 			if (values[i] > values[tallest])
-				tallest = i;
+				best = tallest = i;
 
-			if ((float) values2[i] / values[i] > (float) values2[best] / values[best]
-				|| (float) values2[i] / values[i] == (float) values2[best] / values[best] && values2[i] > values2[best])
-				best = i;
+//			if ((float) values2[i] / values[i] > (float) values2[best] / values[best]
+//				|| (float) values2[i] / values[i] == (float) values2[best] / values[best] && values2[i] > values2[best])
+//				best = i;
 		}
 		
 		onSizeChanged(getWidth(), getHeight(), getWidth(), getHeight());

@@ -64,6 +64,9 @@ public class PercentageGraphView extends View
 
 	public void setValues(String[] names1, float[] values1, boolean sort, boolean removeZero)
 	{
+		if (values1.length == 0 || values1.length != names.length)
+			return;
+			
 		values = new float[values1.length];
 		names = new String[names1.length];
 		largest = 0;

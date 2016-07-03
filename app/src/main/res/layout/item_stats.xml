@@ -54,7 +54,7 @@
 			android:layout_height="wrap_content"
 			android:layout_alignParentLeft="true"
 			android:layout_below="@id/text_title_stats"
-			android:text="Vocabulary learned:"
+			android:text="Vocabularies learned:"
 			android:paddingLeft="8dp"
 			android:paddingTop="8dp" />
 	
@@ -316,15 +316,37 @@
 			android:layout_height="wrap_content"
 			android:layout_alignParentLeft="true"
 			android:layout_below="@id/layout_stats"
+			android:paddingTop="16dp"
 			android:paddingLeft="8dp"
-			android:paddingTop="8dp"/>
+			android:text="Vocabularies to review:" />
+
+		<TextView
+			android:id="@+id/text_next_review_category"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentLeft="true"
+			android:layout_below="@id/text_next_review"
+			android:paddingLeft="16dp"
+			android:paddingTop="8dp"
+			android:text="Now\nIn the next hour\nIn the next day" />
+
+		<TextView
+			android:id="@+id/text_next_review_values"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentRight="true"
+			android:layout_below="@id/text_next_review"
+			android:layout_alignLeft="@id/text_progress_learned"
+			android:paddingTop="8dp"
+			android:gravity="center"
+			android:textStyle="bold" />
 		
 		<TextView
 			android:id="@+id/date_next_review"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignParentRight="true"
-			android:layout_below="@id/text_next_review"
+			android:layout_below="@id/text_next_review_category"
 			android:padding="8dp"/>
 
 	</RelativeLayout>

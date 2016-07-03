@@ -13,16 +13,16 @@ import android.graphics.drawable.*;
 import android.util.*;
 import android.widget.ActionMenuView.*;
 
-public class Vocabulary implements Comparable<Vocabulary>
+public class Vocabulary
 {
 	public static final Random random = new Random();
 	
-	public final String kanji;
-	public final String[] reading;
-	public final String[] reading_trimed;
-	public final String[] meaning;
-	public final String additionalInfo;
-	public final String notes;
+	public String kanji;
+	public String[] reading;
+	public String[] reading_trimed;
+	public String[] meaning;
+	public String additionalInfo;
+	public String notes;
 	
 	public int streak_kanji, streak_kanji_best;
 	public int streak_reading, streak_reading_best;
@@ -36,340 +36,34 @@ public class Vocabulary implements Comparable<Vocabulary>
 	public int timesCorrect_reading;
 	public int timesCorrect_meaning;
 	
-	public final int[] meaning_used;
-	public final int[] reading_used;
+	public int[] meaning_used;
+	public int[] reading_used;
 	
-	public final int[] category_history = new int[32];
+	public int[] category_history;
 	
-	public final ArrayList<Vocabulary> sameMeaning = new ArrayList<>();
-	public final ArrayList<Vocabulary> sameReading = new ArrayList<>();
+	public int[] sameReading;
+	public int[] sameMeaning;
 	
 	public boolean learned;
-	public boolean showInfo = true;
+	public boolean showInfo;
 	
 	public boolean answered_kanji;
 	public boolean answered_reading;
 	public boolean answered_meaning;
 	public boolean answered_correct = true;
 	
-	public final VocabularyType type;
+	public VocabularyType type;
 	
-	public int category = 1;
+	public int category;
 	
 	public long lastChecked;
 	public long added;
+	public long nextReview;
 	
-	public String soundFile = "";
-	public String imageFile = "";
+	public String soundFile;
+	public String imageFile;
 	
-	public Vocabulary(VocabularyType type, String kanji, String[] reading, String[] meaning, String additionalInfo, String notes)
-	{
-		this.type = type;
-		
-		this.kanji = kanji;
-		this.reading = reading.length == 1 && (reading[0] == null || reading[0].isEmpty()) ? new String[0] : reading;
-		this.reading_used = new int[this.reading.length];
-		this.reading_trimed = new String[this.reading.length];
-		for (int i = 0; i < this.reading.length; ++i)
-			this.reading_trimed[i] = reading[i].replace("・", "");
-			
-		this.meaning = meaning;
-		this.meaning_used = new int[meaning.length];
-		
-		this.additionalInfo = additionalInfo;
-		this.notes = notes;
-		
-		this.added = System.currentTimeMillis();
-		
-		this.category_history[category_history.length - 1] = category;
-		for (int i = 0; i < category_history.length - 1; ++i)
-			category_history[i] = -1;
-	}
-	
-	public Vocabulary add(ArrayList<Vocabulary> vocabulary, ImportType type, Context context)
-	{
-		return add(vocabulary, vocabulary.size(), type, context);
-	}
-		
-	public Vocabulary add(final ArrayList<Vocabulary> vocabulary, int position, ImportType importType, final Context context)
-	{
-		if (kanji.isEmpty() || meaning.length == 0)
-		{
-			return this;
-		}
-		
-		if (vocabulary.contains(this))
-		{
-			if (importType == ImportType.KEEP)
-			{
-				return this;
-			}
-			else if (importType == ImportType.MERGE)
-			{
-				Vocabulary old = vocabulary.get(position = vocabulary.indexOf(this));
-				old.remove(vocabulary);
-				
-				VocabularyType type = old.type == VocabularyType.NONE ? this.type : old.type;
-				ArrayList<String> reading = new ArrayList<>();
-				ArrayList<String> meaning = new ArrayList<>();
-				ArrayList<Integer> reading_used = new ArrayList<>();
-				ArrayList<Integer> meaning_used = new ArrayList<>();
-				
-				for (int i = 0; i < this.reading.length; ++i)
-				{
-					reading.add(this.reading[i]);
-					reading_used.add(this.reading_used[i]);
-				}
-				
-				int index;
-				for (int i = 0; i < old.reading.length; ++i)
-				{
-					index = reading.indexOf(old.reading[i]);
-					
-					if (index == -1)
-					{
-						reading.add(old.reading[i]);
-						reading_used.add(old.reading_used[i]);
-					}
-					else
-					{
-						reading_used.set(index, reading_used.get(index) + old.reading_used[i]);
-					}
-				}
-				
-				for (int i = 0; i < this.meaning.length; ++i)
-				{
-					meaning.add(this.meaning[i]);
-					meaning_used.add(this.meaning_used[i]);
-				}
-
-				for (int i = 0; i < old.meaning.length; ++i)
-				{
-					index = meaning.indexOf(old.meaning[i]);
-
-					if (index == -1)
-					{
-						meaning.add(old.meaning[i]);
-						meaning_used.add(old.meaning_used[i]);
-					}
-					else
-					{
-						meaning_used.set(index, meaning_used.get(index) + old.meaning_used[i]);
-					}
-				}
-				
-				String additionalInfo_merged = additionalInfo + (!additionalInfo.isEmpty() && !old.additionalInfo.isEmpty() && ! old.additionalInfo.equalsIgnoreCase(additionalInfo) ? ", " : "") + (old.additionalInfo.equalsIgnoreCase(additionalInfo) ? "" : old.additionalInfo);
-				String notes_merged = notes + (!notes.isEmpty() && !old.notes.isEmpty() && ! old.notes.equalsIgnoreCase(notes) ? ", " : "") + (old.notes.equalsIgnoreCase(notes) ? "" : old.notes);
-				
-				Vocabulary merged = new Vocabulary(type, old.kanji, reading.toArray(new String[reading.size()]), meaning.toArray(new String[meaning.size()]), additionalInfo_merged, notes_merged);
-				
-				for (int i = 0; i < merged.reading_used.length; ++i)
-					merged.reading_used[i] = reading_used.get(i);
-			
-				for (int i = 0; i < merged.meaning_used.length; ++i)
-					merged.meaning_used[i] = meaning_used.get(i);
-				
-				merged.learned = learned || old.learned;
-				merged.category = Math.max(category, old.category);
-					
-				if (merged.category == category)
-					System.arraycopy(category_history, 0, merged.category_history, 0, category_history.length);
-				else
-					System.arraycopy(old.category_history, 0, merged.category_history, 0, category_history.length);
-				
-				merged.timesChecked_kanji = timesCorrect_kanji + old.timesChecked_kanji;
-				merged.timesChecked_reading = timesChecked_reading + old.timesChecked_reading;
-				merged.timesChecked_meaning = timesChecked_meaning + old.timesChecked_meaning;
-				merged.timesCorrect_kanji = timesCorrect_kanji + old.timesCorrect_kanji;
-				merged.timesCorrect_reading = timesCorrect_reading + old.timesCorrect_reading;
-				merged.timesCorrect_meaning = timesCorrect_meaning + old.timesCorrect_meaning;
-				merged.streak_kanji = streak_kanji + old.streak_kanji;
-				merged.streak_reading = streak_reading + old.streak_reading;
-				merged.streak_meaning = streak_meaning + old.streak_meaning;
-				merged.streak_kanji_best = Math.max(Math.max(streak_kanji, old.streak_kanji_best), streak_kanji_best);
-				merged.streak_reading_best = Math.max(Math.max(streak_reading, old.streak_reading_best), streak_reading_best);
-				merged.streak_meaning_best = Math.max(Math.max(streak_meaning, old.streak_meaning_best), streak_meaning_best);
-				
-				merged.showInfo = showInfo && old.showInfo;
-				
-				merged.added = Math.min(added, old.added);
-				merged.lastChecked = Math.max(lastChecked, old.lastChecked);
-				
-				if (merged.category <= 1 && (float)(merged.timesCorrect_kanji + merged.timesCorrect_reading + merged.timesCorrect_meaning) / (merged.timesChecked_kanji + merged.timesChecked_reading + merged.timesChecked_meaning) < 0.75F)
-				{
-					merged.category = 0;
-				}
-				
-				merged.imageFile = imageFile.isEmpty() ? old.imageFile : imageFile;
-				
-				merged.add(vocabulary, position, ImportType.REPLACE, context);
-				
-				return merged;
-			}
-			else if (importType == ImportType.REPLACE)
-			{
-				int old = vocabulary.indexOf(this);
-				vocabulary.get(old).remove(vocabulary);
-				
-				position = old;
-			}
-			else if (importType == ImportType.REPLACE_KEEP_STATS)
-			{
-				Vocabulary old = vocabulary.get(position = vocabulary.indexOf(this)).remove(vocabulary);
-
-				learned = learned || old.learned;
-				category = Math.max(category, old.category);
-				timesChecked_kanji += old.timesChecked_kanji;
-				timesChecked_reading += old.timesChecked_reading;
-				timesChecked_meaning += old.timesChecked_meaning;
-				timesCorrect_kanji += old.timesCorrect_kanji;
-				timesCorrect_reading += old.timesCorrect_reading;
-				timesCorrect_meaning += old.timesCorrect_meaning;
-				streak_kanji += old.streak_kanji;
-				streak_reading += old.streak_reading;
-				streak_meaning += old.streak_meaning;
-				streak_kanji_best = Math.max(Math.max(streak_kanji, old.streak_kanji_best), streak_kanji_best);
-				streak_reading_best = Math.max(Math.max(streak_reading, old.streak_reading_best), streak_reading_best);
-				streak_meaning_best = Math.max(Math.max(streak_meaning, old.streak_meaning_best), streak_meaning_best);
-				answered_correct = true;
-				answered_kanji = answered_reading = answered_meaning = false;
-				
-				int i, i1;
-				for (i = 0; i < old.reading_trimed.length; ++i)
-				{
-					for (i1 = 0; i1 < reading_trimed.length; ++i1)
-					{
-						if (reading_trimed[i1].equalsIgnoreCase(old.reading_trimed[i]))
-						{
-							reading_used[i1] = old.reading_used[i];
-						}
-					}
-				}
-				
-				for (i = 0; i < old.meaning.length; ++i)
-				{
-					for (i1 = 0; i1 < meaning.length; ++i1)
-					{
-						if (meaning[i1].equalsIgnoreCase(old.meaning[i]))
-						{
-							meaning_used[i1] = old.meaning_used[i];
-						}
-					}
-				}
-				
-				added = Math.min(added, old.added);
-				lastChecked = Math.max(lastChecked, old.lastChecked);
-				
-				if (category <= 1 && (float)(timesCorrect_kanji + timesCorrect_reading + timesCorrect_meaning) / (timesChecked_kanji + timesChecked_reading + timesChecked_meaning) < 0.75F)
-				{
-					category = 0;
-				}
-				
-				System.arraycopy(old.category_history, 0, category_history, 0, category_history.length);
-				
-				old.remove(vocabulary);
-			}
-			else if (importType == ImportType.ASK)
-			{
-				final int position1 = position;
-				
-				AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-				alertDialog.setTitle("Conflict");
-				alertDialog.setMessage("There already exists an vocabulary with the kanji \"" + kanji + "\"! What do you want to do?");
-				alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Replace",
-					new DialogInterface.OnClickListener() 
-					{
-						public void onClick(DialogInterface dialog, int which) 
-						{
-							Vocabulary.this.add(vocabulary, position1, ImportType.REPLACE, context);
-							dialog.dismiss();
-						}
-					});
-				alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Keep",
-					new DialogInterface.OnClickListener() 
-					{
-						public void onClick(DialogInterface dialog, int which) 
-						{
-							Vocabulary.this.add(vocabulary, position1, ImportType.KEEP, context);
-							dialog.dismiss();
-						}
-					});
-				alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Merge",
-					new DialogInterface.OnClickListener() 
-					{
-						public void onClick(DialogInterface dialog, int which) 
-						{
-							Vocabulary.this.add(vocabulary, position1, ImportType.MERGE, context);
-							dialog.dismiss();
-						}
-					});
-				alertDialog.show();
-				
-				return this;
-			}
-		}
-		
-		for (Vocabulary v : vocabulary)
-		{
-			l1:
-			for (String s : reading_trimed)
-			{
-				for (String s1 : v.reading_trimed)
-				{
-					if (s.equalsIgnoreCase(s1))
-					{
-						v.sameReading.add(this);
-						this.sameReading.add(v);
-						break l1;
-					}
-				}
-			}
-		
-			l2:
-			for (String s : v.meaning)
-			{
-				for (String s1 : this.meaning)
-				{
-					if (s.equalsIgnoreCase(s1))
-					{
-						v.sameMeaning.add(this);
-						this.sameMeaning.add(v);
-						break l2;
-					}
-				}
-			}
-		}
-		
-		vocabulary.add(position, this);
-		
-//		if (vocabulary == ((MainActivity) main).vocabulary)
-//			if (((MainActivity) main).show[type.ordinal()] && (((MainActivity) main).showType == ShowType.ALL || ((MainActivity) main).showType == ShowType.LEARNED && learned || ((MainActivity) main).showType == ShowType.UNLEARNED && !learned))
-//				((MainActivity) main).vocabulary_filtered.add(this);
-//		
-		return this;
-	}
-	
-	public Vocabulary remove(ArrayList<Vocabulary> vocabulary)
-	{
-		for (Vocabulary v : sameReading)
-		{
-			v.sameReading.remove(this);
-		}
-		
-		for (Vocabulary v : sameMeaning)
-		{
-			v.sameMeaning.remove(this);
-		}
-		
-		vocabulary.remove(this);
-		
-//		if (vocabulary == ((MainActivity) main).vocabulary)
-//			((MainActivity) main).vocabulary_filtered.remove(this);
-//		
-		return this;
-	}
-	
-	public Answer getAnswer(String answer, QuestionType type, QuestionType question)
+	public Answer getAnswer(DBHelper dbHelper, String answer, QuestionType type, QuestionType question)
 	{
 		answer = StringHelper.trim(answer);
 		answer = answer.replace("・", "");
@@ -402,35 +96,40 @@ public class Vocabulary implements Comparable<Vocabulary>
 			return Answer.SIMILIAR;
 
 		if (question == QuestionType.MEANING || question == QuestionType.READING)
-			for (Vocabulary v : question == QuestionType.READING ? sameReading : sameMeaning)
+		{
+			String kanji;
+			
+			for (int id : question == QuestionType.READING ? sameReading : sameMeaning)
 			{
-				if (answer.equalsIgnoreCase(v.kanji))
+				kanji = dbHelper.getString(id, "kanji");
+				if (answer.equalsIgnoreCase(kanji))
 					if (type == QuestionType.KANJI)
 						return Answer.CORRECT;
 					else
 						return Answer.RETRY;
-				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(v.kanji, answer))
+				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(kanji, answer))
 					return Answer.SIMILIAR;
 
-				for (String s : v.reading_trimed)
+				for (String s : dbHelper.getStringArray(id, "reading_trimed"))
 					if (answer.equalsIgnoreCase(s))
 						if (type == QuestionType.READING)
 							return Answer.CORRECT;
 						else
 							return Answer.RETRY;
 
-				for (String s : v.meaning)
+				for (String s : dbHelper.getStringArray(id, "meaning"))
 					if (s.equalsIgnoreCase(answer) || StringHelper.similiarMeaning(s, answer))
 						if (type == QuestionType.MEANING)
 							return s.equalsIgnoreCase(answer) ? Answer.CORRECT : Answer.SIMILIAR;
 						else
 							return Answer.RETRY;
 			}
+		}
 			
 		return Answer.WRONG;
 	}
 	
-	public Answer answer(Context context, String answer, QuestionType type, QuestionType question)
+	public Answer answer(DBHelper dbHelper, Context context, String answer, QuestionType type, QuestionType question)
 	{
 		answer = StringHelper.trim(answer);
 		answer = answer.replace("・", "");
@@ -495,9 +194,13 @@ public class Vocabulary implements Comparable<Vocabulary>
 		}
 
 		if (question == QuestionType.MEANING || question == QuestionType.READING)
-			for (Vocabulary v : question == QuestionType.READING ? sameReading : sameMeaning)
+		{
+			String kanji;
+			
+			for (int id : question == QuestionType.READING ? sameReading : sameMeaning)
 			{
-				if (answer.equalsIgnoreCase(v.kanji))
+				kanji = dbHelper.getString(id, "kanji");
+				if (answer.equalsIgnoreCase(kanji))
 				{
 					if (type == QuestionType.KANJI)
 					{
@@ -511,15 +214,15 @@ public class Vocabulary implements Comparable<Vocabulary>
 					else
 						return Answer.RETRY;
 				}
-				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(v.kanji, answer))
+				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(kanji, answer))
 				{
 					timesChecked_kanji++;
 					streak_kanji = 0;
 					answered_correct = false;
 					return Answer.SIMILIAR;
 				}
-				
-				for (String s : v.reading_trimed)
+
+				for (String s : dbHelper.getStringArray(id, "reading_trimed"))
 					if (answer.equalsIgnoreCase(s))
 					{
 						if (type == QuestionType.READING)
@@ -535,7 +238,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 							return Answer.RETRY;
 					}
 
-				for (String s : v.meaning)
+				for (String s : dbHelper.getStringArray(id, "meaning"))
 					if (s.equalsIgnoreCase(answer) || StringHelper.similiarMeaning(s, answer))
 					{
 						if (type == QuestionType.MEANING)
@@ -551,6 +254,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 							return Answer.RETRY;
 					}
 			}
+		}
 		
 		if (type == QuestionType.MEANING)
 		{
@@ -576,6 +280,11 @@ public class Vocabulary implements Comparable<Vocabulary>
 	}
 
 	public String correctAnswer(QuestionType type)
+	{
+		return correctAnswer(type, kanji, reading, meaning, additionalInfo, showInfo);
+	}
+	
+	public static String correctAnswer(QuestionType type, String kanji, String[] reading, String[] meaning, String additionalInfo, boolean showInfo)
 	{
 		if (type == QuestionType.MEANING || type == QuestionType.MEANING_INFO)
 		{
@@ -637,7 +346,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 			
 			StringBuilder sb = new StringBuilder();
 			
-			if (sameMeaning.isEmpty())
+			if (sameMeaning.length == 0)
 			{
 				float meaning_used_sum = 0;
 				for (int i : meaning_used)
@@ -691,7 +400,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 			
 			StringBuilder sb = new StringBuilder();
 
-			if (sameReading.isEmpty())
+			if (sameReading.length == 0)
 				sb.append(reading[random.nextInt(reading.length)]);
 				
 			else
@@ -782,42 +491,48 @@ public class Vocabulary implements Comparable<Vocabulary>
 		return searchResult;
 	}
 	
-	public void prepareSound(final Context context, OnProcessSuccessListener listener)
+	public void prepareSound(final DBHelper dbHelper, OnProcessSuccessListener listener)
 	{
 		if ("-".equals(soundFile))
 		{
 			return;
 		}
 		
-		if (JishoHelper.isInternetAvailable(context))
+		if (JishoHelper.isInternetAvailable(dbHelper.context))
 		{
 			if (soundFile == null || soundFile.isEmpty())
-				JishoHelper.findSoundFile(context, this, listener);
+				JishoHelper.findSoundFile(dbHelper, this, listener);
 			
 			else
 				listener.onProcessSuccess();
 		}
 	}
 	
-	public void playSound(final Context context)
+	public void playSound(final DBHelper dbHelper)
 	{
 		if ("-".equals(soundFile))
+			return;
+
+		if (soundFile == null || soundFile.isEmpty())
 		{
+			JishoHelper.findSoundFile(dbHelper, this, new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object... args)
+					{
+						playSound(dbHelper);
+					}
+				});
 			return;
 		}
 		
-		if (soundFile == null || soundFile.isEmpty())
-		{
-			JishoHelper.findSoundFile(context, this, new OnProcessSuccessListener()
-			{
-				@Override
-				public void onProcessSuccess(Object... args)
-				{
-					playSound(context);
-				}
-			});
+		playSound(dbHelper.context, soundFile);
+	}
+	
+	public static void playSound(final Context context, final String soundFile)
+	{
+		if (soundFile == null || soundFile.isEmpty() ||"-".equals(soundFile))
 			return;
-		}
 		
 		try
 		{
@@ -869,6 +584,19 @@ public class Vocabulary implements Comparable<Vocabulary>
 		}
 	}
 	
+	public void setSynonyms(ArrayList<Integer> sameReading, ArrayList<Integer> sameMeaning)
+	{
+		this.sameReading = new int[sameReading.size()];
+		this.sameMeaning = new int[sameMeaning.size()];
+		
+		int i;
+		for (i = 0; i < sameReading.size(); ++i)
+			this.sameReading[i] = sameReading.get(i);
+			
+		for (i = 0; i < sameMeaning.size(); ++i)
+			this.sameMeaning[i] = sameMeaning.get(i);
+	}
+	
 	public static final ArrayList<String> types = new ArrayList<>();
 	public static final ArrayList<String> types_import = new ArrayList<>();
 	public static final ArrayList<String> types_sort = new ArrayList<>();
@@ -914,6 +642,11 @@ public class Vocabulary implements Comparable<Vocabulary>
 	
 	public String getType()
 	{
+		return getType(type, kanji);
+	}
+	
+	public static String getType(VocabularyType type, String kanji)
+	{
 		switch (type)
 		{
 			case NOUN:
@@ -938,15 +671,7 @@ public class Vocabulary implements Comparable<Vocabulary>
 				return "";
 		}
 	}
-	
-	public long getNextReview()
-	{
-		if (!learned)
-			return 0;
-		
-		return getNextReview(category);
-	}
-	
+
 	public static long getNextReview(int category)
 	{
 		switch (category)
@@ -997,12 +722,12 @@ public class Vocabulary implements Comparable<Vocabulary>
 
 			return 1;
 		}
+		else if (category > 9)
+			return 9;
+		
 		else if (category > 6)
 			return 6;
 			
-		else if (category > 9)
-			return 9;
-
 		else
 			return 3;
 	}
@@ -1027,44 +752,5 @@ public class Vocabulary implements Comparable<Vocabulary>
 	public boolean equals(Object o)
 	{
 		return o instanceof Vocabulary && ((Vocabulary) o).kanji.equalsIgnoreCase(kanji);
-	}
-	
-	@Override
-	public int compareTo(Vocabulary p1)
-	{
-//		switch (((MainActivity) main).sortType)
-//		{
-//			case CATEGORY_REVERSED:
-//				return p1.learned ? (this.learned ? (category < p1.category ? 1 : (category == p1.category ? 0 : -1)) : 1) : (this.learned ? -1 : 0);
-//			case TIME_ADDED:
-//				return (int)Math.signum(p1.added - added);
-//			case TIME_ADDED_REVERSED:
-//				return (int)Math.signum(added - p1.added);
-//			case TYPE:
-//				return (int)Math.signum(type.ordinal() - p1.type.ordinal());
-//			case NEXT_REVIEW:
-				return p1.learned ? (this.learned ? (lastChecked + getNextReview() < p1.lastChecked + p1.getNextReview() ? -1 : (lastChecked + getNextReview() == p1.lastChecked + p1.getNextReview() ? 0 : 1)) : 1) : (this.learned ? -1 : 0);
-//			default:
-//				return p1.learned ? (this.learned ? (category < p1.category ? -1 : (category == p1.category ? 0 : 1)) : 1) : (this.learned ? -1 : 0);
-//		}
-	}
-
-	public enum Type_old
-	{
-		NONE,
-		I_ADJECTIVE,
-		NA_ADJECTIVE,
-		NOUN,
-		RU_VERB,
-		U_VERB,
-		ADVERB,
-		EXPRESSION,
-		PARTICLE,
-		OTHER
-	}
-	
-	public static int getOldType(int ordinal)
-	{
-		return VocabularyType.valueOf(Type_old.values()[ordinal].name()).ordinal();
 	}
 }

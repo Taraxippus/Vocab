@@ -125,8 +125,7 @@
 					android:padding="0dp"
 					android:scaleType="center"
 					android:src="@drawable/overflow"
-					android:background="?attr/selectableItemBackgroundBorderless"
-					android:onClick="showStrokeOrderPopup" />
+					android:background="?attr/selectableItemBackgroundBorderless"/>
 
 				<TextView
 					android:id="@+id/text_title_stroke_order"
@@ -177,7 +176,6 @@
 
 				<TextView
 					android:id="@+id/text_notes"
-					android:layout_gravity="left"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:paddingLeft="16dp"
@@ -201,78 +199,50 @@
 					android:visibility="gone" />
 
 			</LinearLayout>
-
 		</android.support.v7.widget.CardView>
 
-		<android.support.v7.widget.CardView
-			android:id="@+id/card_same_reading"
-			android:layout_width="match_parent"
+		<TextView
+			android:id="@+id/text_title_same_reading"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_marginTop="4dp"
-			android:layout_marginBottom="4dp"
-			card_view:cardCornerRadius="0dp"
-			card_view:cardElevation="2dp" >
+			android:layout_alignParentTop="true"
+			android:padding="8dp"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold"
+			android:text="Same Reading" />
 
-			<LinearLayout
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:orientation="vertical"
-				android:paddingTop="8dp"
-				android:paddingBottom="8dp" >
-
-				<TextView
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:text="Same reading"
-					android:paddingTop="8dp"
-					android:paddingBottom="16dp"
-					android:paddingLeft="16dp"
-					android:textStyle="bold"
-				/>
-
-				<android.support.v7.widget.RecyclerView
-					android:id="@+id/recycler_same_reading"
-					android:layout_width="match_parent"
-					android:layout_height="100dp" />
-
-			</LinearLayout>
-		</android.support.v7.widget.CardView>
-
-		<android.support.v7.widget.CardView
-			android:id="@+id/card_same_meaning"
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_same_reading"
 			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp"
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+
+		<TextView
+			android:id="@+id/text_title_same_meaning"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_marginTop="4dp"
-			android:layout_marginBottom="4dp"
-			card_view:cardCornerRadius="0dp"
-			card_view:cardElevation="2dp" >
+			android:layout_alignParentTop="true"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold"
+			android:text="Same Meaning" />
 
-			<LinearLayout
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:orientation="vertical"
-				android:paddingTop="8dp"
-				android:paddingBottom="8dp" >
-
-				<TextView
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:text="Same meaning"
-					android:paddingTop="8dp"
-					android:paddingBottom="16dp"
-					android:paddingLeft="16dp"
-					android:textStyle="bold" />
-
-				<android.support.v7.widget.RecyclerView
-					android:id="@+id/recycler_same_meaning"
-					android:layout_width="match_parent"
-					android:layout_height="100dp" />
-
-			</LinearLayout>
-		</android.support.v7.widget.CardView>
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_same_meaning"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp" 
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
 
 		<android.support.v7.widget.CardView
-			android:id="@+id/card_stats"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="4dp"
@@ -511,8 +481,7 @@
 					android:layout_width="match_parent"
 					android:layout_height="150dp"
 					android:layout_below="@id/text_meaning_entered"
-					android:visibility="gone"
-				/>
+					android:visibility="gone" />
 
 				<View
 					android:id="@+id/divider_bottom"

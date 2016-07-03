@@ -1,0 +1,27 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/item_detail"
+        android:title="Show details"/>
+    
+	<item
+        android:id="@+id/item_open_jisho"
+        android:title="Show vocabulary on jisho.org"/>
+	
+	<item
+        android:id="@+id/item_open_jisho_kanji"
+        android:title="Show kanji on jisho.org"/>
+	
+	<item
+        android:id="@+id/item_skip"
+        android:title="Skip"/>
+	
+	<item
+        android:id="@+id/item_known"
+        android:title="I already know this one"/>
+	
+	<item
+        android:id="@+id/item_learn_remove"
+        android:title="Remove from learned vocabularies"/>
+	
+</menu>

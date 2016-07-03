@@ -1,6 +1,5 @@
 package com.taraxippus.vocab.util;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -12,11 +11,12 @@ import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 import com.taraxippus.vocab.R;
+import com.taraxippus.vocab.vocabulary.DBHelper;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,6 +29,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import android.view.Gravity;
 
 public final class JishoHelper
 {
@@ -58,22 +59,17 @@ public final class JishoHelper
 		return isInternetAvailable(context) || offlineStrokeOrder();
 	}
 	
-	public static void findSoundFile(Context context, Vocabulary v)
+	public static void findSoundFile(DBHelper dbHelper, Vocabulary v, OnProcessSuccessListener listener)
 	{
-		findSoundFile(context, v, null);
-	}
-	
-	public static void findSoundFile(Context context, Vocabulary v, OnProcessSuccessListener listener)
-	{
-		if (!isInternetAvailable(context))
+		if (!isInternetAvailable(dbHelper.context))
 		{
-			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			Toast.makeText(dbHelper.context, "No internet connection", Toast.LENGTH_SHORT).show();
 			return;
 		}
 		
 		try
 		{
-			new FindSoundFileTask(listener).execute(v);
+			new FindSoundFileTask(dbHelper, listener).execute(v);
 		}
 		catch (Exception e)
 		{
@@ -224,16 +220,20 @@ public final class JishoHelper
 	public static class FindSoundFileTask extends AsyncTask<Vocabulary, Void, Boolean>
 	{
 		final OnProcessSuccessListener listener;
+		final DBHelper dbHelper;
 		
-		public FindSoundFileTask(OnProcessSuccessListener listener)
+		public FindSoundFileTask(DBHelper dbHelper, OnProcessSuccessListener listener)
 		{
 			this.listener = listener;
+			this.dbHelper = dbHelper;
 		}
 	
+		Vocabulary v;
+		
 		@Override
 		protected Boolean doInBackground(Vocabulary...  p1)
 		{
-			Vocabulary v = p1[0];
+			v = p1[0];
 
 			try
 			{
@@ -294,6 +294,8 @@ public final class JishoHelper
 		{
 			if (success)
 				listener.onProcessSuccess();
+				
+			dbHelper.updateVocabularySoundFile(dbHelper.getId(v.kanji), v.soundFile);
 		}
 	}
 	
@@ -424,16 +426,17 @@ public final class JishoHelper
 				@Override
 				public boolean onTouchEvent(MotionEvent event)
 				{
-					requestDisallowInterceptTouchEvent(true);
+					if (horizontal)
+						requestDisallowInterceptTouchEvent(true);
 					return super.onTouchEvent(event);
 				}          
 			};
 			webView.setTag("stroke_order");
 			webView.setFocusable(false);
 			webView.getSettings().setJavaScriptEnabled(true);
-			webView.getSettings().setDomStorageEnabled(true);
 			webView.getSettings().setUseWideViewPort(true);
-			webView.setWebChromeClient(new WebChromeClient());
+			webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+			webView.getSettings().setAppCacheEnabled(false);
 			webView.setBackgroundColor(0);
 			webView.setVerticalScrollBarEnabled(!horizontal);
 			webView.setHorizontalScrollBarEnabled(horizontal);
@@ -441,8 +444,15 @@ public final class JishoHelper
 			webView.setScrollBarSize((int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, context.getResources().getDisplayMetrics()));
 			webView.loadDataWithBaseURL(null, result, "text/html; charset=UTF-8", "UTF-8", null);
 			webView.setPadding(0, 0, 0, 0);
-			
-			listener.onProcessSuccess(webView);
+			webView.setForegroundGravity(Gravity.CENTER);
+			webView.setWebViewClient(new WebViewClient() 
+				{
+					@Override
+					public void onPageFinished(WebView view, String url) 
+					{                  
+						listener.onProcessSuccess(webView);
+					}
+				});
 		}
 	}
 }

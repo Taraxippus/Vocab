@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -17,12 +18,13 @@ import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.vocabulary.Vocabulary;
-import java.util.ArrayList;
-import com.taraxippus.vocab.vocabulary.DBHelper;
-import com.taraxippus.vocab.vocabulary.SortType;
-import com.taraxippus.vocab.vocabulary.ShowType;
+import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.StringHelper;
+import com.taraxippus.vocab.vocabulary.DBHelper;
+import com.taraxippus.vocab.vocabulary.ShowType;
+import com.taraxippus.vocab.vocabulary.SortType;
+import java.util.ArrayList;
+import com.taraxippus.vocab.ActivityMain;
 
 public class LearnNextDialog extends DialogFragment
 {
@@ -32,7 +34,7 @@ public class LearnNextDialog extends DialogFragment
 	Spinner spinner_which;
 	EditText text_edit_count;
 	
-	ArrayList<Integer> vocabularies, vocabularies_filtered;
+	int[] vocabularies, vocabularies_filtered;
 	DBHelper dbHelper;
 	
 	@Override
@@ -41,12 +43,12 @@ public class LearnNextDialog extends DialogFragment
 		final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		dbHelper = new DBHelper(getContext());
 
-		vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.UNLEARNED, null);
+		vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.UNLEARNED, null, null);
 		
 		if (preferences.getInt("showType", 0) != ShowType.LEARNED.ordinal())
-			vocabularies_filtered = dbHelper.getVocabularies(SortType.values()[preferences.getInt("sortType", 0)], ShowType.UNLEARNED, StringHelper.toBooleanArray(preferences.getString("show", "")));
+			vocabularies_filtered = dbHelper.getVocabularies(SortType.values()[preferences.getInt("sortType", 0)], ShowType.UNLEARNED, StringHelper.toBooleanArray(preferences.getString("show", "")), null);
 		else
-			vocabularies_filtered = new ArrayList<>();
+			vocabularies_filtered = new int[0];
 			
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(getContext());
 		alertDialog.setTitle("Learn next vocabularies");
@@ -149,13 +151,16 @@ public class LearnNextDialog extends DialogFragment
 				public void onClick(DialogInterface p1, int p2)
 				{
 					int count = Integer.parseInt(text_edit_count.getText().toString());
-					ArrayList<Integer> vocabularies_learn = spinner_which.getSelectedItemPosition() == 0 ? vocabularies : vocabularies_filtered;
+					int[] vocabularies_learn = spinner_which.getSelectedItemPosition() == 0 ? vocabularies : vocabularies_filtered;
 					
-					for (int i = 0; i < vocabularies_learn.size() && i < count; ++i)
-						dbHelper.updateVocabularyLearned(vocabularies_learn.get(i), true);
+					for (int i = 0; i < vocabularies_learn.length && i < count; ++i)
+						dbHelper.updateVocabularyLearned(vocabularies_learn[i], true);
 						
-
+					getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+					preferences.edit().putLong("vocabulariesChanged", System.currentTimeMillis()).apply();
 					preferences.edit().putString("learnAddCount", "" + count).apply();
+					
+					getContext().startActivity(new Intent(getContext(), ActivityMain.class).setAction(ActivityMain.ACTION_QUIZ));
 				}
 			});
 
@@ -167,12 +172,12 @@ public class LearnNextDialog extends DialogFragment
 	{
 		StringBuilder sb = new StringBuilder();
 
-		ArrayList<Integer> vocabularies_learn = spinner_which.getSelectedItemPosition() == 0 ? vocabularies : vocabularies_filtered;
+		int[] vocabularies_learn = spinner_which.getSelectedItemPosition() == 0 ? vocabularies : vocabularies_filtered;
 
 		int count = Integer.parseInt(text_edit_count.getText().toString());
 		for (int i = 0; i < count; ++i)
 		{
-			if (i >= vocabularies_learn.size())
+			if (i >= vocabularies_learn.length)
 			{
 				sb.append(" - - - ");
 				break;
@@ -181,7 +186,7 @@ public class LearnNextDialog extends DialogFragment
 			if (i > 0)
 				sb.append("\n");
 				
-			sb.append(dbHelper.getKanji(vocabularies_learn.get(i)));
+			sb.append(dbHelper.getString(vocabularies_learn[i], "kanji"));
 		}
 
 		text_preview.setText(sb.toString());
@@ -195,5 +200,13 @@ public class LearnNextDialog extends DialogFragment
 			divider_scroll_top.setVisibility(View.VISIBLE);
 		else
 			divider_scroll_top.setVisibility(View.INVISIBLE);
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+		
+		dbHelper.close();
 	}
 }
