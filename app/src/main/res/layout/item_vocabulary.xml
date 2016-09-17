@@ -42,9 +42,7 @@
 				android:layout_alignParentBottom="true"
 				android:padding="0dp"
 				android:scaleType="center"
-				android:src="@drawable/check"
-				android:background="?attr/selectableItemBackgroundBorderless"
-				android:clickable="true" />
+				android:src="@drawable/check" />
 
 			<ImageButton
 				android:id="@+id/button_overflow"

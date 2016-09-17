@@ -104,23 +104,23 @@ public class Vocabulary
 				kanji = dbHelper.getString(id, "kanji");
 				if (answer.equalsIgnoreCase(kanji))
 					if (type == QuestionType.KANJI)
-						return Answer.CORRECT;
+						return Answer.DIFFERENT;
 					else
 						return Answer.RETRY;
 				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(kanji, answer))
-					return Answer.SIMILIAR;
+					return Answer.DIFFERENT;
 
 				for (String s : dbHelper.getStringArray(id, "reading_trimed"))
 					if (answer.equalsIgnoreCase(s))
 						if (type == QuestionType.READING)
-							return Answer.CORRECT;
+							return Answer.DIFFERENT;
 						else
 							return Answer.RETRY;
 
 				for (String s : dbHelper.getStringArray(id, "meaning"))
 					if (s.equalsIgnoreCase(answer) || StringHelper.similiarMeaning(s, answer))
 						if (type == QuestionType.MEANING)
-							return s.equalsIgnoreCase(answer) ? Answer.CORRECT : Answer.SIMILIAR;
+							return Answer.DIFFERENT;
 						else
 							return Answer.RETRY;
 			}
@@ -203,37 +203,18 @@ public class Vocabulary
 				if (answer.equalsIgnoreCase(kanji))
 				{
 					if (type == QuestionType.KANJI)
-					{
-						streak_kanji++;
-						streak_kanji_best = Math.max(streak_kanji_best, streak_kanji);
-						timesChecked_kanji++;
-						timesCorrect_kanji++;
-						answered_kanji = true;
-						return Answer.CORRECT;
-					}
+						return Answer.DIFFERENT;
 					else
 						return Answer.RETRY;
 				}
 				else if (type == QuestionType.KANJI && StringHelper.similiarKanji(kanji, answer))
-				{
-					timesChecked_kanji++;
-					streak_kanji = 0;
-					answered_correct = false;
-					return Answer.SIMILIAR;
-				}
+					return Answer.DIFFERENT;
 
 				for (String s : dbHelper.getStringArray(id, "reading_trimed"))
 					if (answer.equalsIgnoreCase(s))
 					{
 						if (type == QuestionType.READING)
-						{
-							streak_reading++;
-							streak_reading_best = Math.max(streak_reading_best, streak_reading);
-							timesChecked_reading++;
-							timesCorrect_reading++;
-							answered_reading = true;
-							return Answer.CORRECT;
-						}
+							return Answer.DIFFERENT;
 						else
 							return Answer.RETRY;
 					}
@@ -242,14 +223,7 @@ public class Vocabulary
 					if (s.equalsIgnoreCase(answer) || StringHelper.similiarMeaning(s, answer))
 					{
 						if (type == QuestionType.MEANING)
-						{
-							streak_meaning++;
-							streak_meaning_best = Math.max(streak_meaning_best, streak_meaning);
-							timesChecked_meaning++;
-							timesCorrect_meaning++;
-							answered_meaning = true;
-							return s.equalsIgnoreCase(answer) ? Answer.CORRECT : Answer.SIMILIAR;
-						}
+							return Answer.DIFFERENT;
 						else
 							return Answer.RETRY;
 					}
@@ -312,17 +286,17 @@ public class Vocabulary
 				
 			return sb.toString();
 		}
-		else if (type == QuestionType.READING)
+		else if (type == QuestionType.READING || type == QuestionType.READING_INFO)
 		{
 			if (reading.length == 0)
-				return "";
+				return kanji;
 			
 			StringBuilder sb = new StringBuilder();
 			
 			for (int i = 0; i < reading.length - 1; ++i)
 			{
 				sb.append(reading[i]);
-				sb.append(" / ");
+				sb.append(type == QuestionType.READING_INFO ? "\n" : " / ");
 			}
 			
 			sb.append(reading[reading.length - 1]);
@@ -359,15 +333,16 @@ public class Vocabulary
 				else
 				{
 					float f = random.nextFloat();
-					for (int i = 0; i < meaning_used.length; ++i)
+					int i;
+					for (i = 0; i < meaning_used.length; ++i)
 					{
-						if (f < 1 - meaning_used[i] / meaning_used_sum)
+						if (f > meaning_used[i] / meaning_used_sum)
 						{
 							sb.append(meaning[i]);
 							break;
 						}
 
-						f -= 1 - meaning_used[i] / meaning_used_sum;
+						f += meaning_used[i] / meaning_used_sum;
 					}
 				}
 			}
@@ -393,7 +368,7 @@ public class Vocabulary
 
 			return sb.toString();
 		}
-		else if (type == QuestionType.READING)
+		else if (type == QuestionType.READING || type == QuestionType.READING_INFO)
 		{
 			if (reading.length == 0)
 				return "";
@@ -422,73 +397,6 @@ public class Vocabulary
 		}
 
 		return "*error*";
-	}
-	
-	public int searchResult;
-	
-	public int searched(String s)
-	{
-		searchResult = 0;
-		
-		if (kanji.contains(s))
-		{
-			if (kanji.startsWith(s))
-			{
-				if (kanji.equalsIgnoreCase(s))
-					searchResult++;
-					
-				searchResult++ ;
-			}
-			
-			searchResult++;
-		}
-		
-		if (additionalInfo.toLowerCase().contains(s))
-		{
-			if (additionalInfo.toLowerCase().startsWith(s))
-			{
-				if (additionalInfo.equalsIgnoreCase(s))
-					searchResult++;
-
-				searchResult++ ;
-			}
-
-			searchResult++;
-		}
-			
-		for (int i = 0; i < reading.length; ++i)
-		{
-			if (reading_trimed[i].contains(s) || reading[i].contains(s))
-			{
-				if (reading_trimed[i].startsWith(s) || reading_trimed[i].startsWith(s))
-				{
-					if (reading_trimed[i].equalsIgnoreCase(s) || reading_trimed[i].equalsIgnoreCase(s))
-						searchResult++;
-
-					searchResult++ ;
-				}
-
-				searchResult++;
-			}
-		}
-		
-		for (String s1 : meaning)
-		{
-			if (s1.toLowerCase().contains(s))
-			{
-				if (s1.toLowerCase().startsWith(s))
-				{
-					if (s1.equalsIgnoreCase(s))
-						searchResult++;
-
-					searchResult++;
-				}
-				
-				searchResult++;
-			}
-		}
-		
-		return searchResult;
 	}
 	
 	public void prepareSound(final DBHelper dbHelper, OnProcessSuccessListener listener)
@@ -543,7 +451,7 @@ public class Vocabulary
 			}
 			
 			MediaPlayer player = new MediaPlayer();
-			player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+			player.setAudioStreamType(AudioManager.STREAM_NOTIFICATION);
 			player.setDataSource(soundFile);
 			player.prepareAsync();
 			
@@ -561,7 +469,7 @@ public class Vocabulary
 					@Override
 					public void onPrepared(MediaPlayer p1)
 					{
-						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_NOTIFICATION, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 						
 						p1.start();
 					}
@@ -602,7 +510,7 @@ public class Vocabulary
 	public static final ArrayList<String> types_sort = new ArrayList<>();
 	public static final ArrayList<String> types_view = new ArrayList<>();
 	public static final ArrayList<String> types_show = new ArrayList<>();
-	
+	public static final ArrayList<String> types_hide = new ArrayList<>();
 	
 	static
 	{
@@ -617,6 +525,7 @@ public class Vocabulary
 		types.add("Expression");
 		types.add("Particle");
 		types.add("Conjunction");
+		types.add("Counter");
 		
 		types_import.add("Merge");
 		types_import.add("Replace old");
@@ -638,6 +547,11 @@ public class Vocabulary
 		types_show.add("All vocabularies");
 		types_show.add("Learned vocabularies");
 		types_show.add("Other vocabularies");
+		
+		types_hide.add("Nothing");
+		types_hide.add("Kanji");
+		types_hide.add("Reading");
+		types_hide.add("Meaning");
 	}
 	
 	public String getType()
@@ -739,6 +653,7 @@ public class Vocabulary
 			case KANJI:
 				return timesCorrect_kanji / (float) timesChecked_kanji;
 			case READING:
+			case READING_INFO:
 				return timesCorrect_reading / (float) timesChecked_reading;
 			case MEANING:
 			case MEANING_INFO:

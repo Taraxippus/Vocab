@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.design.widget.TextInputEditText;
+import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,9 +14,9 @@ import android.widget.Button;
 import com.taraxippus.vocab.ActivityQuiz;
 import com.taraxippus.vocab.IVocabActivity;
 import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.dialog.DialogHelper;
-import android.support.design.widget.TextInputLayout;
+import com.taraxippus.vocab.util.StringHelper;
+import java.util.Locale;
 
 public class FragmentActivityLearnPractice extends Fragment
 {
@@ -67,6 +68,7 @@ public class FragmentActivityLearnPractice extends Fragment
 		final TextInputEditText text_kanji = (TextInputEditText) v.findViewById(R.id.text_kanji);
 		final TextInputEditText text_reading = (TextInputEditText) v.findViewById(R.id.text_reading);
 		final TextInputEditText text_meaning = (TextInputEditText) v.findViewById(R.id.text_meaning);
+		text_kanji.setTextLocale(Locale.JAPANESE);
 		
 		if (reading.length == 0)
 		{

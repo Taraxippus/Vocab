@@ -29,6 +29,7 @@ import com.taraxippus.vocab.vocabulary.DBHelper;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 
 public class FragmentActivityQuizFinish extends Fragment implements View.OnClickListener
 {
@@ -91,7 +92,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		v.findViewById(R.id.button_home).setOnClickListener(this);
 		v.findViewById(R.id.button_learn).setOnClickListener(this);
 		
-		((LineGraphView) v.findViewById(R.id.line_graph_quiz)).setValues(" %", getArguments().getFloatArray("history_quiz"));
+		((LineGraphView) v.findViewById(R.id.line_graph_quiz)).setValues("#noNumbers", getArguments().getIntArray("history_quiz"));
 		
 		int[] review = new int[25];
 	
@@ -189,6 +190,9 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 	public void onResume()
 	{
 		super.onResume();
+		
+		if (getActivity() != null)
+			getActivity().setTitle("Finished Quiz!");
 	}
 	
 	public class KanjiAdapter extends RecyclerView.Adapter<KanjiAdapter.ViewHolder> implements View.OnClickListener
@@ -209,6 +213,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 
 				text_kanji = (TextView) v;
 				text_kanji.setGravity(gravity);
+				text_kanji.setTextLocale(Locale.JAPANESE);
 			}
 		}
 

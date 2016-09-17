@@ -43,9 +43,7 @@ public class FragmentActivityLearn extends Fragment
 		{
             throw new ClassCastException(activity.toString() + " must implement IVocabActivity!");
         }
-		
-		hasReading = StringHelper.toStringArray(vocabActivity.getDBHelper().getString(getArguments().getIntArray("newVocabularies")[getArguments().getInt("index")], "reading")).length > 0;
-    }
+	}
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
@@ -56,6 +54,8 @@ public class FragmentActivityLearn extends Fragment
 	@Override
 	public void onViewCreated(View v, Bundle savedInstanceState)
 	{
+		hasReading = StringHelper.toStringArray(vocabActivity.getDBHelper().getString(getArguments().getIntArray("newVocabularies")[getArguments().getInt("index")], "reading")).length > 0;
+		
 		viewPager = (ViewPager) v.findViewById(R.id.pager_learn);
 		viewPager.setAdapter(new LearnAdapter(getChildFragmentManager()));
 	}

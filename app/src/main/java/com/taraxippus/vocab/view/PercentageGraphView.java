@@ -13,11 +13,9 @@ public class PercentageGraphView extends View
 {
 	float size;
 	final RectF circle = new RectF();
-	final RectF circleSmall = new RectF();
-
+	
 	final Paint circlePaint;
 	final Paint circlePaintLargest;
-	final Paint erasePaint;
 	final Paint textPaint;
 
 	public String[] names = new String[] {"No values"};
@@ -27,7 +25,6 @@ public class PercentageGraphView extends View
 	public float differenceWidth = 0.1F;
 	public int width, height;
 	
-
 	public PercentageGraphView(Context context)
 	{
 		this(context, null);
@@ -46,11 +43,6 @@ public class PercentageGraphView extends View
 		circlePaintLargest = new Paint(Paint.ANTI_ALIAS_FLAG);
 		circlePaintLargest.setStyle(Paint.Style.FILL);
 		circlePaintLargest.setColor(context.getResources().getColor(R.color.primary, context.getTheme()));
-
-		erasePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		erasePaint.setStyle(Paint.Style.STROKE);
-		erasePaint.setColor(Color.TRANSPARENT);
-		erasePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
 
 		TypedValue typedValue = new TypedValue();
 		context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, typedValue, true);
@@ -93,6 +85,7 @@ public class PercentageGraphView extends View
 		for (int i = 0; i < values.length; ++i)
 			sum += values1[i];
 		
+		int length = values.length;
 		for (int i = 0; i < values.length; ++i)
 		{
 			names[i] = names1[i];
@@ -114,9 +107,22 @@ public class PercentageGraphView extends View
 					
 				values[i] += values[i - 1];
 				values[i - 1] = 0;
+				length--;
 			}
 		}
+		
+		boolean first = true;
+		for (int i = 0; i < names.length; ++i)
+		{
+			if (names[i].length() > 20 && (names.length < 5 || !first))
+				names[i] = names[i].substring(0, 19) + "...";
 
+			if (first && !names[i].isEmpty())
+				first = false;
+		}
+		differenceWidth = 0.05F + length / 80F;
+		circle.set(width / 2F - (size * (1 - differenceWidth * 2)) / 2F, height / 2F - (size * (1 - differenceWidth * 2)) / 2F, width / 2F + (size * (1 - differenceWidth * 2)) / 2F, height / 2F + (size * (1 - differenceWidth * 2)) / 2F);
+		
 		invalidate();
 	}
 
@@ -148,6 +154,7 @@ public class PercentageGraphView extends View
 		for (int i = 0; i < values.length; ++i)
 			sum += values1[i];
 
+		int length = values.length;
 		for (int i = 0; i < values.length; ++i)
 		{
 			names[i] = names1[i];
@@ -158,7 +165,7 @@ public class PercentageGraphView extends View
 
 			if (removeZero && values[i] == 0)
 				names[i] = "";
-			
+
 			else if (i > 0 && values[i - 1] + values[i] < 0.05F)
 			{
 				if (!names[i - 1].isEmpty())
@@ -166,12 +173,26 @@ public class PercentageGraphView extends View
 					names[i] = names[i - 1] + ", " + names[i];
 					names[i - 1] = "";
 				}
-					
+
 				values[i] += values[i - 1];
 				values[i - 1] = 0;
+				length--;
 			}
 		}
 
+		boolean first = true;
+		for (int i = 0; i < names.length; ++i)
+		{
+			if (names[i].length() > 20 && (names.length < 5 || !first))
+				names[i] = names[i].substring(0, 19) + "...";
+			
+			if (first && !names[i].isEmpty())
+				first = false;
+		}
+			
+		differenceWidth = 0.05F + length / 80F;
+		circle.set(width / 2F - (size * (1 - differenceWidth * 2)) / 2F, height / 2F - (size * (1 - differenceWidth * 2)) / 2F, width / 2F + (size * (1 - differenceWidth * 2)) / 2F, height / 2F + (size * (1 - differenceWidth * 2)) / 2F);
+		
 		invalidate();
 	}
 
@@ -184,34 +205,34 @@ public class PercentageGraphView extends View
 		height = h;
 		
 		size = Math.min(w, h) * 0.9F;
-		circle.set(w / 2F - size / 2F, h / 2F - size / 2F, w / 2F + size / 2F, h / 2F + size / 2F);
-		circleSmall.set(w / 2F - size / 2F * (1 - differenceWidth), h / 2F - size / 2F * (1 - differenceWidth), w / 2F + size / 2F * (1 - differenceWidth), h / 2F + size / 2F * (1 - differenceWidth));
-		
-		erasePaint.setStrokeWidth(size / 2F * 0.1F);
+		circle.set(w / 2F - (size * (1 - differenceWidth * 2)) / 2F, h / 2F - (size * (1 - differenceWidth * 2)) / 2F, w / 2F + (size * (1 - differenceWidth * 2)) / 2F, h / 2F + (size * (1 - differenceWidth * 2)) / 2F);
 	}
 	
 	@Override
 	protected void onDraw(Canvas canvas)
 	{
-		float sum = 0;
+		float sum = 0, x, y, lastY = Float.NaN;
+		
 		for (int i = 0; i < values.length; ++i)
 		{
 			if (i != largest)
 			{
-				canvas.drawArc(circle, -90 + sum * 360, values[i] * 360, true, circlePaint);
-				canvas.drawArc(circle, -90 + sum * 360, values[i] * 360, true, erasePaint);
+				x = (float) Math.cos((-90 + sum * 360 + values[i] * 180) / 180F * Math.PI) * differenceWidth * size * (1 - i / (values.length + 2F));
+				y = (float) Math.sin((-90 + sum * 360 + values[i] * 180) / 180F * Math.PI) * differenceWidth * size * (1 - i / (values.length + 2F));
 			}
-
+			else
+				x = y = 0;
+			
+			circle.offset(x, y);
+			canvas.drawArc(circle, -90 + sum * 360, values[i] * 360, true, i == largest ? circlePaintLargest : circlePaint);
+			circle.offset(-x, -y);
+			
 			sum += values[i];
 		}
 
 		sum = 0;
-		float x, y, lastY = Float.NaN;
 		for (int i = 0; i < values.length; ++i)
 		{
-			if (i == largest)
-				canvas.drawArc(circleSmall, -90 + sum * 360, values[i] * 360, true, circlePaintLargest);
-
 			x = (float) Math.cos((sum + values[i] / 2F - 0.25F) * Math.PI * 2);
 			y = (float) Math.sin((sum + values[i] / 2F - 0.25F) * Math.PI * 2);
 			
@@ -229,7 +250,7 @@ public class PercentageGraphView extends View
 				
 			if (!names[i].isEmpty())
 			{
-				canvas.drawText(names[i] + " - " + ((int)(values[i] * 1000) / 10F) + "℅", canvas.getWidth() / 2F + x, canvas.getHeight() / 2F + y, textPaint);
+				canvas.drawText(names[i] + " - " + ((int)(values[i] * 1000) / 10F) + "%", canvas.getWidth() / 2F + x, canvas.getHeight() / 2F + y, textPaint);
 				lastY = y;
 			}
 				

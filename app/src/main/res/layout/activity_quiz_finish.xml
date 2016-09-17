@@ -260,7 +260,6 @@
 			<android.support.v7.widget.GridLayout
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:maxHeight="200dp"
 				android:padding="8dp"
 				app:orientation="vertical"
 				app:columnCount="3"

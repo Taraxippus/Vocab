@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.SearchManager;
 import android.content.ClipboardManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -50,6 +49,7 @@ import com.taraxippus.vocab.view.GraphView;
 import com.taraxippus.vocab.view.LineGraphView;
 import com.taraxippus.vocab.view.PercentageGraphView;
 import com.taraxippus.vocab.vocabulary.DBHelper;
+import com.taraxippus.vocab.vocabulary.HideType;
 import com.taraxippus.vocab.vocabulary.QuestionType;
 import com.taraxippus.vocab.vocabulary.ShowType;
 import com.taraxippus.vocab.vocabulary.SortType;
@@ -64,6 +64,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Locale;
 
 public class FragmentHome extends Fragment implements SearchView.OnQueryTextListener, SharedPreferences.OnSharedPreferenceChangeListener
 {
@@ -75,6 +77,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	public ViewType viewType;
 	public String searchQuery;
 	public SortType sortType;
+	public HideType hideType;
 	
 	public FragmentHome() {}
 	
@@ -168,10 +171,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				return true;
 				
 			case R.id.item_import_file:
-				Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-				i.setType("text/*");
-
-				startActivityForResult(i, 0);
+				startActivityForResult(new Intent(Intent.ACTION_GET_CONTENT).setType("text/*"), 0);
 				return true;
 
 			case R.id.item_import_clipboard:
@@ -285,7 +285,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				
 			case R.id.item_debug:
 				SQLiteDatabase db = dbHelper.getWritableDatabase();
-				Cursor res =  db.rawQuery("SELECT id, reading, meaning, reading_used, meaning_used, sameReading, sameMeaning, category_history FROM vocab", null);
+				Cursor res =  db.rawQuery("SELECT kanji FROM vocab", null);
 				if (res.getCount() <= 0)
 				{
 					res.close();
@@ -294,22 +294,25 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 
 				res.moveToFirst();
 
-				final ContentValues contentValues = new ContentValues();
+				final HashMap<Character, Integer> map = new HashMap<>();
+				char[] chars;
+				int i;
+				Integer old;
 				
 				do
 				{
-					contentValues.put("reading", StringHelper.toString(StringHelper.toStringArray(res.getString(1))));
-					contentValues.put("meaning", StringHelper.toString(StringHelper.toStringArray(res.getString(2))));
-					contentValues.put("reading_used", StringHelper.toString(StringHelper.toStringArray(res.getString(3))));
-					contentValues.put("meaning_used", StringHelper.toString(StringHelper.toStringArray(res.getString(4))));
-					contentValues.put("sameReading", StringHelper.toString(StringHelper.toStringArray(res.getString(5))));
-					contentValues.put("sameMeaning", StringHelper.toString(StringHelper.toStringArray(res.getString(6))));
-					contentValues.put("category_history", StringHelper.toString(StringHelper.toStringArray(res.getString(7))));
+					chars = StringHelper.getKanji(res.getString(0));
 					
-					db.update("vocab", contentValues, "id = ?", new String[] {"" + res.getInt(res.getColumnIndex("id"))});
+					for (i = 0; i < chars.length; ++i)
+					{
+						old = map.get(chars[i]);
+						map.put(chars[i], old == null ? 1 : old + 1);
+					}
 				}
 				while(res.moveToNext());
 
+				DialogHelper.createDialog(getContext(), "Kanji", "This database contains " + map.keySet().size() + " different kanji.");
+				
 				res.close();
 				return true;
 		}
@@ -342,6 +345,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			case "sortType":
 			case "viewType":
 			case "showType":
+			case "hideType":
 			case "vocabulariesChanged":
 				updateFilter();
 				break;
@@ -352,6 +356,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	{
 		vocabularies = dbHelper.getVocabularies((sortType = SortType.values()[preferences.getInt("sortType", 0)]), ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), searchQuery);
 		viewType = ViewType.values()[preferences.getInt("viewType", 1)];
+		hideType = HideType.values()[preferences.getInt("hideType", 0)];
 		
 		if (recyclerView != null)
 			recyclerView.getAdapter().notifyDataSetChanged();
@@ -521,7 +526,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 										switch (item.getItemId()) 
 										{
 											case R.id.item_open_jisho_kanji:
-												JishoHelper.search(getContext(), searchQuery + "%23kanji");
+												JishoHelper.search(getContext(), searchQuery + " #kanji");
 												return true;
 											case R.id.item_settings:
 												getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
@@ -690,6 +695,8 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				text_meaning = (TextView) v.findViewById(R.id.text_meaning);
 				
 				image_check = (ImageView) v.findViewById(R.id.image_check);
+				
+				text_kanji.setTextLocale(Locale.JAPANESE);
 			}
 		}
 
@@ -801,7 +808,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				holder1.progress_learned.setSecondaryProgress(learned_total);
 
 				holder1.percentage_graph_types.setValues(Vocabulary.types.toArray(new String[Vocabulary.types.size()]), types, true, true);
-				holder1.percentage_graph_categories.setValues(categories, categories_values, false, true);
+				holder1.percentage_graph_categories.setValues(categories, categories_values, true, true);
 				
 				holder1.text_progress_total.setText((correct_meaning + correct_reading + correct_kanji) + " / " + (total_meaning + total_reading + total_meaning));
 				holder1.progress_total.setMax(total_meaning + total_reading + total_kanji);
@@ -943,15 +950,52 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				res.close();
 				
 				holder1.card_vocabulary.setTransitionName("card" + id);
-				holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, showInfo));
-				holder1.text_kanji.setTransitionName("kanji" + id);
 				
-				holder1.text_reading.setText(Vocabulary.correctAnswer(QuestionType.READING, kanji, reading, meaning, additionalInfo, showInfo));
-				holder1.text_reading.setTransitionName("reading" + id);
-				
-				holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.MEANING, kanji, reading, meaning, additionalInfo, showInfo));
-				holder1.text_meaning.setTransitionName("meaning" + id);
+				if (hideType == HideType.NOTHING)
+				{
+					holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_kanji.setTransitionName("kanji" + id);
 
+					holder1.text_reading.setText(reading.length == 0 ? "" : Vocabulary.correctAnswer(QuestionType.READING_INFO, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_reading.setTransitionName("reading" + id);
+
+					holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.MEANING, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_meaning.setTransitionName("meaning" + id);
+				}
+				else if (hideType == HideType.KANJI)
+				{
+					holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.READING_INFO, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_kanji.setTransitionName("reading" + id);
+
+					holder1.text_reading.setText("");
+					holder1.text_reading.setTransitionName("" + id);
+
+					holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.MEANING, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_meaning.setTransitionName("meaning" + id);
+				}
+				else if (hideType == HideType.READING)
+				{
+					holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_kanji.setTransitionName("kanji" + id);
+					
+					holder1.text_reading.setText("");
+					holder1.text_reading.setTransitionName("" + id);
+
+					holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.MEANING, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_meaning.setTransitionName("meaning" + id);
+				}
+				else if (hideType == HideType.MEANING)
+				{
+					holder1.text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_kanji.setTransitionName("kanji" + id);
+					
+					holder1.text_reading.setText("");
+					holder1.text_reading.setTransitionName("" + id);
+
+					holder1.text_meaning.setText(Vocabulary.correctAnswer(QuestionType.READING_INFO, kanji, reading, meaning, additionalInfo, showInfo));
+					holder1.text_meaning.setTransitionName("reading" + id);
+				}
+				
 				if (viewType == ViewType.LARGE)
 				{
 					holder1.text_kanji.setTextSize(TypedValue.COMPLEX_UNIT_SP, 50);
@@ -971,7 +1015,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					holder1.text_meaning.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
 				}
 
-				holder1.text_reading.setVisibility(reading.length > 0 ? View.VISIBLE : View.GONE);
+				holder1.text_reading.setVisibility(reading.length > 0 && hideType == HideType.NOTHING ? View.VISIBLE : View.GONE);
 				holder1.image_check.setVisibility(learned ? View.VISIBLE : View.GONE);
 				holder1.image_check.setImageResource(category == 0 ? R.drawable.alert : R.drawable.check);
 			}

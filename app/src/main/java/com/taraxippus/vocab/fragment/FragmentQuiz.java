@@ -93,6 +93,24 @@ public class FragmentQuiz extends Fragment
 				}
 		});
 		
+		v.findViewById(R.id.button_start_quiz_random).setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View p1)
+				{
+					getContext().startActivity(new Intent(getContext(), ActivityQuiz.class).setAction(ActivityQuiz.ACTION_RANDOM));
+				}
+			});
+			
+		v.findViewById(R.id.button_start_quiz_fast).setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View p1)
+				{
+					getContext().startActivity(new Intent(getContext(), ActivityQuiz.class).setAction(ActivityQuiz.ACTION_FAST));
+				}
+			});
+			
 		int learned_total = 0,critical = 0;
 		int correct_kanji = 0, total_kanji = 0, correct_reading = 0, total_reading = 0,
 			correct_meaning = 0, total_meaning = 0;

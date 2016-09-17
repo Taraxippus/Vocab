@@ -17,14 +17,14 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import com.taraxippus.vocab.ActivityMain;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.vocabulary.DBHelper;
 import com.taraxippus.vocab.vocabulary.ShowType;
 import com.taraxippus.vocab.vocabulary.SortType;
-import java.util.ArrayList;
-import com.taraxippus.vocab.ActivityMain;
+import java.util.Locale;
 
 public class LearnNextDialog extends DialogFragment
 {
@@ -51,7 +51,7 @@ public class LearnNextDialog extends DialogFragment
 			vocabularies_filtered = new int[0];
 			
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(getContext());
-		alertDialog.setTitle("Learn next vocabularies");
+		alertDialog.setTitle("Learn Next Vocabularies");
 		View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_learn, null);
 
 		spinner_which = (Spinner) v.findViewById(R.id.spinner_which);
@@ -63,7 +63,8 @@ public class LearnNextDialog extends DialogFragment
 		scroll_preview = (ScrollView) v.findViewById(R.id.scroll_preview);
 		divider_scroll_top = v.findViewById(R.id.divider_scroll_top);
 		divider_scroll_bottom = v.findViewById(R.id.divider_scroll_bottom);
-
+		text_preview.setTextLocale(Locale.JAPANESE);
+		
 		scroll_preview.setOnScrollChangeListener(
 			new View.OnScrollChangeListener()
 			{
@@ -177,15 +178,15 @@ public class LearnNextDialog extends DialogFragment
 		int count = Integer.parseInt(text_edit_count.getText().toString());
 		for (int i = 0; i < count; ++i)
 		{
-			if (i >= vocabularies_learn.length)
-			{
-				sb.append(" - - - ");
-				break;
-			}
-			
 			if (i > 0)
 				sb.append("\n");
 				
+			if (i >= vocabularies_learn.length)
+			{
+				sb.append(" - - - No more Vocabularies to learn - - -");
+				break;
+			}
+			
 			sb.append(dbHelper.getString(vocabularies_learn[i], "kanji"));
 		}
 

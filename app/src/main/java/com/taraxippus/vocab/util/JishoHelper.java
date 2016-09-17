@@ -7,13 +7,16 @@ import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.text.SpannableStringBuilder;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.vocabulary.DBHelper;
@@ -22,6 +25,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.HttpEntity;
@@ -29,11 +36,29 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import android.view.Gravity;
+import android.text.style.StyleSpan;
+import android.text.Spannable;
+import android.graphics.Typeface;
+import android.text.style.URLSpan;
+import android.text.style.RelativeSizeSpan;
+import android.widget.LinearLayout;
+import android.view.LayoutInflater;
+import android.widget.Space;
+import android.view.View.OnClickListener;
+import java.util.ArrayList;
 
 public final class JishoHelper
 {
 	public static final String KANJI_SVG_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath() + "/kanji/";
+	
+	public static final int MAX_SENTENCE_COUNT = 5;
+	
+	static final float animationSpeed = 0.01F;
+	static final float animationSpeed_stroke = 0.125F;
+	static final float animationSpeed_stroke_break = 0.125F;
+
+	static final int animationSpeed_back = 750;
+	static final int animationSpeed_back_break = 50;
 	
 	static final boolean offline;
 	
@@ -128,6 +153,37 @@ public final class JishoHelper
 			e.printStackTrace();
 		}
 	}
+	
+	public static void addExampleSentences(Context context, String kanji, String[] meaning, final ViewGroup layout, final ViewGroup.LayoutParams params, final View progress)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			String[] args = new String[meaning.length + 1];
+			args[0] = kanji;
+			System.arraycopy(meaning, 0, args, 1, meaning.length);
+			new FindSentencesTask(context, new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object... args)
+					{
+						if (progress != null)
+							progress.setVisibility(View.GONE);
+
+						layout.addView((View) args[0], params);
+					}
+				}).execute(args);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
 
 	public static String getSVG(String kanjiHex, int index, int color)
 	{
@@ -213,7 +269,14 @@ public final class JishoHelper
 	public static void search(Context context, String query)
 	{
 		Intent i = new Intent(Intent.ACTION_VIEW);
-		i.setData(Uri.parse("http://jisho.org/search/" + query));
+		try
+		{
+			i.setData(Uri.parse("http://jisho.org/search/" + URLEncoder.encode(query, "UTF-8").replace("+", "%20")));
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			i.setData(Uri.parse("http://jisho.org/search/Error"));
+		}
 		context.startActivity(i);
 	}
 	
@@ -249,7 +312,7 @@ public final class JishoHelper
 				String line;
 				while ((line = reader.readLine()) != null)
 				{
-					sb.append(line).append("\n");
+					sb.append(line);
 				}
 
 				reader.close();
@@ -301,13 +364,6 @@ public final class JishoHelper
 	
 	public static class CreateStrokeOrderViewTask extends AsyncTask<String, Void, String>
 	{
-		static final float animationSpeed = 0.01F;
-		static final float animationSpeed_stroke = 0.125F;
-		static final float animationSpeed_stroke_break = 0.125F;
-
-		static final int animationSpeed_back = 750;
-		static final int animationSpeed_back_break = 50;
-		
 		final Context context;
 		final boolean accent, horizontal;
 		final OnProcessSuccessListener listener;
@@ -453,6 +509,162 @@ public final class JishoHelper
 						listener.onProcessSuccess(webView);
 					}
 				});
+		}
+	}
+
+	public static class FindSentencesTask extends AsyncTask<String, Void, View>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+		
+		public FindSentencesTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected View doInBackground(String...  p1)
+		{
+			int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, context.getResources().getDisplayMetrics());
+			LinearLayout layout = new LinearLayout(context);
+			layout.setOrientation(LinearLayout.VERTICAL);
+			TextView v;
+			View v1;
+			
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder(), sb2 = new StringBuilder();
+				String s, line, page;
+				int index, index0, index1, index2, i, i1, count;
+				ArrayList<String> list = new ArrayList<>();
+				boolean needsSpace = false;
+				
+				for (i = 0; i < p1.length; ++i)
+				{
+					httpget.setURI(URI.create("http://jisho.org/search/" + URLEncoder.encode(p1[0] + " " + (i == p1.length - 1 ? "" : p1[1 + i]) + " #sentences", "UTF-8").replace("+", "%20")));
+					response = httpclient.execute(httpget); 
+					entity = response.getEntity();
+					
+					reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+					sb.setLength(0);
+
+					while ((line = reader.readLine()) != null)
+					{
+						sb.append(line);
+					}
+
+					reader.close();
+					page = sb.toString();
+					index = 0;
+					count = 0;
+					
+					for (i1 = 0; count < MAX_SENTENCE_COUNT; ++i1)
+					{
+						sb.setLength(0);
+						sb2.setLength(0);
+
+						index = page.indexOf("class=\"sentence_content\"", index + 1);
+						if (index == -1)
+							break;
+						line = page.substring(index, page.indexOf("</div>", index));
+						
+						index0 = 0;
+						while (index0 != -1)
+						{
+							index0 = line.indexOf("class=\"clearfix\"", index0 + 1);
+							if (index0 == -1)
+								break;
+							index1 = line.indexOf("class=\"furigana\"", index0);
+							index2 = line.indexOf("class=\"unlinked\"", index0);
+							s = line.substring(index2 + 17, line.indexOf("</", index2));
+							
+							if (index1 != -1 && index1 < line.indexOf("</li", index0))
+							{
+								sb.append(s);
+								sb2.append(StringHelper.replaceWithFurigana(s, line.substring(index1 + 17, line.indexOf("</", index1)), sb2.length() > 0, true));
+							}
+							else
+							{
+								sb.append(s);
+								sb2.append(s);
+							}
+						}
+						
+						index0 = line.indexOf("class=\"english\"");
+						index1 = line.indexOf("href=\"");
+						s = line.substring(index1 + 6, line.indexOf("\"", index1 + 7));
+						if (list.contains(s))
+							continue;
+							
+						list.add(s);
+						count++;
+						
+						needsSpace = true;
+						v1 = LayoutInflater.from(context).inflate(R.layout.item_sentence, layout, false);
+						v = (TextView) v1.findViewById(R.id.text_kanji);
+						v.setTextLocale(Locale.JAPANESE);
+						v.setText(sb.toString());
+						v = (TextView) v1.findViewById(R.id.text_reading);
+						v.setTextLocale(Locale.JAPANESE);
+						v.setText(sb2.toString().replace("・・", "・"));
+						v = (TextView) v1.findViewById(R.id.text_meaning);
+						v.setText(line.substring(index0 + 16, line.indexOf("</", index0)));
+						v1.setOnClickListener(new OpenUriListener(s));
+						layout.addView(v1, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+					}
+					
+					if (needsSpace)
+						layout.addView(new Space(context), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, padding));
+					
+					needsSpace = false;
+				}
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+
+				v = new TextView(context);
+				v.setText(e.toString());
+				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+			}
+			
+			if (layout.getChildCount() == 0)
+			{
+				v = new TextView(context);
+				v.setText("Couln't find any example sentences on jisho.org");
+				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+			}
+			
+			return layout;
+		}
+
+		@Override
+		protected void onPostExecute(View v)
+		{
+			listener.onProcessSuccess(v);
+		}
+		
+		private class OpenUriListener implements View.OnClickListener
+		{
+			Uri uri;
+			public OpenUriListener(String uri)
+			{
+				this.uri = Uri.parse(uri);
+			}
+			
+			@Override
+			public void onClick(View p1)
+			{
+				Intent i = new Intent(Intent.ACTION_VIEW);
+				i.setData(uri);
+				context.startActivity(i);
+			}
 		}
 	}
 }

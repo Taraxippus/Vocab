@@ -79,8 +79,8 @@ public class NotificationHelper extends BroadcastReceiver
 			intent_open.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			builder.setContentIntent(PendingIntent.getActivity(context, 0, intent_open, PendingIntent.FLAG_CANCEL_CURRENT));
 			builder.setSmallIcon(R.drawable.notification);
-			builder.setContentTitle("Next review");
-			builder.setContentText("Your vocabularies are ready to review");
+			builder.setContentTitle("Next Review");
+			builder.setContentText(ticker == 1 ? "1 Vocabulary is ready to be reviewed" : ticker + " Vocabularies are ready to be reviewed");
 			builder.setColor(context.getResources().getColor(R.color.primary));
 			builder.setAutoCancel(true);
 			builder.setNumber(ticker);

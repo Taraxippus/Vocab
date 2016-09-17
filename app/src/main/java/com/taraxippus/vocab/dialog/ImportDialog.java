@@ -37,6 +37,7 @@ public class ImportDialog extends DialogFragment
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_import);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_import.setAdapter(adapter);
+		spinner_import.setSelection(ImportType.ASK.ordinal());
 		
 		final Spinner spinner_type = (Spinner) v.findViewById(R.id.spinner_type);
 		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types);

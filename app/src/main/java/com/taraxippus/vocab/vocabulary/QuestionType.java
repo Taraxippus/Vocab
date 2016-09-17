@@ -2,9 +2,10 @@ package com.taraxippus.vocab.vocabulary;
 
 public enum QuestionType
 {
-	MEANING,
-	MEANING_INFO,
 	KANJI,
-	READING
+	MEANING,
+	READING,
+	MEANING_INFO,
+	READING_INFO,
 }
 	

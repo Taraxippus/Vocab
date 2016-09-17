@@ -1,5 +1,4 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    
 	<group 
 		android:checkableBehavior="single"
 		android:id="@+id/group_main" >
@@ -17,11 +16,11 @@
             android:title="Add Vocabulary" />
 		
 		<item
-            android:id="@+id/item_grammar"
+			android:id="@+id/item_grammar"
             android:checked="false"
             android:icon="@drawable/grammar"
             android:title="Grammar" />
-		
+
 		<item
             android:id="@+id/item_quiz"
             android:checked="false"

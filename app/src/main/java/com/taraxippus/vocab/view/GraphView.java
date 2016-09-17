@@ -82,6 +82,8 @@ public class GraphView extends View
 //				best = i;
 		}
 		
+		textPaint.setTextAlign(best == 0 ? Paint.Align.LEFT : best == values.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
+		
 		onSizeChanged(getWidth(), getHeight(), getWidth(), getHeight());
 		invalidate();
 	}
@@ -110,8 +112,8 @@ public class GraphView extends View
 	{
 		for (int i = 0; i < values.length; ++i)
 		{
-			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2_alpha : linePaint_alpha);
-			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(),  (float) values2[i] / values[i] == (float) values2[best] / values[best] ? linePaint2 : linePaint);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[best] ? linePaint2_alpha : linePaint_alpha);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[best] ? linePaint2 : linePaint);
 		}
 
 		canvas.drawText("" + values2[best] + " / " + values[best], canvas.getWidth() / (values.length + 1F) * (best + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[best] / (float)values[tallest]) + textPaint.getTextSize() * 1F, textPaint);

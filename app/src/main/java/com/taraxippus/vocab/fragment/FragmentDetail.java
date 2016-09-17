@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class FragmentDetail extends Fragment
 {
@@ -56,8 +57,8 @@ public class FragmentDetail extends Fragment
 
 	public Fragment setDefaultTransitions(Context context)
 	{
-		this.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
-		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
+		this.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.explode));
+		this.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.explode));
 
 		TransitionSet set = new TransitionSet();
 		set.addTransition(new ChangeTransform());
@@ -106,10 +107,11 @@ public class FragmentDetail extends Fragment
 		final TextView kanji = (TextView)v.findViewById(R.id.text_kanji);
 		kanji.setTransitionName("kanji" + id);
 		kanji.setText(vocabulary.correctAnswer(QuestionType.KANJI));
-
+		kanji.setTextLocale(Locale.JAPANESE);
+		
 		final TextView reading = (TextView)v.findViewById(R.id.text_reading);
 		reading.setTransitionName("reading" + id);
-		reading.setText(vocabulary.correctAnswer(QuestionType.READING));
+		reading.setText(vocabulary.reading.length == 0 ? "" : vocabulary.correctAnswer(QuestionType.READING_INFO));
 		
 		final TextView meaning = (TextView)v.findViewById(R.id.text_meaning);
 		meaning.setTransitionName("meaning" + id);
@@ -161,7 +163,7 @@ public class FragmentDetail extends Fragment
 								switch (item.getItemId()) 
 								{
 									case R.id.item_open_jisho_kanji:
-										JishoHelper.search(getContext(), vocabulary.kanji + "%23kanji");
+										JishoHelper.search(getContext(), vocabulary.kanji + " #kanji");
 										return true;
 									case R.id.item_settings:
 										getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
@@ -196,8 +198,9 @@ public class FragmentDetail extends Fragment
 				}
 		});
 		
-		
-		((TextView)v.findViewById(R.id.text_notes)).setText(vocabulary.notes);
+		final TextView text_notes = (TextView) v.findViewById(R.id.text_notes);
+		text_notes.setText(vocabulary.notes);
+		text_notes.setTextLocale(Locale.JAPANESE);
 		final ImageView image_notes = (ImageView) v.findViewById(R.id.image_notes);
 		final View progress_image_notes = v.findViewById(R.id.progress_image_notes);
 		
@@ -284,7 +287,7 @@ public class FragmentDetail extends Fragment
 		if (vocabulary.learned)
 			((TextView)v.findViewById(R.id.text_next_review)).setText("Next Review: " + (vocabulary.nextReview < System.currentTimeMillis() ? "Now" : new SimpleDateFormat().format(new Date(vocabulary.nextReview))));
 		
-		((TextView) v.findViewById(R.id.text_last_checked)).setText("Last Checked: " + (vocabulary.lastChecked == 0 ? "Never" : new SimpleDateFormat().format(new Date(vocabulary.lastChecked))));
+		((TextView) v.findViewById(R.id.text_last_checked)).setText("Last Checked: " + (vocabulary.lastChecked <= 1 ? "Never" : new SimpleDateFormat().format(new Date(vocabulary.lastChecked))));
 		((TextView) v.findViewById(R.id.text_added)).setText("Added: " + (new SimpleDateFormat().format(new Date(vocabulary.added))));
 		
 		if (this.vocabulary.lastChecked > 0)
@@ -308,6 +311,49 @@ public class FragmentDetail extends Fragment
 				
 			}
 		}
+		
+		if (JishoHelper.isInternetAvailable(getContext()))
+		{
+			final View progress_sentences = v.findViewById(R.id.progress_sentences);
+			final ViewGroup layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
+
+			final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
+
+			JishoHelper.addExampleSentences(getContext(), vocabulary.kanji, vocabulary.meaning, layout_sentences, params, progress_sentences);
+
+			v.findViewById(R.id.button_overflow_sentences).setOnClickListener(new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View view)
+					{
+						PopupMenu popup = new PopupMenu(getContext(), view);
+						popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+							{
+								@Override
+								public boolean onMenuItemClick(MenuItem item)
+								{
+									switch (item.getItemId()) 
+									{
+										case R.id.item_open_jisho_sentences:
+											JishoHelper.search(getContext(), vocabulary.kanji + " " + vocabulary.meaning[0] +  " #sentences");
+											return true;
+										case R.id.item_settings:
+											getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_SENTENCES));
+											return true;
+										default:
+											return false;
+									}
+								}
+							});
+						MenuInflater inflater = popup.getMenuInflater();
+						inflater.inflate(R.menu.item_sentences, popup.getMenu());
+						popup.show();
+					}
+				});
+		}
+		else
+			v.findViewById(R.id.card_sentences).setVisibility(View.GONE);
 		
 //		ValueAnimator animator = ValueAnimator.ofFloat(35, 75);
 //		animator.setDuration(300);
@@ -357,7 +403,7 @@ public class FragmentDetail extends Fragment
 					return true;
 				
 				case R.id.item_open_jisho_kanji:
-					JishoHelper.search(getActivity(), vocabulary.kanji + "%23kanji");
+					JishoHelper.search(getActivity(), vocabulary.kanji + " #kanji");
 
 					return true;
 				case R.id.item_edit:
@@ -598,6 +644,7 @@ public class FragmentDetail extends Fragment
 				super(v);
 
 				text_kanji = (TextView) v.findViewById(R.id.text_kanji);
+				text_kanji.setTextLocale(Locale.JAPANESE);
 			}
 		}
 

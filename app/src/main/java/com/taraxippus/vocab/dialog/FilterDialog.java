@@ -55,6 +55,12 @@ public class FilterDialog extends DialogFragment
 		spinner_show.setAdapter(adapter);
 		spinner_show.setSelection(preferences.getInt("showType", 0));
 		
+		final Spinner spinner_hide = (Spinner) v.findViewById(R.id.spinner_hide);
+		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_hide);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		spinner_hide.setAdapter(adapter);
+		spinner_hide.setSelection(preferences.getInt("hideType", 0));
+		
 		boolean[] show = savedInstanceState == null ? StringHelper.toBooleanArray(preferences.getString("show", "")) : savedInstanceState.getBooleanArray("boxes_show");
 		
 		if (show.length != Vocabulary.types.size())
@@ -119,6 +125,7 @@ public class FilterDialog extends DialogFragment
 						.putInt("sortType", spinner_sort.getSelectedItemPosition())
 						.putInt("viewType", spinner_view.getSelectedItemPosition())
 						.putInt("showType", spinner_show.getSelectedItemPosition())
+						.putInt("hideType", spinner_hide.getSelectedItemPosition())
 						.putString("show", StringHelper.toString(show))
 					.apply();
 				}

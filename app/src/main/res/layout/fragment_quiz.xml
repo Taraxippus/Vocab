@@ -55,12 +55,42 @@
 					android:textAllCaps="true"
 					android:backgroundTint="@color/primary" />
 
+				<Button
+					android:id="@+id/button_start_quiz_random"
+					android:layout_width="150dp"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/button_start_quiz"
+					android:layout_alignParentLeft="true"
+					android:layout_marginLeft="8dp"
+					android:padding="8dp"
+					android:text="Random quiz"
+					android:textAppearance="?android:attr/textAppearanceMedium"
+					android:textStyle="bold"
+					android:textColor="@color/white"
+					android:textAllCaps="true"
+					android:backgroundTint="@color/primary" />
+				
+				<Button
+					android:id="@+id/button_start_quiz_fast"
+					android:layout_width="150dp"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/button_start_quiz"
+					android:layout_alignParentRight="true"
+					android:layout_marginRight="8dp"
+					android:padding="8dp"
+					android:text="Fast quiz"
+					android:textAppearance="?android:attr/textAppearanceMedium"
+					android:textStyle="bold"
+					android:textColor="@color/white"
+					android:textAllCaps="true"
+					android:backgroundTint="@color/primary" />
+				
 				<TextView
 					android:id="@+id/text_title_reviews"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_alignParentLeft="true"
-					android:layout_below="@id/button_start_quiz"
+					android:layout_below="@id/button_start_quiz_random"
 					android:text="Reviews"
 					android:padding="8dp"
 					android:textStyle="bold" />
@@ -70,7 +100,7 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_alignParentRight="true"
-					android:layout_below="@id/button_start_quiz"
+					android:layout_below="@id/button_start_quiz_random"
 					android:padding="8dp"/>
 				
 				<TextView

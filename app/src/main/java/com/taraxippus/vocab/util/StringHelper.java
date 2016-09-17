@@ -68,9 +68,14 @@ public class StringHelper
 		return !s.isEmpty();
 	}
 
-	public static boolean isKanji (char c)
+	public static boolean isKana(char c)
 	{
-		return Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS;
+		return c == '・' || Character.UnicodeBlock.of(c) == Character.UnicodeBlock.HIRAGANA || Character.UnicodeBlock.of(c) == Character.UnicodeBlock.KATAKANA;
+	}
+	
+	public static boolean isKanji(char c)
+	{
+		return Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS || c == '々';
 	}
 	
 	public static boolean isKanaOrKanji(String s)
@@ -265,6 +270,35 @@ public class StringHelper
 		}
 
 		return kanjiCount > 0 && kanjiCount == kanjiCount2;
+	}
+	
+	public static String replaceWithFurigana(String kanji, String furigana, boolean addSeperatorStart, boolean addSeperatorEnd)
+	{
+		int start = -1, end = kanji.length();
+		for (int i = 0; i < kanji.length(); ++i)
+		{
+			if (start == -1 && !isKana(kanji.charAt(i)))
+				start = i;
+				
+			else if (start != -1 && end == kanji.length() && isKana(kanji.charAt(i)))
+				end = i;
+			
+			else if (start != -1 && end != kanji.length() && !isKana(kanji.charAt(i)))
+				end = kanji.length();
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		if (start != 0)
+			sb.append(kanji.substring(0, start + 1));
+		if (addSeperatorStart)
+			sb.append("・");
+		sb.append(furigana);
+		if (addSeperatorEnd)
+			sb.append("・");
+		if (end != kanji.length())
+			sb.append(kanji.substring(end, kanji.length()));
+			
+		return sb.toString();
 	}
 	
 	private static final char seperator = '\\';

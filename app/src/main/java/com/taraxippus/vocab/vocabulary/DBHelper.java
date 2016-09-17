@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 
 public class DBHelper extends SQLiteOpenHelper
@@ -105,7 +105,7 @@ public class DBHelper extends SQLiteOpenHelper
 			{
 				contentValues.clear();
 				
-				findSynonyms(db, res.getString(res.getColumnIndex("kanji")), StringHelper.toStringArray(res.getString(res.getColumnIndex("reading"))), StringHelper.toStringArray(res.getString(res.getColumnIndex("meaning"))), sameReading, sameMeaning);
+				findSynonyms(db, res.getString(res.getColumnIndex("kanji")), StringHelper.toStringArray(res.getString(res.getColumnIndex("reading")).replace("・", "")), StringHelper.toStringArray(res.getString(res.getColumnIndex("meaning"))), sameReading, sameMeaning);
 				contentValues.put("nextReview", res.getLong(res.getColumnIndex("lastChecked")) + Vocabulary.getNextReview(res.getInt(res.getColumnIndex("category"))));
 				contentValues.put("sameReading", StringHelper.toString(sameReading));
 				contentValues.put("sameMeaning", StringHelper.toString(sameMeaning));
@@ -551,6 +551,15 @@ public class DBHelper extends SQLiteOpenHelper
 						contentValues.put("category_history", StringHelper.toString(old.category_history));
 					}
 
+					if (old.reading.length == 0 && vocabulary.reading.length != 0)
+					{
+						old.timesChecked_reading = old.timesChecked_kanji;
+						old.timesCorrect_reading = old.timesCorrect_kanji;
+						old.timesChecked_kanji = old.timesCorrect_kanji = 0;
+					}
+					else if (vocabulary.reading.length == 0 && old.reading.length != 0)
+						old.timesChecked_kanji = old.timesCorrect_kanji = 0;
+						
 					contentValues.put("timesChecked_kanji", vocabulary.timesChecked_kanji + old.timesChecked_kanji);
 					contentValues.put("timesChecked_reading", vocabulary.timesChecked_reading + old.timesChecked_reading);
 					contentValues.put("timesChecked_meaning", vocabulary.timesChecked_meaning + old.timesChecked_meaning);
@@ -770,15 +779,15 @@ public class DBHelper extends SQLiteOpenHelper
 	public void resetVocabulary(int... id)
 	{
 		int[] category_history = new int[32];
-		category_history[category_history.length - 1] = 1;
+		category_history[category_history.length - 1] = 0;
 		for (int i = 0; i < category_history.length - 1; ++i)
 			category_history[i] = -1;
 			
 		ContentValues contentValues = new ContentValues();
-		contentValues.put("category", 1);
+		contentValues.put("category", 0);
 		contentValues.put("learned", 0);
 		contentValues.put("lastChecked", 0);
-		contentValues.put("nextReview", Vocabulary.getNextReview(1));
+		contentValues.put("nextReview", Vocabulary.getNextReview(0));
 		contentValues.put("streak_kanji", 0);
 		contentValues.put("streak_reading", 0);
 		contentValues.put("streak_meaning", 0);
@@ -1075,7 +1084,7 @@ public class DBHelper extends SQLiteOpenHelper
 		v.type = type;
 		v.learned = learned;
 		final ArrayList<Integer> sameReading = new ArrayList<>(), sameMeaning = new ArrayList<>();
-		findSynonyms(getReadableDatabase(), v.kanji, v.reading, v.meaning, sameReading, sameMeaning);
+		findSynonyms(getReadableDatabase(), v.kanji, v.reading_trimed, v.meaning, sameReading, sameMeaning);
 		v.setSynonyms(sameReading, sameMeaning);
 		v.nextReview = v.lastChecked + Vocabulary.getNextReview(v.category);
 		updateVocabulary(v, -1, importType, listener);
@@ -1155,6 +1164,8 @@ public class DBHelper extends SQLiteOpenHelper
 					}
 					writer.write(reading[reading.length -1] + "】- ");
 				}
+				else
+					writer.write(" - ");
 
 				for (i = 0; i < meaning.length - 1; ++i)
 				{
@@ -1181,21 +1192,26 @@ public class DBHelper extends SQLiteOpenHelper
 	
 	public void findSynonyms(SQLiteDatabase db, String kanji, String[] reading_trimed, String[] meaning, ArrayList<Integer> sameReading, ArrayList<Integer> sameMeaning)
 	{
+		findSynonyms(db, kanji, -1, reading_trimed, meaning, sameReading, sameMeaning);
+	}
+	
+	public void findSynonyms(SQLiteDatabase db, String kanji, int id, String[] reading_trimed, String[] meaning, ArrayList<Integer> sameReading, ArrayList<Integer> sameMeaning)
+	{
 		sameReading.clear();
 		sameMeaning.clear();
 	
-		if (reading_trimed.length > 0)
+		if (reading_trimed.length > 0 && !reading_trimed[0].isEmpty())
 		{
 			StringBuilder reading_matches = new StringBuilder();
 			for (int i = 0; i < reading_trimed.length; ++i)
 			{
-				reading_matches.append("reading_trimed LIKE '%\\").append(reading_trimed[i]).append("\\%'");
+				reading_matches.append("reading_trimed LIKE '%\\").append(reading_trimed[i].replace("'", "''")).append("\\%'");
 
 				if (i < reading_trimed.length - 1)
 					reading_matches.append(" OR ");
 			}
 
-			Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND (" + reading_matches + ")", new String[] {kanji});
+			Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND id != ? AND (" + reading_matches + ")", new String[] {kanji, "" + id});
 			if (res.getCount() > 0)
 			{
 				res.moveToFirst();
@@ -1213,13 +1229,13 @@ public class DBHelper extends SQLiteOpenHelper
 		StringBuilder meaning_matches = new StringBuilder();
 		for (int i = 0; i < meaning.length; ++i)
 		{
-			meaning_matches.append("meaning LIKE '%\\").append(meaning[i]).append("\\%'");
+			meaning_matches.append("meaning LIKE '%\\").append(meaning[i].replace("'", "''")).append("\\%'");
 
 			if (i < meaning.length - 1)
 				meaning_matches.append(" OR ");
 		}
 
-		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND (" + meaning_matches + ")", new String[] {kanji});
+		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND id != ? AND (" + meaning_matches + ")", new String[] {kanji, "" + id});
 		if (res.getCount() > 0)
 		{
 			res.moveToFirst();

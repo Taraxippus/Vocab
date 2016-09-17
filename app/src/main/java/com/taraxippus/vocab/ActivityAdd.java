@@ -21,6 +21,7 @@ import com.taraxippus.vocab.vocabulary.QuestionType;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import com.taraxippus.vocab.vocabulary.VocabularyType;
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class ActivityAdd extends AppCompatActivity
 {
@@ -34,7 +35,10 @@ public class ActivityAdd extends AppCompatActivity
 		dbHelper = new DBHelper(this);
 		
 		setContentView(R.layout.activity_add);
-
+		((TextView) findViewById(R.id.text_kanji)).setTextLocale(Locale.JAPANESE);
+		((TextView) findViewById(R.id.text_additional_info)).setTextLocale(Locale.JAPANESE);
+		((TextView) findViewById(R.id.text_notes)).setTextLocale(Locale.JAPANESE);
+		
 		if (getIntent() != null && getIntent().getAction() == Intent.ACTION_SEND)
 		{
 			String text = getIntent().getStringExtra(Intent.EXTRA_TEXT);
@@ -54,7 +58,6 @@ public class ActivityAdd extends AppCompatActivity
 				ImportDialog dialog = new ImportDialog();
 				dialog.setArguments(bundle);
 				dialog.show(getFragmentManager(), "import");
-				return;
 			}
 			else
 			{
@@ -144,28 +147,51 @@ public class ActivityAdd extends AppCompatActivity
 					else
 					{
 						String[] reading = reading1.split(";");
+						int i1 = 0;
 						for (int i = 0; i < reading.length; ++i)
-							reading[i] = StringHelper.trim(reading[i]);
-
-						String[] reading_trimed = new String[reading.length];
-						for (int i = 0; i < reading.length; ++i)
+						{
+							reading[i1] = StringHelper.trim(reading[i]);
+							
+							if (!reading[i1].isEmpty())
+								i1++;
+						}
+							
+						String[] reading_trimed = new String[i1];
+						for (int i = 0; i < i1; ++i)
 							reading_trimed[i] = reading[i].replace("・", "");
 						
 						String[] meaning = meaning1.split(";");
+						i1 = 0;
 						for (int i = 0; i < meaning.length; ++i)
-							meaning[i] = StringHelper.trim(meaning[i]);
+						{
+							meaning[i1] = StringHelper.trim(meaning[i]);
 
+							if (!meaning[i1].isEmpty())
+								i1++;
+						}
+							
+						String[] meaning_trimed = new String[i1];
+						for (int i = 0; i < i1; ++i)
+							meaning_trimed[i] = meaning[i];
+						
+						if (meaning_trimed.length == 0 || !StringHelper.isKana(kanji) && reading_trimed.length == 0)
+						{
+							DialogHelper.createDialog(ActivityAdd.this, (edit ? "Edit " : "Add ") + (kanji.isEmpty() ? "Vocabulary" : kanji), "Please enter kanji, reading and meaning for the vocabulary! (You can leave out the reading if the kanji is written in kana only)");
+							
+							return;
+						}
+							
 						final Vocabulary vocab = new Vocabulary();
 						
 						vocab.type = VocabularyType.values()[((Spinner) findViewById(R.id.spinner_type)).getSelectedItemPosition()];
 						vocab.kanji = kanji;
 						vocab.reading = reading;
 						vocab.reading_trimed = reading_trimed;
-						vocab.meaning = meaning;
+						vocab.meaning = meaning_trimed;
 						vocab.additionalInfo = additionalInfo;
 						vocab.notes = notes;
 						vocab.reading_used = new int[reading.length];
-						vocab.meaning_used = new int[meaning.length];
+						vocab.meaning_used = new int[meaning_trimed.length];
 						vocab.added = System.currentTimeMillis();
 						vocab.soundFile = "";
 						
@@ -177,7 +203,7 @@ public class ActivityAdd extends AppCompatActivity
 						vocab.showInfo = ((CheckBox) findViewById(R.id.checkbox_show_info)).isChecked();
 						vocab.imageFile = imageUrl;
 						final ArrayList<Integer> sameReading = new ArrayList<>(), sameMeaning = new ArrayList<>();
-						dbHelper.findSynonyms(dbHelper.getReadableDatabase(), vocab.kanji, vocab.reading, vocab.meaning, sameReading, sameMeaning);
+						dbHelper.findSynonyms(dbHelper.getReadableDatabase(), vocab.kanji, getIntent() == null ? -1 : getIntent().getIntExtra("id", -1), vocab.reading_trimed, vocab.meaning, sameReading, sameMeaning);
 						vocab.setSynonyms(sameReading, sameMeaning);
 						vocab.nextReview = vocab.lastChecked + Vocabulary.getNextReview(vocab.category);
 						

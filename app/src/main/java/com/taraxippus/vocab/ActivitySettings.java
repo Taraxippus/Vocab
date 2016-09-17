@@ -8,6 +8,7 @@ import com.taraxippus.vocab.fragment.FragmentActivitySettings;
 public class ActivitySettings extends ActionBarActivity 
 {
 	public static final String ACTION_STROKE_ORDER = "com.taraxippus.vocab.action.ACTION_SETTINGS_STROKE_ORDER";
+	public static final String ACTION_SENTENCES = "com.taraxippus.vocab.action.ACTION_SETTINGS_SENTENCES";
 	
     @Override
     protected void onCreate(Bundle savedInstanceState)

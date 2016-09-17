@@ -12,5 +12,6 @@ public enum VocabularyType
 	ADVERB,
 	EXPRESSION,
 	PARTICLE,
-	CONJUNCTION
+	CONJUNCTION,
+	COUNTER,
 }

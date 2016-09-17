@@ -8,9 +8,13 @@ import android.transition.*;
 import android.view.*;
 import com.taraxippus.vocab.view.*;
 import com.taraxippus.vocab.fragment.FragmentActivityQuiz;
+import com.taraxippus.vocab.fragment.FragmentActivityQuizRandom;
 
 public class ActivityQuiz extends AppCompatActivity
 {
+	public static final String ACTION_RANDOM = "com.taraxippus.vocab.action.ACTION_RANDOM";
+	public static final String ACTION_FAST = "com.taraxippus.vocab.action.ACTION_FAST";
+	
 	@Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -24,6 +28,17 @@ public class ActivityQuiz extends AppCompatActivity
 		getSupportActionBar().setDisplayShowHomeEnabled(true);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
-		getFragmentManager().beginTransaction().replace(R.id.layout_content, new FragmentActivityQuiz().setDefaultTransitions(this)).commit();
+		Fragment f;
+		
+		if (getIntent() != null && ACTION_RANDOM.equals(getIntent().getAction()))
+			f = new FragmentActivityQuizRandom().setDefaultTransitions(this);
+		
+		else if (getIntent() != null && ACTION_FAST.equals(getIntent().getAction()))
+			f = new FragmentActivityQuizRandom().setDefaultTransitions(this);
+		
+		else
+			f = new FragmentActivityQuiz().setDefaultTransitions(this);
+			
+		getFragmentManager().beginTransaction().replace(R.id.layout_content, f).commit();
 	}
 }

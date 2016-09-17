@@ -22,6 +22,7 @@ import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.vocabulary.QuestionType;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import com.taraxippus.vocab.vocabulary.VocabularyType;
+import java.util.Locale;
 
 public class FragmentActivityLearnOverview extends Fragment
 {
@@ -74,14 +75,19 @@ public class FragmentActivityLearnOverview extends Fragment
 		
 		res.close();
 		
-		((TextView)v.findViewById(R.id.text_kanji)).setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, true));
-		((TextView)v.findViewById(R.id.text_reading)).setText(Vocabulary.correctAnswer(QuestionType.READING, kanji, reading, meaning, additionalInfo, true));
+		TextView text_kanji = (TextView) v.findViewById(R.id.text_kanji);
+		text_kanji.setText(Vocabulary.correctAnswer(QuestionType.KANJI, kanji, reading, meaning, additionalInfo, true));
+		((TextView)v.findViewById(R.id.text_reading)).setText(reading.length == 0 ? "" : Vocabulary.correctAnswer(QuestionType.READING_INFO, kanji, reading, meaning, additionalInfo, true));
 		((TextView)v.findViewById(R.id.text_meaning)).setText(Vocabulary.correctAnswer(QuestionType.MEANING_INFO, kanji, reading, meaning, additionalInfo, true));
 		((TextView)v.findViewById(R.id.text_type)).setText(Vocabulary.getType(VocabularyType.values()[type], kanji));
-		((TextView)v.findViewById(R.id.text_notes)).setText(notes.isEmpty() ? "Notes can help you remember a difficult vocabulary better" : notes);
+		TextView text_notes = (TextView) v.findViewById(R.id.text_notes);
+		text_notes.setText(notes.isEmpty() ? "Notes can help you remember a difficult vocabulary better" : notes);
 		final ImageView image_notes = (ImageView) v.findViewById(R.id.image_notes);
 		final View progress_image_notes = v.findViewById(R.id.progress_image_notes);
 
+		text_kanji.setTextLocale(Locale.JAPANESE);
+		text_notes.setTextLocale(Locale.JAPANESE);
+		
 		if (!imageFile.isEmpty() && JishoHelper.isInternetAvailable(getContext()))
 			new FragmentDetail.DownloadImageTask(image_notes, progress_image_notes).execute(imageFile);
 			
@@ -107,7 +113,7 @@ public class FragmentActivityLearnOverview extends Fragment
 										return true;
 										
 									case R.id.item_open_jisho_kanji:
-										JishoHelper.search(getContext(), kanji + "%23kanji");
+										JishoHelper.search(getContext(), kanji + " #kanji");
 										return true;
 										
 									case R.id.item_learn_remove:
