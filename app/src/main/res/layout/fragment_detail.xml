@@ -8,8 +8,7 @@
 	<LinearLayout
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:orientation="vertical"
-		android:animateLayoutChanges="true" >
+		android:orientation="vertical" >
 
 		<android.support.v7.widget.CardView
 			android:id="@+id/card_kanji"
@@ -30,8 +29,21 @@
 					android:layout_alignParentLeft="true"
 					android:layout_alignParentTop="true"
 					android:textStyle="bold"
+					android:textColor="@color/gray"
 					android:paddingTop="4dp"
 					android:paddingLeft="8dp"/>
+				
+				<ImageButton
+					android:id="@+id/button_info"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_alignParentRight="true"
+					android:layout_alignParentTop="true"
+					android:layout_marginTop="2dp"
+					android:layout_marginRight="2dp"
+					android:scaleType="center"
+					android:src="@drawable/info"
+					android:background="?attr/selectableItemBackgroundBorderless" />
 				
 				<TextView
 					android:id="@+id/text_kanji"
@@ -72,19 +84,33 @@
 					android:layout_height="wrap_content"
 					android:layout_alignParentRight="true"
 					android:layout_below="@id/text_meaning"
-					android:paddingTop="8dp"
+					android:paddingTop="12dp"
 					android:paddingRight="8dp"
 					android:paddingBottom="8dp"
-					android:gravity="right" />
+					android:gravity="right"
+					android:textColor="@color/gray"
+					android:textStyle="bold" />
 
 				<ImageButton
-					android:id="@+id/button_stroke_order"
+					android:id="@+id/button_sentences"
 					android:layout_width="24dp"
 					android:layout_height="24dp"
 					android:layout_alignParentLeft="true"
 					android:layout_below="@id/text_meaning"
-					android:layout_marginTop="8dp"
+					android:layout_marginTop="12dp"
 					android:layout_marginLeft="2dp"
+					android:layout_marginBottom="2dp"
+					android:scaleType="center"
+					android:src="@drawable/sentences"
+					android:background="?attr/selectableItemBackgroundBorderless" />
+				
+				<ImageButton
+					android:id="@+id/button_stroke_order"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_toRightOf="@id/button_sentences"
+					android:layout_below="@id/text_meaning"
+					android:layout_marginTop="12dp"
 					android:layout_marginBottom="2dp"
 					android:scaleType="center"
 					android:src="@drawable/stroke_order"
@@ -96,7 +122,7 @@
 					android:layout_height="24dp"
 					android:layout_toRightOf="@id/button_stroke_order"
 					android:layout_below="@id/text_meaning"
-					android:layout_marginTop="8dp"
+					android:layout_marginTop="12dp"
 					android:layout_marginBottom="2dp"
 					android:scaleType="center"
 					android:src="@drawable/sound"
@@ -123,7 +149,7 @@
 				android:layout_height="wrap_content" >
 
 				<ImageButton
-					android:id="@+id/button_overflow"
+					android:id="@+id/button_overflow_stroke_order"
 					android:layout_width="34dp"
 					android:layout_height="40dp"
 					android:layout_alignParentTop="true"
@@ -157,6 +183,55 @@
 		</android.support.v7.widget.CardView>
 
 		<android.support.v7.widget.CardView
+			android:id="@+id/card_sentences"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:layout_marginBottom="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp"
+			android:visibility="gone" >
+
+			<RelativeLayout
+				android:id="@+id/layout_sentences"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content" >
+
+				<ImageButton
+					android:id="@+id/button_overflow_sentences"
+					android:layout_width="34dp"
+					android:layout_height="40dp"
+					android:layout_alignParentTop="true"
+					android:layout_alignParentRight="true"
+					android:padding="0dp"
+					android:scaleType="center"
+					android:src="@drawable/overflow"
+					android:background="?attr/selectableItemBackgroundBorderless" />
+
+				<TextView
+					android:id="@+id/text_title_sentences"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentTop="true"
+					android:layout_alignParentLeft="true"
+					android:text="Example Sentences"
+					android:paddingTop="16dp"
+					android:paddingBottom="16dp"
+					android:paddingLeft="16dp"
+					android:textStyle="bold" />
+
+				<ProgressBar
+					android:id="@+id/progress_sentences"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_title_sentences"
+					android:layout_centerHorizontal="true"
+					android:padding="8dp" />
+
+			</RelativeLayout>
+		</android.support.v7.widget.CardView>
+		
+		<android.support.v7.widget.CardView
 			android:id="@+id/card_notes"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
@@ -168,8 +243,7 @@
 			<LinearLayout
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:orientation="vertical"
-				android:animateLayoutChanges="true">
+				android:orientation="vertical" >
 
 				<TextView
 					android:layout_width="wrap_content"
@@ -188,7 +262,8 @@
 					android:paddingRight="16dp"
 					android:paddingTop="0dp"
 					android:paddingBottom="16dp"
-					android:autoLink="all" />
+					android:autoLink="all"
+					android:textIsSelectable="true" />
 
 				<ProgressBar
 					android:id="@+id/progress_image_notes"
@@ -208,6 +283,26 @@
 			</LinearLayout>
 		</android.support.v7.widget.CardView>
 
+		<TextView
+			android:id="@+id/text_title_kanji_contained"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentTop="true"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold"
+			android:text="Kanji" />
+
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_kanji_contained"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp"
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
 		<TextView
 			android:id="@+id/text_title_same_reading"
 			android:layout_width="wrap_content"
@@ -252,15 +347,13 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="4dp"
-			android:layout_marginBottom="4dp"
 			card_view:cardCornerRadius="0dp"
 			card_view:cardElevation="2dp" >
 
 			<RelativeLayout
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:padding="8dp"
-				android:animateLayoutChanges="true" >
+				android:padding="8dp" >
 
 				<TextView
 					android:id="@+id/text_title_stats"
@@ -401,7 +494,7 @@
 					android:layout_below="@id/progress_meaning"
 					android:paddingTop="16dp"
 					android:paddingLeft="8dp"
-					android:text="Current streak in quiz:" />
+					android:text="Streak in quiz (Current / Record):" />
 
 				<TextView
 					android:id="@+id/text_streak_category"
@@ -422,42 +515,13 @@
 					android:paddingTop="8dp"
 					android:gravity="center"
 					android:textStyle="bold" />
-				
-				<TextView
-					android:id="@+id/text_streak_longest"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_below="@id/text_streak_category"
-					android:paddingTop="8dp"
-					android:paddingLeft="8dp"
-					android:text="Longest streak:" />
-				
-				<TextView
-					android:id="@+id/text_streak_longest_category"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_alignParentLeft="true"
-					android:layout_below="@id/text_streak_longest"
-					android:paddingLeft="16dp"
-					android:paddingTop="8dp" />
-				
-				<TextView
-					android:id="@+id/text_streak_longest_values"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_alignParentRight="true"
-					android:layout_below="@id/text_streak_longest"
-					android:layout_alignLeft="@id/text_progress_total"
-					android:paddingTop="8dp"
-					android:gravity="center"
-					android:textStyle="bold" />
 
 				<TextView
 					android:id="@+id/text_reading_entered"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_alignParentLeft="true"
-					android:layout_below="@id/text_streak_longest_category"
+					android:layout_below="@id/text_streak_category"
 					android:text="Reading entered:"
 					android:paddingTop="16dp"
 					android:paddingLeft="8dp"
@@ -543,53 +607,6 @@
 					android:paddingRight="8dp"
 					android:paddingBottom="8dp"
 					android:gravity="right" />
-
-			</RelativeLayout>
-		</android.support.v7.widget.CardView>
-		
-		<android.support.v7.widget.CardView
-			android:id="@+id/card_sentences"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:layout_marginTop="4dp"
-			card_view:cardCornerRadius="0dp"
-			card_view:cardElevation="2dp" >
-
-			<RelativeLayout
-				android:id="@+id/layout_sentences"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content" >
-
-				<ImageButton
-					android:id="@+id/button_overflow_sentences"
-					android:layout_width="34dp"
-					android:layout_height="40dp"
-					android:layout_alignParentTop="true"
-					android:layout_alignParentRight="true"
-					android:padding="0dp"
-					android:scaleType="center"
-					android:src="@drawable/overflow"
-					android:background="?attr/selectableItemBackgroundBorderless" />
-
-				<TextView
-					android:id="@+id/text_title_sentences"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_alignParentTop="true"
-					android:layout_alignParentLeft="true"
-					android:text="Example Sentences"
-					android:paddingTop="16dp"
-					android:paddingBottom="16dp"
-					android:paddingLeft="16dp"
-					android:textStyle="bold" />
-
-				<ProgressBar
-					android:id="@+id/progress_sentences"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_below="@id/text_title_sentences"
-					android:layout_centerHorizontal="true"
-					android:padding="8dp" />
 
 			</RelativeLayout>
 		</android.support.v7.widget.CardView>

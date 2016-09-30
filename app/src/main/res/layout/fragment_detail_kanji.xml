@@ -1,0 +1,603 @@
+<android.support.v4.widget.NestedScrollView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:card_view="http://schemas.android.com/apk/res-auto"
+
+    android:layout_width="match_parent"
+	android:layout_height="match_parent" >
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical" >
+
+		<android.support.v7.widget.CardView
+			android:id="@+id/card_kanji"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp" >
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content" >
+
+				<ProgressBar
+					android:id="@+id/progress_jisho"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentTop="true"
+					android:layout_marginTop="-7dp"
+					android:layout_marginBottom="-6dp"
+					android:indeterminate="true"
+					android:visibility="gone"/>
+				
+				<TextView
+					android:id="@+id/text_category_number"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/progress_jisho"
+					android:textStyle="bold"
+					android:textColor="@color/gray"
+					android:paddingTop="4dp"
+					android:paddingLeft="8dp"/>
+
+				<TextView
+					android:id="@+id/text_kanji"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_category_number"
+					android:textSize="75sp"
+					android:textStyle="bold"
+					android:gravity="center"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp" />
+
+				<TextView
+					android:id="@+id/text_reading_kun"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_kanji"
+					android:textSize="20sp"
+					android:textStyle="bold"
+					android:gravity="center"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp" />
+
+				<TextView
+					android:id="@+id/text_reading_on"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_reading_kun"
+					android:textSize="20sp"
+					android:textStyle="bold"
+					android:gravity="center"
+					android:paddingTop="2dp"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp" />
+				
+				<TextView
+					android:id="@+id/text_meaning"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_reading_on"
+					android:paddingTop="12dp"
+					android:paddingLeft="8dp"
+					android:paddingRight="8dp"
+					android:textSize="20sp"
+					android:gravity="center"/>
+
+				<TextView
+					android:id="@+id/text_strokes"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_meaning"
+					android:paddingTop="12dp"
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:gravity="right"
+					android:textColor="@color/gray"
+					android:textStyle="bold" />
+				
+				<ImageButton
+					android:id="@+id/button_words"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_meaning"
+					android:layout_marginTop="12dp"
+					android:layout_marginLeft="2dp"
+					android:layout_marginBottom="2dp"
+					android:scaleType="center"
+					android:src="@drawable/sentences"
+					android:background="?attr/selectableItemBackgroundBorderless" />
+
+				<ImageButton
+					android:id="@+id/button_stroke_order"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_toRightOf="@id/button_words"
+					android:layout_below="@id/text_meaning"
+					android:layout_marginTop="12dp"
+					android:layout_marginBottom="2dp"
+					android:scaleType="center"
+					android:src="@drawable/stroke_order"
+					android:background="?attr/selectableItemBackgroundBorderless" />
+
+			</RelativeLayout>
+		</android.support.v7.widget.CardView>
+
+		<android.support.v7.widget.CardView
+			android:id="@+id/card_stroke_order"
+
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:layout_marginBottom="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp"
+			android:visibility="gone">
+
+			<RelativeLayout
+				android:id="@+id/layout_stroke_order"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content" >
+
+				<ImageButton
+					android:id="@+id/button_overflow_stroke_order"
+					android:layout_width="34dp"
+					android:layout_height="40dp"
+					android:layout_alignParentTop="true"
+					android:layout_alignParentRight="true"
+					android:padding="0dp"
+					android:scaleType="center"
+					android:src="@drawable/overflow"
+					android:background="?attr/selectableItemBackgroundBorderless"/>
+
+				<TextView
+					android:id="@+id/text_title_stroke_order"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentTop="true"
+					android:layout_alignParentLeft="true"
+					android:text="Strokeorder"
+					android:paddingTop="16dp"
+					android:paddingBottom="16dp"
+					android:paddingLeft="16dp"
+					android:textStyle="bold" />
+
+				<ProgressBar
+					android:id="@+id/progress_stroke_order"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_title_stroke_order"
+					android:layout_centerHorizontal="true"
+					android:padding="8dp" />
+
+			</RelativeLayout>
+		</android.support.v7.widget.CardView>
+
+		<android.support.v7.widget.CardView
+			android:id="@+id/card_words"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:layout_marginBottom="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp"
+			android:visibility="gone" >
+
+			<RelativeLayout
+				android:id="@+id/layout_words"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content" >
+
+				<TextView
+					android:id="@+id/text_title_words"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentTop="true"
+					android:layout_alignParentLeft="true"
+					android:text="Reading Compounds"
+					android:paddingTop="16dp"
+					android:paddingBottom="16dp"
+					android:paddingLeft="16dp"
+					android:textStyle="bold" />
+
+				<ProgressBar
+					android:id="@+id/progress_words"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_below="@id/text_title_words"
+					android:layout_centerHorizontal="true"
+					android:padding="8dp" />
+
+			</RelativeLayout>
+		</android.support.v7.widget.CardView>
+
+		<android.support.v7.widget.CardView
+			android:id="@+id/card_notes"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:layout_marginBottom="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp" >
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical" >
+
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Notes"
+					android:paddingTop="16dp"
+					android:paddingBottom="16dp"
+					android:paddingLeft="16dp"
+					android:textStyle="bold" />
+
+				<TextView
+					android:id="@+id/text_notes"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:paddingLeft="16dp"
+					android:paddingRight="16dp"
+					android:paddingTop="0dp"
+					android:paddingBottom="16dp"
+					android:autoLink="all" 
+					android:textIsSelectable="true" />
+
+				<ProgressBar
+					android:id="@+id/progress_image_notes"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_gravity="center"
+					android:padding="8dp"
+					android:visibility="gone" />
+
+				<ImageView
+					android:id="@+id/image_notes"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:adjustViewBounds="true"
+					android:visibility="gone" />
+
+			</LinearLayout>
+		</android.support.v7.widget.CardView>
+
+		<TextView
+			android:id="@+id/text_title_vocabularies"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentTop="true"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold"
+			android:text="Vocabularies" />
+
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_vocabularies"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp"
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
+		<android.support.v7.widget.CardView
+			android:id="@+id/card_stats"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			card_view:cardCornerRadius="0dp"
+			card_view:cardElevation="2dp" >
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="8dp" >
+
+				<TextView
+					android:id="@+id/text_title_stats"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_alignParentTop="true"
+					android:text="Stats"
+					android:padding="8dp"
+					android:textStyle="bold" />
+
+				<TextView
+					android:id="@+id/text_total_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_title_stats"
+					android:text="Total success rate in quiz:"
+					android:paddingLeft="8dp"
+					android:paddingTop="16dp"/>
+
+				<TextView
+					android:id="@+id/text_progress_total"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_total_progress"
+					android:padding="8dp" />
+
+				<ProgressBar
+					android:id="@+id/progress_total"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_total_progress"
+					android:layout_toLeftOf="@id/text_progress_total"
+					android:padding="8dp" />
+
+				<TextView
+					android:id="@+id/text_kanji_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_progress_total"
+					android:text="Success rate for entering kanji:"
+					android:paddingLeft="8dp"
+					android:paddingTop="12dp"/>
+
+				<TextView
+					android:id="@+id/text_progress_kanji"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_kanji_progress"
+					android:padding="8dp"
+					android:gravity="center" />
+
+				<ProgressBar
+					android:id="@+id/progress_kanji"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_kanji_progress"
+					android:layout_toLeftOf="@id/text_progress_kanji"
+					android:layout_alignRight="@id/progress_total"
+					android:padding="8dp" />
+
+				<TextView
+					android:id="@+id/text_reading_kun_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_progress_kanji"
+					android:text="Success rate for entering kunyomi:"
+					android:paddingLeft="8dp"
+					android:paddingTop="8dp"/>
+
+				<TextView
+					android:id="@+id/text_progress_reading_kun"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_reading_kun_progress"
+					android:padding="8dp"
+					android:gravity="center" />
+
+				<ProgressBar
+					android:id="@+id/progress_reading_kun"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_reading_kun_progress"
+					android:layout_toLeftOf="@id/text_progress_reading"
+					android:layout_alignRight="@id/progress_total"
+					android:padding="8dp" />
+				
+				<TextView
+					android:id="@+id/text_reading_on_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_progress_reading_kun"
+					android:text="Success rate for entering onyomi:"
+					android:paddingLeft="8dp"
+					android:paddingTop="8dp"/>
+
+				<TextView
+					android:id="@+id/text_progress_reading_on"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_reading_on_progress"
+					android:padding="8dp"
+					android:gravity="center" />
+
+				<ProgressBar
+					android:id="@+id/progress_reading_on"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_reading_on_progress"
+					android:layout_toLeftOf="@id/text_progress_reading"
+					android:layout_alignRight="@id/progress_total"
+					android:padding="8dp" />
+
+				<TextView
+					android:id="@+id/text_meaning_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_progress_reading_on"
+					android:text="Success rate for entering meaning:"
+					android:paddingLeft="8dp"
+					android:paddingTop="8dp"/>
+
+				<TextView
+					android:id="@+id/text_progress_meaning"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_meaning_progress"
+					android:padding="8dp"
+					android:gravity="center" />
+
+				<ProgressBar
+					android:id="@+id/progress_meaning"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_meaning_progress"
+					android:layout_toLeftOf="@id/text_progress_meaning"
+					android:layout_alignRight="@id/progress_total"
+					android:padding="8dp" />
+
+				<TextView
+					android:id="@+id/text_success_reading"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/progress_meaning"
+					android:paddingTop="16dp"
+					android:paddingLeft="8dp"
+					android:text="Success rate in quiz per reading:" />
+
+				<TextView
+					android:id="@+id/text_success_reading_category"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_success_reading"
+					android:paddingLeft="16dp"
+					android:paddingTop="8dp" />
+
+				<TextView
+					android:id="@+id/text_success_reading_values"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_success_reading"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:paddingTop="8dp"
+					android:gravity="center"
+					android:textStyle="bold" />
+				
+				<TextView
+					android:id="@+id/text_streak"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_success_reading_category"
+					android:paddingTop="16dp"
+					android:paddingLeft="8dp"
+					android:text="Streak in quiz (Current / Record):" />
+
+				<TextView
+					android:id="@+id/text_streak_category"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_streak"
+					android:paddingLeft="16dp"
+					android:paddingTop="8dp" />
+
+				<TextView
+					android:id="@+id/text_streak_values"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_streak"
+					android:layout_alignLeft="@id/text_progress_total"
+					android:paddingTop="8dp"
+					android:gravity="center"
+					android:textStyle="bold" />
+
+				<TextView
+					android:id="@+id/text_meaning_entered"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_streak_category"
+					android:text="Meaning entered:"
+					android:paddingTop="8dp"
+					android:paddingLeft="8dp"
+					android:paddingBottom="8dp"
+					android:visibility="gone" />
+
+				<com.taraxippus.vocab.view.PercentageGraphView
+					android:id="@+id/percentage_graph_meaning"
+					android:layout_width="match_parent"
+					android:layout_height="150dp"
+					android:layout_below="@id/text_meaning_entered"
+					android:visibility="gone" />
+
+				<View
+					android:id="@+id/divider_bottom"
+					android:layout_width="match_parent"
+					android:layout_height="1dp"
+					android:layout_below="@id/percentage_graph_meaning"
+					android:layout_marginTop="8dp"
+					android:background="?android:attr/listDivider"/>
+				
+				<TextView
+					android:id="@+id/text_category"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/divider_bottom"
+					android:paddingTop="8dp"
+					android:paddingLeft="8dp"
+					android:paddingBottom="8dp"/>
+
+				<com.taraxippus.vocab.view.LineGraphView
+					android:id="@+id/line_graph_category"
+					android:layout_width="match_parent"
+					android:layout_height="125dp" 
+					android:layout_below="@id/text_category" />
+
+				<TextView
+					android:id="@+id/text_next_review"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/line_graph_category"
+					android:paddingTop="8dp"
+					android:paddingRight="8dp"
+					android:gravity="right" />
+
+				<TextView
+					android:id="@+id/text_last_checked"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_next_review"
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:gravity="right" />
+
+				<TextView
+					android:id="@+id/text_added"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_below="@id/text_last_checked"
+					android:paddingRight="8dp"
+					android:paddingBottom="8dp"
+					android:gravity="right" />
+			</RelativeLayout>
+		</android.support.v7.widget.CardView>
+	</LinearLayout>
+</android.support.v4.widget.NestedScrollView>

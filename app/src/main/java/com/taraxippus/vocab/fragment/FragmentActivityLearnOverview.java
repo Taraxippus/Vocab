@@ -89,7 +89,7 @@ public class FragmentActivityLearnOverview extends Fragment
 		text_notes.setTextLocale(Locale.JAPANESE);
 		
 		if (!imageFile.isEmpty() && JishoHelper.isInternetAvailable(getContext()))
-			new FragmentDetail.DownloadImageTask(image_notes, progress_image_notes).execute(imageFile);
+			new FragmentDetail.DownloadImageTask(image_notes, (ViewGroup) v, progress_image_notes).execute(imageFile);
 			
 		v.findViewById(R.id.button_overflow).setOnClickListener(new View.OnClickListener()
 			{

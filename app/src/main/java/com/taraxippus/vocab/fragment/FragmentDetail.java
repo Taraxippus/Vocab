@@ -10,11 +10,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.transition.ChangeBounds;
 import android.transition.ChangeTransform;
 import android.transition.TransitionInflater;
+import android.transition.TransitionManager;
 import android.transition.TransitionSet;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,7 +31,9 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import com.taraxippus.vocab.ActivityAdd;
+import com.taraxippus.vocab.ActivityAddKanji;
 import com.taraxippus.vocab.ActivityDetail;
+import com.taraxippus.vocab.ActivityDetailKanji;
 import com.taraxippus.vocab.ActivityMain;
 import com.taraxippus.vocab.ActivitySettings;
 import com.taraxippus.vocab.R;
@@ -37,6 +41,7 @@ import com.taraxippus.vocab.dialog.DialogHelper;
 import com.taraxippus.vocab.util.JishoHelper;
 import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.OnProcessSuccessListener;
+import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.view.LineGraphView;
 import com.taraxippus.vocab.view.PercentageGraphView;
 import com.taraxippus.vocab.vocabulary.DBHelper;
@@ -91,7 +96,7 @@ public class FragmentDetail extends Fragment
 	}
 
 	@Override
-	public void onViewCreated(View v, Bundle savedInstanceState)
+	public void onViewCreated(final View v, Bundle savedInstanceState)
 	{
 		int id = getArguments().getInt("id");
 		vocabulary = dbHelper.getVocabulary(id);
@@ -121,6 +126,17 @@ public class FragmentDetail extends Fragment
 		((TextView) v.findViewById(R.id.text_category)).setText("Category: " + vocabulary.category);
 		((TextView) v.findViewById(R.id.text_category_number)).setText("" + vocabulary.category);
 		
+		final ImageButton info = (ImageButton) v.findViewById(R.id.button_info);
+		info.setVisibility(JishoHelper.isInternetAvailable(getContext()) ? View.VISIBLE : View.GONE);
+		info.setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					JishoHelper.search(getActivity(), vocabulary.kanji);
+				}
+			});
+			
 		final View card_stroke_order = v.findViewById(R.id.card_stroke_order);
 		final View progress_stroke_order = v.findViewById(R.id.progress_stroke_order);
 		final ViewGroup layout_stroke_order = (ViewGroup) v.findViewById(R.id.layout_stroke_order);
@@ -130,8 +146,10 @@ public class FragmentDetail extends Fragment
 		stroke_order.setOnClickListener(new View.OnClickListener()
 			{
 				@Override
-				public void onClick(View v)
+				public void onClick(View v1)
 				{
+					TransitionManager.beginDelayedTransition((ViewGroup) v);
+					
 					if (card_stroke_order.getVisibility() == View.GONE)
 					{
 						card_stroke_order.setVisibility(View.VISIBLE);
@@ -149,7 +167,7 @@ public class FragmentDetail extends Fragment
 				}
 			});
 		
-		v.findViewById(R.id.button_overflow).setOnClickListener(new View.OnClickListener()
+		v.findViewById(R.id.button_overflow_stroke_order).setOnClickListener(new View.OnClickListener()
 			{
 				@Override
 				public void onClick(View view)
@@ -175,6 +193,66 @@ public class FragmentDetail extends Fragment
 						});
 					MenuInflater inflater = popup.getMenuInflater();
 					inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
+					popup.show();
+				}
+			});
+			
+		final View card_sentences = v.findViewById(R.id.card_sentences);
+		final View progress_sentences = v.findViewById(R.id.progress_sentences);
+		final ViewGroup layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
+		
+		final ImageButton sentences = (ImageButton) v.findViewById(R.id.button_sentences);
+		sentences.setVisibility(JishoHelper.isInternetAvailable(getContext()) ? View.VISIBLE : View.GONE);
+		sentences.setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View v1)
+				{
+					TransitionManager.beginDelayedTransition((ViewGroup) v);
+					
+					if (card_sentences.getVisibility() == View.GONE)
+					{
+						card_sentences.setVisibility(View.VISIBLE);
+
+						if (progress_sentences.getVisibility() == View.VISIBLE)
+						{
+							final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+							params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
+
+							JishoHelper.addExampleSentences(getContext(), vocabulary.kanji, vocabulary.meaning, layout_sentences, params, progress_sentences);
+						}
+					}
+					else
+						card_sentences.setVisibility(View.GONE);
+				}
+			});
+		
+		v.findViewById(R.id.button_overflow_sentences).setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View view)
+				{
+					PopupMenu popup = new PopupMenu(getContext(), view);
+					popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+						{
+							@Override
+							public boolean onMenuItemClick(MenuItem item)
+							{
+								switch (item.getItemId()) 
+								{
+									case R.id.item_open_jisho_sentences:
+										JishoHelper.search(getContext(), vocabulary.kanji + " " + vocabulary.meaning[0] +  " #sentences");
+										return true;
+									case R.id.item_settings:
+										getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_SENTENCES));
+										return true;
+									default:
+										return false;
+								}
+							}
+						});
+					MenuInflater inflater = popup.getMenuInflater();
+					inflater.inflate(R.menu.item_sentences, popup.getMenu());
 					popup.show();
 				}
 			});
@@ -205,11 +283,17 @@ public class FragmentDetail extends Fragment
 		final View progress_image_notes = v.findViewById(R.id.progress_image_notes);
 		
 		if (!vocabulary.imageFile.isEmpty() && JishoHelper.isInternetAvailable(getContext()))
-			new DownloadImageTask(image_notes, progress_image_notes).execute(vocabulary.imageFile);
+			new DownloadImageTask(image_notes, (ViewGroup) v, progress_image_notes).execute(vocabulary.imageFile);
 		
 		else if (this.vocabulary.notes.isEmpty())
 			v.findViewById(R.id.card_notes).setVisibility(View.GONE);
 	
+		if (StringHelper.isKana(this.vocabulary.kanji))
+		{
+			v.findViewById(R.id.text_title_kanji_contained).setVisibility(View.GONE);
+			v.findViewById(R.id.recycler_kanji_contained).setVisibility(View.GONE);
+		}
+		
 		if (this.vocabulary.sameReading.length == 0)
 		{
 			v.findViewById(R.id.text_title_same_reading).setVisibility(View.GONE);
@@ -222,7 +306,12 @@ public class FragmentDetail extends Fragment
 			v.findViewById(R.id.recycler_same_meaning).setVisibility(View.GONE);
 		}
 		
-		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
+		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
+		recyclerView.setHasFixedSize(true);
+		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+		recyclerView.setAdapter(new KanjiAdapter(getActivity(), dbHelper, recyclerView, StringHelper.getKanji(vocabulary.kanji)));
+		
+		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
 		recyclerView.setAdapter(new SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameReading));
@@ -264,18 +353,12 @@ public class FragmentDetail extends Fragment
 		if (vocabulary.reading.length > 0)
 		{
 			((TextView) v.findViewById(R.id.text_streak_category)).setText("Kanji\nReading\nMeaning");
-			((TextView) v.findViewById(R.id.text_streak_values)).setText(vocabulary.streak_kanji + "\n" + vocabulary.streak_reading + "\n" + vocabulary.streak_meaning);
-		
-			((TextView) v.findViewById(R.id.text_streak_longest_category)).setText("Kanji\nReading\nMeaning");
-			((TextView) v.findViewById(R.id.text_streak_longest_values)).setText(vocabulary.streak_kanji_best + "\n" + vocabulary.streak_reading_best + "\n" + vocabulary.streak_meaning_best);
+			((TextView) v.findViewById(R.id.text_streak_values)).setText(vocabulary.streak_kanji + " / " + vocabulary.streak_kanji_best + "\n" + vocabulary.streak_reading + " / " + vocabulary.streak_reading_best + "\n" + vocabulary.streak_meaning + " / " + vocabulary.streak_meaning_best);
 		}
 		else
 		{
 			((TextView) v.findViewById(R.id.text_streak_category)).setText("Kanji\nMeaning");
-			((TextView) v.findViewById(R.id.text_streak_values)).setText(vocabulary.streak_kanji + "\n" + vocabulary.streak_meaning);
-
-			((TextView) v.findViewById(R.id.text_streak_longest_category)).setText("Kanji\nMeaning");
-			((TextView) v.findViewById(R.id.text_streak_longest_values)).setText(vocabulary.streak_kanji_best + "\n" + vocabulary.streak_meaning_best);
+			((TextView) v.findViewById(R.id.text_streak_values)).setText(vocabulary.streak_kanji + " / " + vocabulary.streak_kanji_best + "\n" + vocabulary.streak_meaning + " / " + vocabulary.streak_meaning_best);
 		}
 		
 		final LineGraphView category_history = (LineGraphView) v.findViewById(R.id.line_graph_category);
@@ -311,49 +394,6 @@ public class FragmentDetail extends Fragment
 				
 			}
 		}
-		
-		if (JishoHelper.isInternetAvailable(getContext()))
-		{
-			final View progress_sentences = v.findViewById(R.id.progress_sentences);
-			final ViewGroup layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
-
-			final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
-
-			JishoHelper.addExampleSentences(getContext(), vocabulary.kanji, vocabulary.meaning, layout_sentences, params, progress_sentences);
-
-			v.findViewById(R.id.button_overflow_sentences).setOnClickListener(new View.OnClickListener()
-				{
-					@Override
-					public void onClick(View view)
-					{
-						PopupMenu popup = new PopupMenu(getContext(), view);
-						popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
-							{
-								@Override
-								public boolean onMenuItemClick(MenuItem item)
-								{
-									switch (item.getItemId()) 
-									{
-										case R.id.item_open_jisho_sentences:
-											JishoHelper.search(getContext(), vocabulary.kanji + " " + vocabulary.meaning[0] +  " #sentences");
-											return true;
-										case R.id.item_settings:
-											getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_SENTENCES));
-											return true;
-										default:
-											return false;
-									}
-								}
-							});
-						MenuInflater inflater = popup.getMenuInflater();
-						inflater.inflate(R.menu.item_sentences, popup.getMenu());
-						popup.show();
-					}
-				});
-		}
-		else
-			v.findViewById(R.id.card_sentences).setVisibility(View.GONE);
 		
 //		ValueAnimator animator = ValueAnimator.ofFloat(35, 75);
 //		animator.setDuration(300);
@@ -519,6 +559,8 @@ public class FragmentDetail extends Fragment
 	
 	public void refreshDetailView()
 	{
+		TransitionManager.beginDelayedTransition((ViewGroup) getView());
+		
 		onViewCreated(getView(), null);
 		getActivity().invalidateOptionsMenu();
 	}
@@ -555,11 +597,13 @@ public class FragmentDetail extends Fragment
 	public static class DownloadImageTask extends AsyncTask<String, Void, Bitmap>
 	{
 		final ImageView bmImage;
+		final ViewGroup layout;
 		final View progress;
 
-		public DownloadImageTask(ImageView bmImage, View progess) 
+		public DownloadImageTask(ImageView bmImage, ViewGroup layout, View progess) 
 		{
 			this.bmImage = bmImage;
+			this.layout = layout;
 			this.progress = progess;
 			
 			progess.setVisibility(View.VISIBLE);
@@ -596,6 +640,8 @@ public class FragmentDetail extends Fragment
 
 		protected void onPostExecute(Bitmap result)
 		{
+			TransitionManager.beginDelayedTransition(layout);
+			
 			if (result != null)
 			{
 				bmImage.setImageBitmap(result);
@@ -659,6 +705,9 @@ public class FragmentDetail extends Fragment
 			this.dbHelper = dbHelper;
 			this.view = view;
 			this.data = data;
+			
+			if (data == null)
+				this.data = new int[0];
 		}
 
 		@Override
@@ -678,6 +727,112 @@ public class FragmentDetail extends Fragment
 			holder.itemView.setTransitionName("card" + id);
 			holder.text_kanji.setTransitionName("kanji" + id);
 			holder.text_kanji.setText(dbHelper.getString(id, "kanji"));
+		}
+
+		@Override
+		public int getItemCount() 
+		{
+			return data.length;
+		}
+	}
+	
+	public static class KanjiAdapter extends RecyclerView.Adapter<KanjiAdapter.KanjiViewHolder> implements View.OnClickListener
+	{
+		@Override
+		public void onClick(final View v)
+		{
+			if (data[view.getChildAdapterPosition(v)] == '々')
+			{
+				DialogHelper.createDialog(context, "Info: 々", "This is no real kanji character. It just is a shortcut to show that the preceeding kanji is repeated.\n時時 -> 時々");
+				return;
+			}
+			
+			if (!JishoHelper.isInternetAvailable(context))
+			{
+				DialogHelper.createDialog(context, "Unknown kanji", "This character is not in your kanji database. Do you want to add it now?",
+					"Add", new DialogInterface.OnClickListener()
+					{
+						@Override
+						public void onClick(DialogInterface p1, int p2)
+						{
+							context.startActivity(new Intent(context, ActivityAddKanji.class).putExtra("kanji", data[view.getChildAdapterPosition(v)]));
+						}
+					});
+				
+				return;
+			}
+			
+			if (context.findViewById(R.id.layout_content) == null)
+				context.startActivity(new Intent(context, ActivityDetailKanji.class).putExtra("kanji", data[view.getChildAdapterPosition(v)]));
+			
+			else
+			{
+				Bundle bundle = new Bundle();
+				bundle.putChar("kanji", data[view.getChildAdapterPosition(v)]);
+
+				Fragment fragment = new FragmentDetailKanji().setDefaultTransitions(context);
+				fragment.setReturnTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.fade));
+				fragment.setArguments(bundle);
+				fragment.setEnterTransition(TransitionInflater.from(context).inflateTransition(android.R.transition.slide_bottom));
+
+				View text_kanji = v.findViewById(R.id.text_kanji);
+				FragmentTransaction ft = context.getFragmentManager().beginTransaction()
+					.replace(R.id.layout_content, fragment)
+					.addToBackStack("detail")
+					.addSharedElement(v, v.getTransitionName())
+					.addSharedElement(text_kanji, text_kanji.getTransitionName());
+				ft.commit();
+			}
+		}
+
+		public class KanjiViewHolder extends RecyclerView.ViewHolder 
+		{
+			final TextView text_kanji;
+
+			public KanjiViewHolder(View v) 
+			{
+				super(v);
+
+				text_kanji = (TextView) v.findViewById(R.id.text_kanji);
+				text_kanji.setTextLocale(Locale.JAPANESE);
+				
+				((CardView) v).setRadius(0);
+			}
+		}
+
+		final Activity context;
+		final DBHelper dbHelper;
+		final RecyclerView view;
+		char[] data;
+
+		public KanjiAdapter(Activity context, DBHelper dbHelper, RecyclerView view, char[] data)
+		{
+			this.context = context;
+			this.dbHelper = dbHelper;
+			this.view = view;
+			this.data = data;
+			
+			if (data == null)
+				this.data = new char[0];
+		}
+
+		@Override
+		public KanjiAdapter.KanjiViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
+		{
+			View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_synonym, parent, false);
+			v.setOnClickListener(this);
+
+			return new KanjiViewHolder(v);
+		}
+
+		@Override
+		public void onBindViewHolder(KanjiViewHolder holder, int position) 
+		{
+			char id = data[position];
+
+			holder.itemView.setTransitionName("card" + id);
+			holder.text_kanji.setTransitionName("kanji" + id);
+			holder.text_kanji.setText("" + id);
 		}
 
 		@Override

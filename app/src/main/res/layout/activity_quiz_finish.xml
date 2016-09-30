@@ -250,73 +250,59 @@
 			</RelativeLayout>
 		</android.support.v7.widget.CardView>
 
-		<android.support.v7.widget.CardView
-			android:layout_width="match_parent"
+		<TextView
+			android:id="@+id/text_title_plus"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_marginTop="4dp"
-			app:cardCornerRadius="0dp"
-			app:cardElevation="2dp" >
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold" />
 
-			<android.support.v7.widget.GridLayout
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:padding="8dp"
-				app:orientation="vertical"
-				app:columnCount="3"
-				app:rowCount="2" >
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_plus"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp" 
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
+		<TextView
+			android:id="@+id/text_title_neutral"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold" />
 
-				<TextView
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:text="+"
-					android:gravity="left"
-					android:padding="8dp"
-					android:textStyle="bold" />
-			
-				<android.support.v7.widget.RecyclerView
-					android:id="@+id/recycler_plus"
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:paddingTop="8dp" 
-					android:paddingBottom="8dp"
-					android:clipToPadding="false"
-					android:gravity="left"/>
-				
-				<TextView
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:text="/"
-					android:gravity="center"
-					android:padding="8dp"
-					android:textStyle="bold" />
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_neutral"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp" 
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
+		<TextView
+			android:id="@+id/text_title_minus"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold" />
 
-				<android.support.v7.widget.RecyclerView
-					android:id="@+id/recycler_neutral"
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:paddingTop="8dp" 
-					android:paddingBottom="8dp"
-					android:clipToPadding="false"
-					android:gravity="center"/>
-				
-				<TextView
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:text="-"
-					android:gravity="right"
-					android:padding="8dp"
-					android:textStyle="bold" />
-
-				<android.support.v7.widget.RecyclerView
-					android:id="@+id/recycler_minus"
-					app:layout_columnWeight="1"
-					app:layout_gravity="fill_horizontal"
-					android:paddingTop="8dp" 
-					android:paddingBottom="8dp"
-					android:clipToPadding="false"
-					android:gravity="right"/>
-				
-			</android.support.v7.widget.GridLayout>
-		</android.support.v7.widget.CardView>
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_minus"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="8dp" 
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
 	</LinearLayout>
 </android.support.v4.widget.NestedScrollView>

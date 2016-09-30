@@ -22,13 +22,23 @@
 		android:layout_alignParentTop="true" 
 		android:layout_marginTop="16dp"
 		android:paddingLeft="24dp" />
-
+	
+	<CheckBox
+		android:id="@+id/box_sort"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true" 
+		android:layout_below="@id/spinner_sort" 
+		android:layout_marginTop="8dp"
+		android:paddingRight="24dp"
+		android:text="Reversed" />
+	
 	<TextView
 		android:id="@+id/text_view"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_alignParentLeft="true" 
-		android:layout_below="@id/spinner_sort" 
+		android:layout_below="@id/box_sort" 
 		android:layout_marginTop="16dp"
 		android:paddingLeft="24dp"
 		android:text="Item size:" />
@@ -39,7 +49,7 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentRight="true" 
 		android:layout_alignLeft="@id/spinner_sort"
-		android:layout_below="@id/spinner_sort" 
+		android:layout_below="@id/box_sort" 
 		android:layout_marginTop="16dp"
 		android:paddingLeft="24dp" />
 
@@ -112,7 +122,8 @@
 			android:layout_height="wrap_content"
 			android:orientation="vertical"
 			android:scrollbars="vertical"
-			android:paddingLeft="24dp">
+			android:paddingLeft="24dp"
+			android:background="@color/darkGray">
 		</LinearLayout>
 	</ScrollView>
 </RelativeLayout>

@@ -50,7 +50,7 @@ public class FragmentActivityLearnReading extends Fragment
 	{
 		int id = getArguments().getInt("id");
 		SQLiteDatabase db = vocabActivity.getDBHelper().getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT reading, sameReading, soundFile FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT kanji, reading, sameReading, soundFile FROM vocab WHERE id = ?", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -59,6 +59,7 @@ public class FragmentActivityLearnReading extends Fragment
 
 		res.moveToFirst();
 		
+		final String kanji = res.getString(0);
 		final String[] reading = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading")));
 		final int[] sameReading = StringHelper.toIntArray(res.getString(res.getColumnIndex("sameReading")));
 		soundFile = res.getString(res.getColumnIndex("soundFile"));
@@ -85,6 +86,11 @@ public class FragmentActivityLearnReading extends Fragment
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
 		recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, sameReading));	
+		
+		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
+		recyclerView.setHasFixedSize(true);
+		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+		recyclerView.setAdapter(new FragmentDetail.KanjiAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, StringHelper.getKanji(kanji)));	
 		
 		v.findViewById(R.id.card_question).setOnClickListener(new View.OnClickListener()
 			{

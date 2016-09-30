@@ -65,19 +65,7 @@ public class FragmentActivityLearnKanji extends Fragment
 		
 		EditText text_kanji_practice = (EditText) v.findViewById(R.id.text_kanji_practice);
 		text_kanji_practice.setCursorVisible(false);
-		text_kanji_practice.setFilters(new InputFilter[] { new InputFilter() 
-										   {
-											   @Override
-											   public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend)
-											   {
-												   if (source != null && kanji.contains(source))
-													   return null;
-
-												   return "";
-											   }
-										   }});
 		text_kanji_practice.setTextLocale(Locale.JAPANESE);
-		
 		
 		if (StringHelper.isKana(kanji))
 		{
@@ -136,7 +124,7 @@ public class FragmentActivityLearnKanji extends Fragment
 			for (char c : kanji_list)
 				if (c != '々')
 				{
-					Cursor res = vocabActivity.getDBHelper().getReadableDatabase().rawQuery("SELECT id FROM vocab WHERE id != " + id + " AND kanji LIKE '%" + c + "%'", null);
+					Cursor res = vocabActivity.getDBHelper().getReadableDatabase().rawQuery("SELECT id FROM vocab WHERE id != " + id + " AND kanji LIKE '%" + c + "%' ORDER BY LENGTH(kanji)", null);
 					if (res.getCount() <= 0)
 					{
 						res.close();

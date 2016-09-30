@@ -17,6 +17,7 @@ public class Vocabulary
 {
 	public static final Random random = new Random();
 	
+	public int id;
 	public String kanji;
 	public String[] reading;
 	public String[] reading_trimed;
@@ -51,6 +52,7 @@ public class Vocabulary
 	public boolean answered_reading;
 	public boolean answered_meaning;
 	public boolean answered_correct = true;
+	private int lastAnswer;
 	
 	public VocabularyType type;
 	
@@ -63,6 +65,11 @@ public class Vocabulary
 	public String soundFile;
 	public String imageFile;
 	
+	public Vocabulary(int id)
+	{
+		this.id = id;
+	}
+	
 	public Answer getAnswer(DBHelper dbHelper, String answer, QuestionType type, QuestionType question)
 	{
 		answer = StringHelper.trim(answer);
@@ -71,9 +78,13 @@ public class Vocabulary
 		if (type == QuestionType.READING)
 			answer = StringHelper.toHiragana(answer);
 
+		lastAnswer = 0;
+			
 		for (int i = 0; i < meaning.length; ++i)
 			if (meaning[i].equalsIgnoreCase(answer) || StringHelper.similiarMeaning(meaning[i], answer))
 			{
+				lastAnswer = i;
+				
 				if (type == QuestionType.MEANING)
 					return meaning[i].equalsIgnoreCase(answer) ? Answer.CORRECT : Answer.SIMILIAR;
 				else
@@ -82,16 +93,21 @@ public class Vocabulary
 
 		for (int i = 0; i < reading_trimed.length; ++i)
 			if (answer.equalsIgnoreCase(reading_trimed[i]))
+			{
+				lastAnswer = i;
+				
 				if (type == QuestionType.READING)
 					return Answer.CORRECT;
 				else
 					return Answer.RETRY;
-
+			}
+				
 		if (answer.equalsIgnoreCase(kanji))
 			if (type == QuestionType.KANJI)
 				return Answer.CORRECT;
 			else
 				return Answer.RETRY;
+				
 		else if (type == QuestionType.KANJI && StringHelper.similiarKanji(kanji, answer))
 			return Answer.SIMILIAR;
 
@@ -339,11 +355,15 @@ public class Vocabulary
 						if (f > meaning_used[i] / meaning_used_sum)
 						{
 							sb.append(meaning[i]);
+							i = -1;
 							break;
 						}
 
 						f += meaning_used[i] / meaning_used_sum;
 					}
+					
+					if (i != -1)
+						sb.append(meaning[meaning.length - 1]);
 				}
 			}
 			else
@@ -397,6 +417,68 @@ public class Vocabulary
 		}
 
 		return "*error*";
+	}
+	
+	public String makeSuggestion(QuestionType type, String answer)
+	{
+		answer = StringHelper.trim(answer);
+		answer = answer.replace("・", "");
+		
+		if ((type == QuestionType.MEANING || type == QuestionType.MEANING_INFO) && meaning.length > 1)
+		{
+			float average;
+			int sum = 0, max = 0, min = 10000, indexMin = 0;
+			for (int i = 0; i < meaning_used.length; ++i)
+			{
+				sum += meaning_used[i];
+				if (meaning_used[i] > max)
+					max = meaning_used[i];
+				if (meaning_used[i] < min)
+				{
+					min = meaning_used[i];
+					indexMin = i;
+				}
+			}
+			
+			if (lastAnswer == indexMin)
+				return "";
+			
+			average = (float) sum / meaning_used.length;
+			if (min <= 2 && average > 3 || max - min > average || average - min > 2)
+				return "\nAlso try: " + meaning[indexMin] + (showInfo && !additionalInfo.isEmpty() ? " (" + additionalInfo + ")" : "");
+			else if (max - average > 3)
+				return "\nAll solutions are: " + correctAnswer(type);
+		}
+		else if ((type == QuestionType.READING || type == QuestionType.READING_INFO) && reading.length > 1)
+		{
+			answer = StringHelper.toHiragana(answer);
+			
+			float average;
+			int sum = 0, max = 0, min = 10000, indexMin = 0;
+			for (int i = 0; i < reading_used.length; ++i)
+			{
+				sum += reading_used[i];
+				if (reading_used[i] > max)
+					max = reading_used[i];
+				if (reading_used[i] < min)
+				{
+					min = reading_used[i];
+					indexMin = i;
+				}
+			}
+
+			if (lastAnswer == indexMin)
+				return "";
+			
+			average = (float) sum / reading_used.length;
+			if (min <= 2 && average > 3 || max - min > average || average - min > 2)
+				return "\nAlso try: " + reading[indexMin];
+			else if (max - average > 3)
+				return "\nAll solutions are: " + correctAnswer(type);
+		}
+		
+		
+		return "";
 	}
 	
 	public void prepareSound(final DBHelper dbHelper, OnProcessSuccessListener listener)
@@ -533,10 +615,8 @@ public class Vocabulary
 		types_import.add("Keep old");
 		types_import.add("Ask every time");
 		
-		types_sort.add("Category ascending");
-		types_sort.add("Category descending");
-		types_sort.add("Date added ascending");
-		types_sort.add("Date added descending");
+		types_sort.add("Category");
+		types_sort.add("Date added");
 		types_sort.add("Vocabulary type");
 		types_sort.add("Next review");
 		

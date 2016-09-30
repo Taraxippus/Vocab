@@ -56,8 +56,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 	QuestionType answer_type;
 	int correctAnswer;
 	
-	ArrayList<String> vocabularies_plus;
-	ArrayList<String> vocabularies_minus;
+	ArrayList<Integer> vocabularies_plus;
+	ArrayList<Integer> vocabularies_minus;
 	int timesChecked_kanji, timesChecked_reading, timesChecked_meaning,
 	timesCorrect_kanji, timesCorrect_reading, timesCorrect_meaning;
 	int[] history_quiz;
@@ -107,8 +107,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 			timesCorrect_reading = getArguments().getInt("timesCorrect_reading");
 			timesCorrect_meaning = getArguments().getInt("timesCorrect_meaning");
 
-			vocabularies_plus = getArguments().getStringArrayList("vocabularies_plus");
-			vocabularies_minus = getArguments().getStringArrayList("vocabularies_minus");
+			vocabularies_plus = getArguments().getIntegerArrayList("vocabularies_plus");
+			vocabularies_minus = getArguments().getIntegerArrayList("vocabularies_minus");
 			
 			int[] history_quiz_old = getArguments().getIntArray("history_quiz");
 			history_quiz = new int[history_quiz_old.length + 1];
@@ -410,8 +410,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 					
 				history_quiz[history_quiz.length - 1] = history_quiz[history_quiz.length - 2] + 1;
 				
-				if (!vocabularies_plus.contains(vocabulary.kanji))
-					vocabularies_plus.add(vocabulary.kanji);
+				if (!vocabularies_plus.contains(vocabulary.id))
+					vocabularies_plus.add(vocabulary.id);
 					
 				text_level_up.setText("+");
 				text_solution_icon.setText("✔");
@@ -424,8 +424,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 			{
 				history_quiz[history_quiz.length - 1] = 0;
 				
-				if (!vocabularies_minus.contains(vocabulary.kanji))
-					vocabularies_minus.add(vocabulary.kanji);
+				if (!vocabularies_minus.contains(vocabulary.id))
+					vocabularies_minus.add(vocabulary.id);
 					
 				text_solution_icon.setText("✖");
 				text_solution.setText("Correct answer was:\n" + vocabulary.correctAnswer(answer_type));
@@ -484,8 +484,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 			bundle.putInt("timesCorrect_kanji", timesCorrect_kanji);
 			bundle.putInt("timesCorrect_reading", timesCorrect_reading);
 			bundle.putInt("timesCorrect_meaning", timesCorrect_meaning);
-			bundle.putStringArrayList("vocabularies_plus", vocabularies_plus);
-			bundle.putStringArrayList("vocabularies_minus", vocabularies_minus);
+			bundle.putIntegerArrayList("vocabularies_plus", vocabularies_plus);
+			bundle.putIntegerArrayList("vocabularies_minus", vocabularies_minus);
 			fragment.setArguments(bundle);
 			getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment)
 			.addSharedElement(card_layout_answer, card_layout_answer.getTransitionName())
@@ -549,10 +549,17 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 				bundle.putInt("timesCorrect_kanji", timesCorrect_kanji);
 				bundle.putInt("timesCorrect_reading", timesCorrect_reading);
 				bundle.putInt("timesCorrect_meaning", timesCorrect_meaning);
-				bundle.putStringArrayList("vocabularies_plus", vocabularies_plus);
-				bundle.putStringArrayList("vocabularies_neutral", new ArrayList<String>());
-				bundle.putStringArrayList("vocabularies_minus", vocabularies_minus);
-				fragment.setArguments(bundle);
+				int[] tmp = new int[vocabularies_plus.size()];
+				for (int i = 0; i < tmp.length; ++i)
+					tmp[i] = vocabularies_plus.get(i);
+				bundle.putIntArray("vocabularies_plus", tmp);
+
+				bundle.putIntArray("vocabularies_neutral", new int[0]);
+
+				tmp = new int[vocabularies_minus.size()];
+				for (int i = 0; i < tmp.length; ++i)
+					tmp[i] = vocabularies_minus.get(i);
+				bundle.putIntArray("vocabularies_minus", tmp);				fragment.setArguments(bundle);
 				getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment).commit();
 				return true;
 				
@@ -564,7 +571,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 
 			case R.id.item_detail:
 				Intent intent = new Intent(getContext(), ActivityDetail.class);
-				intent.putExtra("id", dbHelper.getId(vocabulary.kanji));
+				intent.putExtra("id", vocabulary.id);
 				startActivity(intent);
 				return true;
 								

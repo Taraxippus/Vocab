@@ -16,6 +16,18 @@
             android:title="Add Vocabulary" />
 		
 		<item
+			android:id="@+id/item_kana"
+            android:checked="false"
+            android:icon="@drawable/hiragana"
+            android:title="Kana" />
+		
+		<item
+			android:id="@+id/item_kanji"
+            android:checked="false"
+            android:icon="@drawable/kanji"
+            android:title="Kanji" />
+		
+		<item
 			android:id="@+id/item_grammar"
             android:checked="false"
             android:icon="@drawable/grammar"

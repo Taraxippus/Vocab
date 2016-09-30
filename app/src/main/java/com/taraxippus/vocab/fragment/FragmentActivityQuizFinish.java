@@ -160,20 +160,53 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		calendar.add(Calendar.DAY_OF_YEAR, -30);
 		((TextView) v.findViewById(R.id.text_date)).setText(DateFormat.getDateFormat(getContext()).format(calendar.getTime()));
 		
-		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_plus);
-		recyclerView.setHasFixedSize(true);
-		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
-		recyclerView.setAdapter(new KanjiAdapter(recyclerView, getArguments().getStringArrayList("vocabularies_plus"), Gravity.LEFT));	
+		int[] vocabularies = getArguments().getIntArray("vocabularies_plus");
+		if (vocabularies.length == 0)
+		{
+			v.findViewById(R.id.recycler_plus).setVisibility(View.GONE);
+			v.findViewById(R.id.text_title_plus).setVisibility(View.GONE);
+		}
+		else
+		{
+			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_plus);
+			recyclerView.setHasFixedSize(true);
+			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
 		
-		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_neutral);
-		recyclerView.setHasFixedSize(true);
-		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
-		recyclerView.setAdapter(new KanjiAdapter(recyclerView, getArguments().getStringArrayList("vocabularies_neutral"), Gravity.CENTER));	
+			((TextView) v.findViewById(R.id.text_title_plus)).setText("+   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
+		}
 		
-		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_minus);
-		recyclerView.setHasFixedSize(true);
-		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
-		recyclerView.setAdapter(new KanjiAdapter(recyclerView, getArguments().getStringArrayList("vocabularies_minus"), Gravity.RIGHT));	
+		vocabularies = getArguments().getIntArray("vocabularies_neutral");
+		if (vocabularies.length == 0)
+		{
+			v.findViewById(R.id.recycler_neutral).setVisibility(View.GONE);
+			v.findViewById(R.id.text_title_neutral).setVisibility(View.GONE);
+		}
+		else
+		{
+			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_neutral);
+			recyclerView.setHasFixedSize(true);
+			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
+
+			((TextView) v.findViewById(R.id.text_title_neutral)).setText("/   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
+		}
+		
+		vocabularies = getArguments().getIntArray("vocabularies_minus");
+		if (vocabularies.length == 0)
+		{
+			v.findViewById(R.id.recycler_minus).setVisibility(View.GONE);
+			v.findViewById(R.id.text_title_minus).setVisibility(View.GONE);
+		}
+		else
+		{
+			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_minus);
+			recyclerView.setHasFixedSize(true);
+			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
+
+			((TextView) v.findViewById(R.id.text_title_minus)).setText("-   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
+		}
 	}
 
 	@Override
@@ -195,58 +228,11 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 			getActivity().setTitle("Finished Quiz!");
 	}
 	
-	public class KanjiAdapter extends RecyclerView.Adapter<KanjiAdapter.ViewHolder> implements View.OnClickListener
+	@Override
+	public void onDestroy()
 	{
-		@Override
-		public void onClick(View v)
-		{
-			getContext().startActivity(new Intent(getContext(), ActivityDetail.class).putExtra("id", dbHelper.getId(data.get(view.getChildAdapterPosition(v)))));
-		}
+		super.onDestroy();
 
-		public class ViewHolder extends RecyclerView.ViewHolder 
-		{
-			final TextView text_kanji;
-
-			public ViewHolder(View v) 
-			{
-				super(v);
-
-				text_kanji = (TextView) v;
-				text_kanji.setGravity(gravity);
-				text_kanji.setTextLocale(Locale.JAPANESE);
-			}
-		}
-
-		final RecyclerView view;
-		final ArrayList<String> data;
-		final int gravity;
-
-		public KanjiAdapter(RecyclerView view, ArrayList<String> data, int gravity)
-		{
-			this.view = view;
-			this.data = data;
-			this.gravity = gravity;
-		}
-
-		@Override
-		public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
-		{
-			View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_kanji, parent, false);
-			v.setOnClickListener(this);
-			
-			return new ViewHolder(v);
-		}
-
-		@Override
-		public void onBindViewHolder(ViewHolder holder, int position) 
-		{
-			holder.text_kanji.setText(data.get(position));
-		}
-
-		@Override
-		public int getItemCount() 
-		{
-			return data.size();
-		}
+		dbHelper.close();
 	}
 }

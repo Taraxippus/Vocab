@@ -43,6 +43,9 @@ public class FilterDialog extends DialogFragment
 		spinner_sort.setAdapter(adapter);
 		spinner_sort.setSelection(preferences.getInt("sortType", 0));
 
+		final CheckBox box_sort = (CheckBox) v.findViewById(R.id.box_sort);
+		box_sort.setChecked(preferences.getBoolean("sortReversed", false));
+		
 		final Spinner spinner_view = (Spinner) v.findViewById(R.id.spinner_view);
 		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_view);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -126,6 +129,7 @@ public class FilterDialog extends DialogFragment
 						.putInt("viewType", spinner_view.getSelectedItemPosition())
 						.putInt("showType", spinner_show.getSelectedItemPosition())
 						.putInt("hideType", spinner_hide.getSelectedItemPosition())
+						.putBoolean("sortReversed", box_sort.isChecked())
 						.putString("show", StringHelper.toString(show))
 					.apply();
 				}

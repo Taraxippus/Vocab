@@ -16,6 +16,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.PopupMenu;
 import android.text.InputType;
 import android.transition.TransitionInflater;
+import android.transition.TransitionManager;
 import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Random;
+import android.transition.AutoTransition;
 
 public class FragmentActivityQuiz extends Fragment implements View.OnClickListener
 {
@@ -59,8 +61,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 	RelativeLayout layout_stroke_order;
 	ProgressBar progress_quiz;
 	
-	ImageView button_sound, button_sound2, button_stroke_order, button_stroke_order2,
-	button_enter, button_retry;
+	ImageView button_sound, button_sound2, button_stroke_order, button_stroke_order2, button_retry;
 	
 	Animator disappear;
 	Animator appear;
@@ -71,9 +72,9 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 	
 	ArrayList<Vocabulary> vocabularies;
 	ArrayList<Vocabulary> newVocabularies;
-	final ArrayList<String> vocabularies_plus = new ArrayList<>();
-	final ArrayList<String> vocabularies_neutral = new ArrayList<>();
-	final ArrayList<String> vocabularies_minus = new ArrayList<>();
+	final ArrayList<Integer> vocabularies_plus = new ArrayList<>();
+	final ArrayList<Integer> vocabularies_neutral = new ArrayList<>();
+	final ArrayList<Integer> vocabularies_minus = new ArrayList<>();
 	int progress, maxProgress, lastStat, stat,
 	timesChecked_kanji, timesChecked_reading, timesChecked_meaning,
 	lastTimesChecked_kanji, lastTimesChecked_reading, lastTimesChecked_meaning,
@@ -128,6 +129,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				
 				if (v.lastChecked == 0)
 					newVocabularies.add(v);
+					
 				else
 					vocabularies.add(v);
 			}
@@ -263,7 +265,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				}
 			});
 
-		button_enter = (ImageButton) v.findViewById(R.id.button_enter);
+		ImageButton button_enter = (ImageButton) v.findViewById(R.id.button_enter);
 		button_enter.setOnClickListener(new View.OnClickListener() 
 			{
 				public void onClick(View v) 
@@ -382,12 +384,11 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			answer = Answer.RETRY;
 		else
 			answer = vocabulary.getAnswer(dbHelper, ans, answer_type, question_type);
-			
 		
 		if (answer == Answer.CORRECT)
 		{
 			text_solution_icon.setText("✔");
-			text_solution.setText("Correct");
+			text_solution.setText("Correct" + vocabulary.makeSuggestion(answer_type, ans));
 			
 			if (!retype && (answer_type == QuestionType.KANJI || vocabulary.answered_kanji) && (answer_type == QuestionType.READING || vocabulary.answered_reading || vocabulary.reading.length == 0) && (answer_type == QuestionType.MEANING || vocabulary.answered_meaning))
 				text_level_up.setText(vocabulary.answered_correct ? "+1" : "+0");
@@ -451,7 +452,6 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 			text_solution.setText("Enter the correct " + text_type.getText().toString() + (answer_type == QuestionType.READING ? " in Hiragana" : ""));
 			
 			text_level_up.setText("");
-			button_enter.setVisibility(View.GONE);
 		}
 		
 		if (answer == Answer.RETRY || answer == Answer.DIFFERENT)
@@ -601,13 +601,13 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				if (vocabulary.answered_correct)
 				{
 					vocabulary.category++;
-					vocabularies_plus.add(vocabulary.kanji);
+					vocabularies_plus.add(vocabulary.id);
 				}
 				else if (vocabulary.category_history[vocabulary.category_history.length - 1] == vocabulary.category)
-					vocabularies_neutral.add(vocabulary.kanji);
+					vocabularies_neutral.add(vocabulary.id);
 					
 				else
-					vocabularies_minus.add(vocabulary.kanji);
+					vocabularies_minus.add(vocabulary.id);
 					
 				vocabulary.lastChecked = System.currentTimeMillis();
 				vocabulary.nextReview = vocabulary.lastChecked + Vocabulary.getNextReview(vocabulary.category);
@@ -648,9 +648,21 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 					bundle.putInt("timesCorrect_kanji", timesCorrect_kanji);
 					bundle.putInt("timesCorrect_reading", timesCorrect_reading);
 					bundle.putInt("timesCorrect_meaning", timesCorrect_meaning);
-					bundle.putStringArrayList("vocabularies_plus", vocabularies_plus);
-					bundle.putStringArrayList("vocabularies_neutral", vocabularies_neutral);
-					bundle.putStringArrayList("vocabularies_minus", vocabularies_minus);
+					
+					int[] tmp = new int[vocabularies_plus.size()];
+					for (int i = 0; i < tmp.length; ++i)
+						tmp[i] = vocabularies_plus.get(i);
+					bundle.putIntArray("vocabularies_plus", tmp);
+					
+					tmp = new int[vocabularies_neutral.size()];
+					for (int i = 0; i < tmp.length; ++i)
+						tmp[i] = vocabularies_neutral.get(i);
+					bundle.putIntArray("vocabularies_neutral", tmp);
+					
+					tmp = new int[vocabularies_minus.size()];
+					for (int i = 0; i < tmp.length; ++i)
+						tmp[i] = vocabularies_minus.get(i);
+					bundle.putIntArray("vocabularies_minus", tmp);
 					fragment.setArguments(bundle);
 					getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment).commit();
 					return;
@@ -666,6 +678,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 				vocabulary = vocabularies.get(i);
 			}
 				
+			TransitionManager.beginDelayedTransition((ViewGroup) getView(), new AutoTransition().excludeTarget(TextView.class, true));
 			
 			ArrayList<QuestionType> tmp = new ArrayList<>();
 			if (!vocabulary.answered_kanji)
@@ -769,14 +782,13 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 					{
 						super.onAnimationEnd(animation);
 						card_solution.setVisibility(View.INVISIBLE);
-						button_enter.setVisibility(View.VISIBLE);
 					}
 				});
 
 			disappear.start();
 		}
 		
-		answer = Answer.SKIP;
+		answer = Answer.RETRY;
 	}
 
 	@Override
@@ -802,7 +814,7 @@ public class FragmentActivityQuiz extends Fragment implements View.OnClickListen
 							
 						case R.id.item_detail:
 							Intent intent = new Intent(getContext(), ActivityDetail.class);
-							intent.putExtra("id", dbHelper.getId(vocabulary.kanji));
+							intent.putExtra("id", vocabulary.id);
 							startActivity(intent);
 							
 							return true;

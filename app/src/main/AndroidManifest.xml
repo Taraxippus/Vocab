@@ -92,11 +92,33 @@
 				<data android:mimeType="text/*" />
 				<category android:name="android.intent.category.DEFAULT" />
 			</intent-filter>
+		</activity>
+		<activity
+			android:name=".ActivityAddKanji" 
+			android:label="Add Kanji"
+			android:theme="@style/DialogTheme"
+			android:parentActivityName=".ActivityMain"
+			android:windowSoftInputMode="adjustResize" >
+
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".ActivityMain" />
 
 		</activity>
 		<activity
 			android:name=".ActivityDetail" 
 			android:label="Detail"
+			android:parentActivityName=".ActivityMain"
+			android:windowSoftInputMode="adjustResize" >
+
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".ActivityMain" />
+
+		</activity>
+		<activity
+			android:name=".ActivityDetailKanji" 
+			android:label="Kanji Detail"
 			android:parentActivityName=".ActivityMain"
 			android:windowSoftInputMode="adjustResize" >
 

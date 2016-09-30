@@ -26,7 +26,7 @@ public class NotificationHelper extends BroadcastReceiver
 		DBHelper dbHelper = new DBHelper(context);
 		SQLiteDatabase db = dbHelper.getReadableDatabase();
 		
-		Cursor res =  db.rawQuery("SELECT nextReview FROM vocab WHERE learned = 1", null);
+		Cursor res =  db.rawQuery("SELECT nextReview, lastChecked FROM vocab WHERE learned = 1", null);
 		
 		if (res.getCount() <= 0)
 		{
@@ -40,11 +40,12 @@ public class NotificationHelper extends BroadcastReceiver
 		res.moveToFirst();
 		
 		int ticker = 0;
+		int newVocab = 0;
 		long nextReview = 0;
 		long vNextReview;
 		do
 		{
-			vNextReview = res.getLong(res.getColumnIndex("nextReview"));
+			vNextReview = res.getLong(0);
 			
 			if (vNextReview > System.currentTimeMillis())
 			{
@@ -54,8 +55,12 @@ public class NotificationHelper extends BroadcastReceiver
 					nextReview = Math.min(nextReview, vNextReview);
 			}
 			else
+			{
 				ticker++;
 				
+				if (res.getLong(1) == 0)
+					newVocab++;
+			}
 		}
 		while (res.moveToNext());
 		
@@ -70,7 +75,7 @@ public class NotificationHelper extends BroadcastReceiver
 			alarmManager.set(AlarmManager.RTC_WAKEUP, nextReview, pendingIntent);
 		}
 		
-		NotificationManager notificationManager = (NotificationManager)context.getSystemService(context.NOTIFICATION_SERVICE);
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
 		
 		if (ticker > 0)
 		{
@@ -80,9 +85,8 @@ public class NotificationHelper extends BroadcastReceiver
 			builder.setContentIntent(PendingIntent.getActivity(context, 0, intent_open, PendingIntent.FLAG_CANCEL_CURRENT));
 			builder.setSmallIcon(R.drawable.notification);
 			builder.setContentTitle("Next Review");
-			builder.setContentText(ticker == 1 ? "1 Vocabulary is ready to be reviewed" : ticker + " Vocabularies are ready to be reviewed");
+			builder.setContentText(ticker == 1 ? "1 Vocabulary" : ticker + " Vocabularies" + (newVocab == 0 ? "" : " ("  + newVocab + " New)"));
 			builder.setColor(context.getResources().getColor(R.color.primary));
-			builder.setAutoCancel(true);
 			builder.setNumber(ticker);
 
 			notificationManager.notify(R.string.notification_id, builder.build());

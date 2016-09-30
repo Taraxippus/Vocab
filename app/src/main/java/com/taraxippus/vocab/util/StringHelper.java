@@ -49,6 +49,15 @@ public class StringHelper
 			|| c == 0x2007 || c == 0x202F;
 	}
 	
+	public static boolean containsOnly(String s, String charList)
+	{
+		for (int i = 0; i < s.length(); ++i)
+			if (charList.indexOf(s.charAt(i)) == -1)
+				return false;
+				
+		return true;
+	}
+	
 	public static boolean isKana(String s)
 	{
 		String trimed = trim(s);
@@ -133,20 +142,38 @@ public class StringHelper
 	public static char toHiragana(char c) 
 	{
 		if (c == '・')
-		{
 			return c;
-		}
+		
 		if (('\u30a1' <= c) && (c <= '\u30fe')) 
-		{
 			return (char) (c - 0x60);
-		}
+		
 		else if (('\uff66' <= c) && (c <= '\uff9d'))
-		{
 			return (char) (c - 0xcf25);
-		}
+			
 		return c;
 	}
 
+	public static String toKatakana(String s)
+	{
+		StringBuilder builder = new StringBuilder();
+
+		for (int i = 0; i < s.length(); ++i)
+			builder.append(toKatakana(s.charAt(i)));
+
+		return builder.toString();
+	}
+
+	public static char toKatakana(char c) 
+	{
+		if (c == '・')
+			return c;
+		
+		if (('\u3041' <= c) && (c <= '\u309e')) 
+			return (char) (c + 0x60);
+			
+		return c;
+	}
+	
 	public static boolean equalsKana(String s1, String s2)
 	{
 		return s1.replace("・", "").equals(s2.replace("・", ""));
@@ -287,13 +314,16 @@ public class StringHelper
 				end = kanji.length();
 		}
 		
+		if (start != 0 && furigana.startsWith(kanji.substring(0, start)) || end != kanji.length() && furigana.endsWith(kanji.substring(end)))
+			return furigana;
+			
 		StringBuilder sb = new StringBuilder();
 		if (start != 0)
 			sb.append(kanji.substring(0, start + 1));
-		if (addSeperatorStart)
+		if (addSeperatorStart && (start == 0 || isKanaOrKanji(kanji.substring(start - 1, start))))
 			sb.append("・");
 		sb.append(furigana);
-		if (addSeperatorEnd)
+		if (addSeperatorEnd && (end == kanji.length() || isKanaOrKanji(kanji.substring(end, end + 1))))
 			sb.append("・");
 		if (end != kanji.length())
 			sb.append(kanji.substring(end, kanji.length()));

@@ -277,23 +277,17 @@ public class DBHelper extends SQLiteOpenHelper
 		return vocabulary;
 	}
 	
-	public int[] getVocabularies(SortType sortType, ShowType showType, boolean[] show, String searchQuery)
+	public int[] getVocabularies(SortType sortType, ShowType showType, boolean[] show, boolean sortReversed, String searchQuery)
 	{
 		String searchStatement, orderStatement;
 		
 		switch (sortType)
 		{
 			case CATEGORY:
-				orderStatement = "category ASC";
-				break;
-			case CATEGORY_REVERSED:
-				orderStatement = "category DESC";
+				orderStatement = "category";
 				break;
 			case TIME_ADDED:
-				orderStatement = "added ASC";
-				break;
-			case TIME_ADDED_REVERSED:
-				orderStatement = "added DESC";
+				orderStatement = "added";
 				break;
 			case TYPE:
 				orderStatement = "type";
@@ -305,6 +299,8 @@ public class DBHelper extends SQLiteOpenHelper
 				orderStatement = "category";
 		}
 			
+		orderStatement = orderStatement + (sortReversed ? " DESC" : " ASC");
+		
 		String[] searchArgs = null;
 		if (searchQuery != null && !searchQuery.isEmpty())
 		{
@@ -373,7 +369,7 @@ public class DBHelper extends SQLiteOpenHelper
 	
 	public Vocabulary getVocabulary(Cursor res)
 	{
-		final Vocabulary vocabulary = new Vocabulary();
+		final Vocabulary vocabulary = new Vocabulary(res.getInt(res.getColumnIndex("id")));
 		vocabulary.type = VocabularyType.values()[res.getInt(res.getColumnIndex("type"))];
 		vocabulary.kanji = res.getString(res.getColumnIndex("kanji"));
 		vocabulary.reading = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading")));
@@ -436,20 +432,6 @@ public class DBHelper extends SQLiteOpenHelper
 		db.execSQL("DROP TABLE IF EXISTS vocab");
 		onCreate(db);
 	}
-
-	public boolean exists(String kanji)
-	{
-		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji = ?", new String[] {kanji});
-		if (res.getCount() <= 0)
-		{
-			res.close();
-			return false;
-		}
-
-		res.close();
-		return true;
-	}
 	
 	public boolean exists(int id)
 	{
@@ -470,10 +452,10 @@ public class DBHelper extends SQLiteOpenHelper
 	
 	public void updateVocabulary(final Vocabulary vocabulary)
 	{
-		updateVocabulary(vocabulary, -1, ImportType.REPLACE, null);
+		updateVocabulary(vocabulary, ImportType.REPLACE, null);
 	}
 		
-	public void updateVocabulary(final Vocabulary vocabulary, final int id1, ImportType importType, final OnProcessSuccessListener listener)
+	public void updateVocabulary(final Vocabulary vocabulary, ImportType importType, final OnProcessSuccessListener listener)
 	{
 		final SQLiteDatabase db = this.getWritableDatabase();
 		
@@ -516,7 +498,7 @@ public class DBHelper extends SQLiteOpenHelper
 		contentValues.put("soundFile", vocabulary.soundFile);
 		contentValues.put("imageFile", vocabulary.imageFile);
 
-		final int id = id1 == -1 ? getId(vocabulary.kanji) : id1;
+		final int id = vocabulary.id == -1 ? getId(vocabulary.kanji) : vocabulary.id;
 		
 		if (exists(id))
 		{
@@ -758,7 +740,8 @@ public class DBHelper extends SQLiteOpenHelper
 						{
 							public void onClick(DialogInterface dialog, int which) 
 							{
-								updateVocabulary(vocabulary, id, ImportType.MERGE, listener);
+								vocabulary.id = id;
+								updateVocabulary(vocabulary, ImportType.MERGE, listener);
 								dialog.dismiss();
 							}
 						});
@@ -769,7 +752,7 @@ public class DBHelper extends SQLiteOpenHelper
 		else
 		{
 			db.insert("vocab", null, contentValues);
-			updateSynonyms(getId(vocabulary.kanji), vocabulary.sameReading, vocabulary.sameMeaning, true);
+			updateSynonyms(vocabulary.id, vocabulary.sameReading, vocabulary.sameMeaning, true);
 		}
 			
 		if (listener != null)
@@ -999,7 +982,7 @@ public class DBHelper extends SQLiteOpenHelper
 			return;
 		}
 			
-		final Vocabulary v = new Vocabulary();
+		final Vocabulary v = new Vocabulary(-1);
 		String rest;
 		String[] reading, meaning;
 
@@ -1064,7 +1047,7 @@ public class DBHelper extends SQLiteOpenHelper
 		
 		String[] reading_trimed = new String[reading.length];
 		for (int i = 0; i < reading.length; ++i)
-			reading_trimed[i] = reading[i].replace("・", "");
+			reading_trimed[i] = StringHelper.trim(StringHelper.toHiragana(reading[i].replace("・", "")));
 
 		v.reading = reading;
 		v.reading_trimed = reading_trimed;
@@ -1087,7 +1070,7 @@ public class DBHelper extends SQLiteOpenHelper
 		findSynonyms(getReadableDatabase(), v.kanji, v.reading_trimed, v.meaning, sameReading, sameMeaning);
 		v.setSynonyms(sameReading, sameMeaning);
 		v.nextReview = v.lastChecked + Vocabulary.getNextReview(v.category);
-		updateVocabulary(v, -1, importType, listener);
+		updateVocabulary(v, importType, listener);
 	}
 
 	public boolean isVocabulary(String s)
@@ -1221,9 +1204,9 @@ public class DBHelper extends SQLiteOpenHelper
 					sameReading.add(res.getInt(0));
 				}
 				while (res.moveToNext());
-
-				res.close();
 			}
+			
+			res.close();
 		}
 		
 		StringBuilder meaning_matches = new StringBuilder();
@@ -1235,7 +1218,7 @@ public class DBHelper extends SQLiteOpenHelper
 				meaning_matches.append(" OR ");
 		}
 
-		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND id != ? AND (" + meaning_matches + ")", new String[] {kanji, "" + id});
+		Cursor res = db.rawQuery("SELECT id FROM vocab WHERE kanji != ? AND id != ? AND (" + meaning_matches + ")", new String[] {kanji, "" + id});
 		if (res.getCount() > 0)
 		{
 			res.moveToFirst();
@@ -1245,9 +1228,8 @@ public class DBHelper extends SQLiteOpenHelper
 				sameMeaning.add(res.getInt(0));
 			}
 			while (res.moveToNext());
-
-			res.close();
 		}
+		res.close();
 	}
 	
 	public void updateSynonyms(int id, int[] sameReading, int[] sameMeaning, boolean add)
@@ -1284,5 +1266,26 @@ public class DBHelper extends SQLiteOpenHelper
 			else
 				db.execSQL("UPDATE vocab SET sameMeaning = replace(sameMeaning, '\\" + id + "\\', '\\' ) WHERE id IN (" + list + ");");
 		}
+	}
+	
+	public int[] findVocabulariesForKanji(SQLiteDatabase db, char kanji)
+	{
+		Cursor res = db.rawQuery("SELECT id FROM vocab WHERE kanji LIKE '%" + kanji + "%'", null);
+		int[] vocabularies = new int[res.getCount()];
+		if (res.getCount() > 0)
+		{
+			res.moveToFirst();
+
+			int i = 0;
+			do
+			{
+				vocabularies[i++] = res.getInt(0);
+			}
+			while (res.moveToNext());
+		}
+		
+		res.close();
+		
+		return vocabularies;
 	}
 }

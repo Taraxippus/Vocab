@@ -1,0 +1,177 @@
+<android.support.v4.widget.NestedScrollView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	
+	android:layout_width="325dp"
+	android:layout_height="match_parent" >
+
+	<LinearLayout 
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:orientation="vertical"
+		android:paddingTop="8dp" >
+
+		<android.support.design.widget.TextInputLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content" >
+
+			<android.support.design.widget.TextInputEditText
+				android:id="@+id/text_kanji"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="8dp"
+				android:hint="Kanji"
+				android:textAppearance="?android:attr/textAppearanceLarge"
+				android:textStyle="bold"
+				android:textSize="50dp"
+				android:maxLines="1"
+				android:maxLength="1"
+				android:singleLine="true"
+				android:gravity="center"
+				android:background="@android:color/transparent" />
+			
+		</android.support.design.widget.TextInputLayout>
+
+		<android.support.design.widget.TextInputLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp" >
+
+			<android.support.design.widget.TextInputEditText
+				android:id="@+id/text_reading_kun"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="8dp"
+				android:hint="Kunyomi"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:maxLines="1"
+				android:singleLine="true"
+				android:gravity="center"
+				android:background="@android:color/transparent" />
+		</android.support.design.widget.TextInputLayout>
+		
+		<android.support.design.widget.TextInputLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+
+			<android.support.design.widget.TextInputEditText
+				android:id="@+id/text_reading_on"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="8dp"
+				android:hint="Onyomi"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:maxLines="1"
+				android:singleLine="true"
+				android:gravity="center"
+				android:background="@android:color/transparent" />
+		</android.support.design.widget.TextInputLayout>
+
+		<android.support.design.widget.TextInputLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:layout_marginLeft="8dp" 
+			android:layout_marginRight="8dp" >
+
+			<android.support.design.widget.TextInputEditText
+				android:id="@+id/text_meaning"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:hint="Meanings"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:maxLines="1"
+				android:singleLine="true" />
+		</android.support.design.widget.TextInputLayout>
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:paddingLeft="12dp"
+			android:paddingBottom="8dp"
+			android:hint="Seperate multiple values with ';'" 
+			android:textColor="?android:attr/textColorSecondary" />
+		
+		<RelativeLayout 
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			android:orientation="vertical"
+			android:elevation="4dp"
+			android:background="@color/darkGray">
+			
+			<android.support.design.widget.TextInputLayout
+				android:id="@+id/layout_notes"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_alignParentTop="true"
+				android:layout_marginTop="8dp" 
+				android:layout_marginLeft="8dp" 
+				android:layout_marginRight="8dp" >
+
+				<android.support.design.widget.TextInputEditText
+					android:id="@+id/text_notes"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:hint="Notes, Mnemonic, etc."
+					android:textAppearance="?android:attr/textAppearanceSmall" />
+
+			</android.support.design.widget.TextInputLayout>
+
+			<EditText
+				android:id="@+id/text_strokes"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:minWidth="50dp"
+				android:layout_marginRight="8dp"
+				android:layout_alignParentRight="true"
+				android:layout_below="@id/layout_notes"
+				android:inputType="number"
+				android:digits="0123456789"
+				android:maxLines="1"
+				android:singleLine="true" 
+				android:gravity="center"/>
+			
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignBaseline="@id/text_strokes"
+				android:layout_toLeftOf="@id/text_strokes"
+				android:paddingRight="8dp"
+				android:hint="Stroke count:" 
+				android:textColor="?android:attr/textColorSecondary" />
+			
+			<EditText
+				android:id="@+id/text_image"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="8dp" 
+				android:layout_marginRight="8dp"
+				android:layout_below="@id/text_strokes"
+				android:textAppearance="?android:attr/textAppearanceSmall"
+				android:hint="Image URL"
+				android:maxLines="1"
+				android:singleLine="true" />
+			
+			<Button
+				android:id="@+id/button_cancel"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@id/text_image"
+				android:layout_alignParentLeft="true"
+				android:text="Cancel"
+				android:textColor="@color/accent"
+				style="?android:attr/borderlessButtonStyle" />
+			
+			<Button
+				android:id="@+id/button_add"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@id/text_image"
+				android:layout_alignParentRight="true"
+				android:text="Add"
+				android:textColor="@color/accent"
+				style="?android:attr/borderlessButtonStyle" />
+		</RelativeLayout>
+	</LinearLayout>
+</android.support.v4.widget.NestedScrollView>

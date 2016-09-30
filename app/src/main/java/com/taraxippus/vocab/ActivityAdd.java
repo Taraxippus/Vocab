@@ -22,6 +22,7 @@ import com.taraxippus.vocab.vocabulary.Vocabulary;
 import com.taraxippus.vocab.vocabulary.VocabularyType;
 import java.util.ArrayList;
 import java.util.Locale;
+import com.taraxippus.vocab.vocabulary.Kanji;
 
 public class ActivityAdd extends AppCompatActivity
 {
@@ -35,9 +36,20 @@ public class ActivityAdd extends AppCompatActivity
 		dbHelper = new DBHelper(this);
 		
 		setContentView(R.layout.activity_add);
-		((TextView) findViewById(R.id.text_kanji)).setTextLocale(Locale.JAPANESE);
-		((TextView) findViewById(R.id.text_additional_info)).setTextLocale(Locale.JAPANESE);
-		((TextView) findViewById(R.id.text_notes)).setTextLocale(Locale.JAPANESE);
+		
+		final TextView text_kanji = (TextView) findViewById(R.id.text_kanji);
+		final TextView text_reading = (TextView) findViewById(R.id.text_reading);
+		final TextView text_meaning = (TextView) findViewById(R.id.text_meaning);
+		final TextView text_additional_info = (TextView) findViewById(R.id.text_additional_info);
+		final TextView text_notes = (TextView) findViewById(R.id.text_notes);
+		final TextView text_image = (TextView) findViewById(R.id.text_image);
+		final Button button_add = (Button) findViewById(R.id.button_add);
+		final CheckBox checkbox_show_info = (CheckBox) findViewById(R.id.checkbox_show_info);
+		final View progress_jisho = findViewById(R.id.progress_jisho);
+		
+		text_kanji.setTextLocale(Locale.JAPANESE);
+		text_reading.setTextLocale(Locale.JAPANESE);
+		text_notes.setTextLocale(Locale.JAPANESE);
 		
 		if (getIntent() != null && getIntent().getAction() == Intent.ACTION_SEND)
 		{
@@ -62,14 +74,14 @@ public class ActivityAdd extends AppCompatActivity
 			else
 			{
 				if (StringHelper.isKanaOrKanji(text))
-					((TextView) findViewById(R.id.text_kanji)).setText(text);
+					text_kanji.setText(text);
 
 				else
-					((TextView) findViewById(R.id.text_meaning)).setText(text);
+					text_meaning.setText(text);
 			}
 		}
 		
-		Spinner spinner_type = (Spinner) findViewById(R.id.spinner_type);
+		final Spinner spinner_type = (Spinner) findViewById(R.id.spinner_type);
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, Vocabulary.types);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_type.setAdapter(adapter);
@@ -80,13 +92,13 @@ public class ActivityAdd extends AppCompatActivity
 		if (getIntent() != null && getIntent().hasExtra("id"))
 		{
 			edit = true;
-			((Button) findViewById(R.id.button_add)).setText("Edit");
+			button_add.setText("Edit");
 
 			Vocabulary vocab = dbHelper.getVocabulary(getIntent().getIntExtra("id", 0));
 			
 			setTitle("Edit " + vocab.kanji);
 			
-			((TextView) findViewById(R.id.text_kanji)).setText(vocab.correctAnswer(QuestionType.KANJI));
+			text_kanji.setText(vocab.correctAnswer(QuestionType.KANJI));
 			StringBuilder reading = new StringBuilder();
 			if (vocab.reading.length != 0)
 			{
@@ -99,7 +111,7 @@ public class ActivityAdd extends AppCompatActivity
 				reading.append(vocab.reading[vocab.reading.length - 1]);
 			}
 
-			((TextView) findViewById(R.id.text_reading)).setText(reading.toString());
+			text_reading.setText(reading.toString());
 			StringBuilder meaning = new StringBuilder();
 			for (int i = 0; i < vocab.meaning.length - 1; ++i)
 			{
@@ -109,18 +121,31 @@ public class ActivityAdd extends AppCompatActivity
 
 			meaning.append(vocab.meaning[vocab.meaning.length - 1]);
 
-			((TextView) findViewById(R.id.text_meaning)).setText(meaning.toString());
-			((TextView) findViewById(R.id.text_additional_info)).setText(vocab.additionalInfo);
-			((TextView) findViewById(R.id.text_notes)).setText(vocab.notes);
-			((TextView) findViewById(R.id.text_image)).setText(vocab.imageFile);
-
+			text_meaning.setText(meaning.toString());
+			text_additional_info.setText(vocab.additionalInfo);
+			text_notes.setText(vocab.notes);
+			text_image.setText(vocab.imageFile);
 			spinner_type.setSelection(vocab.type.ordinal());
-
-			((CheckBox) findViewById(R.id.checkbox_show_info)).setChecked(vocab.showInfo);
+			checkbox_show_info.setChecked(vocab.showInfo);
 		}
 		else
 			edit = false;
 
+		findViewById(R.id.button_info).setOnClickListener(new View.OnClickListener()
+		{
+				@Override
+				public void onClick(View p1)
+				{
+					if (progress_jisho.getVisibility() != View.VISIBLE)
+					{
+						if (text_kanji.getText().toString().isEmpty())
+							DialogHelper.createDialog(ActivityAdd.this, (edit ? "Edit " : "Add ") + "Vocabulary", "Enter kanji to autofill the rest with information from jisho.org");
+						
+						else
+							progress_jisho.setVisibility(View.VISIBLE);
+					}
+				}
+		});
 		findViewById(R.id.button_cancel).setOnClickListener(new View.OnClickListener()
 		{
 				@Override
@@ -129,24 +154,24 @@ public class ActivityAdd extends AppCompatActivity
 					finish();
 				}
 		});
-		findViewById(R.id.button_add).setOnClickListener(new View.OnClickListener()
+		button_add.setOnClickListener(new View.OnClickListener()
 			{
 				@Override
 				public void onClick(View p1)
 				{
-					String kanji = StringHelper.trim(((TextView)findViewById(R.id.text_kanji)).getText().toString());
-					String reading1 = StringHelper.toHiragana(StringHelper.trim(((TextView)findViewById(R.id.text_reading)).getText().toString()));
-					String meaning1 = StringHelper.trim(((TextView)findViewById(R.id.text_meaning)).getText().toString());
-					String additionalInfo = StringHelper.trim(((TextView)findViewById(R.id.text_additional_info)).getText().toString());
-					String notes = StringHelper.trim(((TextView)findViewById(R.id.text_notes)).getText().toString());
-					String imageUrl = StringHelper.trim(((TextView)findViewById(R.id.text_image)).getText().toString());
+					String kanji = StringHelper.trim(text_kanji.getText().toString());
+					String reading1 = text_reading.getText().toString();
+					String meaning1 = text_meaning.getText().toString();
+					String additionalInfo = StringHelper.trim(text_additional_info.getText().toString());
+					String notes = StringHelper.trim(text_notes.getText().toString());
+					String imageUrl = StringHelper.trim(text_image.getText().toString());
 
 					if (kanji.isEmpty() || meaning1.isEmpty() || (!StringHelper.isKana(kanji)) && reading1.isEmpty())
 						DialogHelper.createDialog(ActivityAdd.this, (edit ? "Edit " : "Add ") + (kanji.isEmpty() ? "Vocabulary" : kanji), "Please enter kanji, reading and meaning for the vocabulary! (You can leave out the reading if the kanji is written in kana only)");
 						
 					else
 					{
-						String[] reading = reading1.split(";");
+						String[] reading = reading1.split(";|、");
 						int i1 = 0;
 						for (int i = 0; i < reading.length; ++i)
 						{
@@ -158,7 +183,7 @@ public class ActivityAdd extends AppCompatActivity
 							
 						String[] reading_trimed = new String[i1];
 						for (int i = 0; i < i1; ++i)
-							reading_trimed[i] = reading[i].replace("・", "");
+							reading_trimed[i] = StringHelper.toHiragana(reading[i].replace("・", ""));
 						
 						String[] meaning = meaning1.split(";");
 						i1 = 0;
@@ -181,7 +206,7 @@ public class ActivityAdd extends AppCompatActivity
 							return;
 						}
 							
-						final Vocabulary vocab = new Vocabulary();
+						final Vocabulary vocab = new Vocabulary(getIntent() == null ? -1 : getIntent().getIntExtra("id", -1));
 						
 						vocab.type = VocabularyType.values()[((Spinner) findViewById(R.id.spinner_type)).getSelectedItemPosition()];
 						vocab.kanji = kanji;
@@ -215,7 +240,7 @@ public class ActivityAdd extends AppCompatActivity
 								if (getIntent() == null || getIntent().getAction() != Intent.ACTION_SEND)
 								{
 									Intent intent = new Intent(ActivityAdd.this, ActivityDetail.class);
-									intent.putExtra("id", dbHelper.getId(vocab.kanji));
+									intent.putExtra("id", vocab.id);
 									startActivity(intent);
 								}
 								sendBroadcast(new Intent(ActivityAdd.this, NotificationHelper.class));
@@ -223,7 +248,7 @@ public class ActivityAdd extends AppCompatActivity
 							}
 						};
 						
-						dbHelper.updateVocabulary(vocab, getIntent() == null ? -1 : getIntent().getIntExtra("id", -1), edit ? ImportType.REPLACE_KEEP_STATS : ImportType.ASK, showVocabulary);
+						dbHelper.updateVocabulary(vocab, edit ? ImportType.REPLACE_KEEP_STATS : ImportType.ASK, showVocabulary);
 					}
 				}
 			});

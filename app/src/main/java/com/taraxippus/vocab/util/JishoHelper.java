@@ -3,23 +3,29 @@ package com.taraxippus.vocab.util;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
-import android.text.SpannableStringBuilder;
+import android.text.Html;
+import android.transition.TransitionManager;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.LinearLayout;
+import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.vocabulary.DBHelper;
+import com.taraxippus.vocab.vocabulary.Kanji;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +34,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,16 +43,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import android.text.style.StyleSpan;
-import android.text.Spannable;
-import android.graphics.Typeface;
-import android.text.style.URLSpan;
-import android.text.style.RelativeSizeSpan;
-import android.widget.LinearLayout;
-import android.view.LayoutInflater;
-import android.widget.Space;
-import android.view.View.OnClickListener;
-import java.util.ArrayList;
 
 public final class JishoHelper
 {
@@ -128,6 +125,8 @@ public final class JishoHelper
 				@Override
 				public void onProcessSuccess(Object... args)
 				{
+					//TransitionManager.beginDelayedTransition(findRootView(layout));
+					
 					if (progress != null)
 						progress.setVisibility(View.GONE);
 
@@ -154,7 +153,7 @@ public final class JishoHelper
 		}
 	}
 	
-	public static void addExampleSentences(Context context, String kanji, String[] meaning, final ViewGroup layout, final ViewGroup.LayoutParams params, final View progress)
+	public static void addExampleSentences(Context context, String kanji, final String[] meaning, final ViewGroup layout, final ViewGroup.LayoutParams params, final View progress)
 	{
 		if (!isInternetAvailable(context))
 		{
@@ -172,6 +171,8 @@ public final class JishoHelper
 					@Override
 					public void onProcessSuccess(Object... args)
 					{
+						//TransitionManager.beginDelayedTransition(layout);
+						
 						if (progress != null)
 							progress.setVisibility(View.GONE);
 
@@ -185,6 +186,54 @@ public final class JishoHelper
 		}
 	}
 
+	public static void importKanji(Context context, Kanji kanji, final OnProcessSuccessListener listener)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			new ImportKanjiTask(context, listener).execute(kanji);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void addReadingCompounds(Context context, char kanji, final ViewGroup layout, final ViewGroup.LayoutParams params, final View progress)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			new FindReadingCompoundsTask(context, new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object... args)
+					{
+						TransitionManager.beginDelayedTransition(findRootView(layout));
+						
+						if (progress != null)
+							progress.setVisibility(View.GONE);
+
+						layout.addView((View) args[0], params);
+					}
+				}).execute(kanji);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public static String getSVG(String kanjiHex, int index, int color)
 	{
 		BufferedReader reader = null;
@@ -280,6 +329,16 @@ public final class JishoHelper
 		context.startActivity(i);
 	}
 	
+	public static ViewGroup findRootView(ViewGroup v)
+	{
+		while (v.getId() != R.id.layout_content && v.getId() != android.R.id.content && v.getParent() instanceof ViewGroup)
+		{
+			v = (ViewGroup) v.getParent();
+		}
+		
+		return v;
+	}
+	
 	public static class FindSoundFileTask extends AsyncTask<Vocabulary, Void, Boolean>
 	{
 		final OnProcessSuccessListener listener;
@@ -358,7 +417,7 @@ public final class JishoHelper
 			if (success)
 				listener.onProcessSuccess();
 				
-			dbHelper.updateVocabularySoundFile(dbHelper.getId(v.kanji), v.soundFile);
+			dbHelper.updateVocabularySoundFile(v.id, v.soundFile);
 		}
 	}
 	
@@ -577,17 +636,63 @@ public final class JishoHelper
 						index0 = 0;
 						while (index0 != -1)
 						{
+							index1 = index0;
 							index0 = line.indexOf("class=\"clearfix\"", index0 + 1);
+							
 							if (index0 == -1)
+								index0 = line.indexOf("class='clearfix'", index1 + 1);
+							
+							if (index0 == -1)
+							{
+								index1 = line.indexOf("</ul", index1);
+								index2 = line.substring(0, index1).lastIndexOf(">");
+
+								if (index1 - index2 > 1)
+								{
+									s = StringHelper.trim(line.substring(index2 + 1, index1));
+									sb.append(s);
+									if (!s.isEmpty() && sb2.length() != 0 && StringHelper.isKanaOrKanji(s.substring(0, 1)) && "・".equals(sb2.substring(sb2.length() - 1, sb2.length())))
+										sb2.delete(sb2.length() - 1, sb2.length());
+									sb2.append(s);
+								}
+								
 								break;
+							}
+								
+							index1 = line.indexOf("<li", index1);
+							index2 = line.substring(0, index1).lastIndexOf(">");
+							
+							if (index1 - index2 > 1)
+							{
+								s = StringHelper.trim(line.substring(index2 + 1, index1));
+								sb.append(s);
+								if (!s.isEmpty() && sb2.length() != 0 && StringHelper.isKanaOrKanji(s.substring(0, 1)) && "・".equals(sb2.substring(sb2.length() - 1, sb2.length())))
+									sb2.delete(sb2.length() - 1, sb2.length());
+								sb2.append(s);
+							}
+							
 							index1 = line.indexOf("class=\"furigana\"", index0);
 							index2 = line.indexOf("class=\"unlinked\"", index0);
-							s = line.substring(index2 + 17, line.indexOf("</", index2));
+							if (index2 == -1)
+							{
+								index1 = line.indexOf("class='furigana'", index0);
+								index2 = line.indexOf("class='unlinked'", index0);
+							}
+								
+							if (index2 == -1)
+							{
+								index2 = line.indexOf(">", line.indexOf("<a", index0));
+								if (index2 > line.indexOf("</ul>"))
+									break;
+								s = line.substring(index2 + 1, line.indexOf("</", index2));
+							}
+							else
+								s = line.substring(index2 + 17, line.indexOf("</", index2));
 							
 							if (index1 != -1 && index1 < line.indexOf("</li", index0))
 							{
 								sb.append(s);
-								sb2.append(StringHelper.replaceWithFurigana(s, line.substring(index1 + 17, line.indexOf("</", index1)), sb2.length() > 0, true));
+								sb2.append(StringHelper.replaceWithFurigana(s, line.substring(index1 + 17, line.indexOf("</", index1)), sb2.length() > 0 && StringHelper.isKanaOrKanji(sb2.substring(sb2.length() - 1)), true));
 							}
 							else
 							{
@@ -607,15 +712,20 @@ public final class JishoHelper
 						
 						needsSpace = true;
 						v1 = LayoutInflater.from(context).inflate(R.layout.item_sentence, layout, false);
+						v1.setOnClickListener(new OpenUriListener(s));
 						v = (TextView) v1.findViewById(R.id.text_kanji);
 						v.setTextLocale(Locale.JAPANESE);
-						v.setText(sb.toString());
+						v.setText(StringHelper.trim(sb.toString()));
 						v = (TextView) v1.findViewById(R.id.text_reading);
 						v.setTextLocale(Locale.JAPANESE);
-						v.setText(sb2.toString().replace("・・", "・"));
+						s = StringHelper.trim(sb2.toString().replace("・・", "・"));
+						if (s.endsWith("・"))
+							s = s.substring(0, s.length() - 1);
+						v.setText(s);
+						if (s.isEmpty())
+							v.setVisibility(View.GONE);
 						v = (TextView) v1.findViewById(R.id.text_meaning);
-						v.setText(line.substring(index0 + 16, line.indexOf("</", index0)));
-						v1.setOnClickListener(new OpenUriListener(s));
+						v.setText(StringHelper.trim(line.substring(index0 + 16, line.indexOf("</", index0))));
 						layout.addView(v1, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 					}
 					
@@ -631,15 +741,19 @@ public final class JishoHelper
 
 				v = new TextView(context);
 				v.setText(e.toString());
+				v.setPadding(padding, padding, padding, padding);
 				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
 			}
 			
 			if (layout.getChildCount() == 0)
 			{
 				v = new TextView(context);
+				v.setPadding(padding, padding, padding, padding);
 				v.setText("Couln't find any example sentences on jisho.org");
 				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
 			}
+			
+			layout.setTag("sentences");
 			
 			return layout;
 		}
@@ -665,6 +779,318 @@ public final class JishoHelper
 				i.setData(uri);
 				context.startActivity(i);
 			}
+		}
+	}
+	
+	public static class ImportKanjiTask extends AsyncTask<Kanji, Void, Kanji>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+
+		public ImportKanjiTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected Kanji doInBackground(Kanji...  p1)
+		{
+			Kanji kanji = p1[0];
+			
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder();
+				String line, page;
+				int index, index0, index1, index2;
+				String[] tmp;
+				ArrayList<String> reading = new ArrayList<>();
+				
+				httpget.setURI(URI.create("http://jisho.org/search/" + URLEncoder.encode(kanji.kanji + " #kanji", "UTF-8").replace("+", "%20")));
+				response = httpclient.execute(httpget); 
+				entity = response.getEntity();
+
+				reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+				sb.setLength(0);
+
+				while ((line = reader.readLine()) != null)
+				{
+					sb.append(line);
+				}
+
+				reader.close();
+				page = sb.toString();
+				sb.setLength(0);
+					
+				index = page.indexOf("class=\"kanji-details__stroke_count\"");
+				index0 = page.indexOf("<strong>", index);
+				kanji.strokes = Integer.parseInt(page.substring(index0 + 8, page.indexOf("<", index0 + 1)));
+				
+				index = page.indexOf("class=\"radical_meaning\"", index);
+				index0 = page.indexOf(">", index);
+				index1 = page.indexOf("</span>", index);
+				if (index != -1)
+				{
+					sb.append("Radical: ");
+					sb.append(StringHelper.trim(page.substring(index0 + 1, index1)));
+					sb.append(" ");
+					sb.append(StringHelper.trim(page.substring(index1 + 7, page.indexOf("<", index1 + 1))));
+					sb.append("\n");
+				}
+				
+				index = page.indexOf("class=\"radicals\"", index);
+				if (index != -1)
+				{
+					sb.append("Parts:");
+					line = page.substring(index, page.indexOf("</dl>", index));
+					index2 = 0;
+					while (index2 != -1)
+					{
+						index2 = line.indexOf("<a", index2 + 1);
+						if (index2 == -1)
+							break;
+
+						sb.append(" ");
+						sb.append(line.substring(line.indexOf(">", index2) + 1, line.indexOf("</a>", index2)));
+					}
+					sb.append("\n");
+				}
+				
+				index = page.indexOf("class=\"dictionary_entry variants\"", index);
+				if (index != -1)
+				{
+					sb.append("Variants:");
+					line = page.substring(index, page.indexOf("</dl>", index));
+					index2 = 0;
+					while (index2 != -1)
+					{
+						index2 = line.indexOf("<a", index2 + 1);
+						if (index2 == -1)
+							break;
+
+						sb.append(" ");
+						sb.append(line.substring(line.indexOf(">", index2) + 1, line.indexOf("</a>", index2)));
+					}
+					sb.append("\n");
+				}
+				
+				index = page.indexOf("class=\"kanji-details__main-meanings\"", index);
+				index0 = page.indexOf(">", index);
+				line = Html.fromHtml(page.substring(index0 + 1, page.indexOf("</div>", index0))).toString();
+				
+				kanji.meaning = line.split(",");
+				for (index2 = 0; index2 < kanji.meaning.length; ++index2)
+				{
+					kanji.meaning[index2] = StringHelper.trim(kanji.meaning[index2]);
+					if (kanji.meaning[index2].isEmpty())
+					{
+						tmp = new String[kanji.meaning.length - 1];
+						if (index2 > 0)
+							System.arraycopy(kanji.meaning, 0, tmp, 0, index2);
+						if (index2 < tmp.length)
+							System.arraycopy(kanji.meaning, index2 + 1, tmp, 0, tmp.length -  index2);
+						kanji.meaning = tmp;
+						index2--;
+					}
+				}
+				
+				index0 = page.indexOf("class=\"kanji-details__main-readings\"", index);
+				for (index1 = 0; index1 < 2; index1++)
+				{
+					if (index1 == 0)
+						index = page.indexOf("class=\"dictionary_entry kun_yomi\"", index0);
+					else
+						index = page.indexOf("class=\"dictionary_entry on_yomi\"", index0);
+						
+					if (index == -1)
+						continue;
+						
+					line = page.substring(index, page.indexOf("</dl>", index));
+					index2 = 0;
+					while (index2 != -1)
+					{
+						index2 = line.indexOf("<a", index2 + 1);
+						if (index2 == -1)
+							break;
+							
+						reading.add(line.substring(line.indexOf(">", index2) + 1, line.indexOf("</a>", index2)).replace(".", "・"));
+					}
+						
+					if (index1 == 0)
+						kanji.reading_kun = reading.toArray(new String[reading.size()]);
+					else
+						kanji.reading_on = reading.toArray(new String[reading.size()]);
+					
+					reading.clear();
+				}
+				
+				sb.append("\n");
+				index = page.indexOf("class=\"grade\"", index);
+				if (index != -1)
+				{
+					sb.append(StringHelper.trim(page.substring(page.indexOf(">", index) + 1, page.indexOf("</div>", index)).replaceAll("</?strong>", "")));
+					sb.append("\n");
+				}
+				
+				index = page.indexOf("class=\"jlpt\"", index);
+				if (index != -1)
+				{
+					sb.append(StringHelper.trim(page.substring(page.indexOf(">", index) + 1, page.indexOf("</div>", index)).replaceAll("</?strong>", "")));
+					sb.append("\n");
+				}
+				
+				if (kanji.reading_kun == null)
+					kanji.reading_kun = new String[0];
+				
+				if (kanji.reading_on == null)
+					kanji.reading_on = new String[0];
+				
+				kanji.notes = StringHelper.trim(sb.toString());
+				kanji.imageFile = "";
+				kanji.meaning_used = new int[kanji.meaning.length];
+				kanji.timesChecked_reading = new int[kanji.reading_kun.length + kanji.reading_on.length];
+				kanji.timesCorrect_reading = new int[kanji.reading_kun.length + kanji.reading_on.length];
+				kanji.added = System.currentTimeMillis();
+				kanji.nextReview = kanji.lastChecked + Vocabulary.getNextReview(kanji.category);
+				kanji.category_history = new int[32];
+				kanji.category_history[kanji.category_history.length - 1] = kanji.category;
+				for (int i = 0; i < kanji.category_history.length - 1; ++i)
+					kanji.category_history[i] = -1;
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+			
+			return kanji;
+		}
+
+		@Override
+		protected void onPostExecute(Kanji kanji)
+		{
+			if (kanji != null)
+				listener.onProcessSuccess(kanji);
+		}
+	}
+	
+	public static class FindReadingCompoundsTask extends AsyncTask<Character, Void, View>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+
+		public FindReadingCompoundsTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected View doInBackground(Character...  p1)
+		{
+			int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, context.getResources().getDisplayMetrics());
+			LinearLayout layout = new LinearLayout(context);
+			layout.setOrientation(LinearLayout.VERTICAL);
+			TextView v;
+			
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder();
+				String line, page;
+				int index, index1, index2;
+				
+				httpget.setURI(URI.create("http://jisho.org/search/" + URLEncoder.encode(p1[0] + " #kanji", "UTF-8").replace("+", "%20")));
+				response = httpclient.execute(httpget); 
+				entity = response.getEntity();
+
+				reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+				sb.setLength(0);
+
+				while ((line = reader.readLine()) != null)
+				{
+					sb.append(line);
+				}
+
+				reader.close();
+				page = sb.toString();
+				
+				index = page.indexOf("class=\"row compounds\"");
+				for (index1 = 0; index1 < 3; index1++)
+				{
+					sb.setLength(0);
+					index = page.indexOf(index1 == 2 ? "class=\"dictionary_entry nanori\"" : "class=\"no-bullet\"", index + 1);
+					
+					if (index == -1)
+						continue;
+
+					line = page.substring(index, page.indexOf(index1 == 2 ? "</dl>" : "</ul>", index));
+					index2 = 0;
+					while (index2 != -1)
+					{
+						index2 = line.indexOf(index1 == 2 ? "<dd" : "<li", index2 + 1);
+						if (index2 == -1)
+							break;
+
+						sb.append(StringHelper.trim(line.substring(line.indexOf(">", index2) + 1, line.indexOf(index1 == 2 ? "</dd>" : "</li>", index2))).replace("】", "】- "));
+						sb.append("<br />");
+					}
+
+					line = StringHelper.trim(sb.toString());
+					
+					if (!line.isEmpty())
+					{
+						v = new TextView(context);
+						v.setText(Html.fromHtml(sb.toString()));
+						v.setPadding(padding, padding / 2, padding, padding);
+						v.setTextLocale(Locale.JAPANESE);
+						v.setTextIsSelectable(true);
+						layout.addView(v, 0, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+						
+						v = new TextView(context);
+						v.setText(index1 == 0 ? "On reading compounds" : index1 == 1 ? "Kun reading compounds" : "Japanese names");
+						v.setPadding(padding, 0, padding, 0);
+						v.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+						layout.addView(v, 0, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+
+				v = new TextView(context);
+				v.setText(e.toString());
+				v.setPadding(padding, padding, padding, padding);
+				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+			}
+			
+			if (layout.getChildCount() == 0)
+			{
+				v = new TextView(context);
+				v.setPadding(padding, padding, padding, padding);
+				v.setText("Couln't find any reading compounds on jisho.org");
+				layout.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));	
+			}
+			
+			layout.setTag("words");
+
+			return layout;
+		}
+
+		@Override
+		protected void onPostExecute(View v)
+		{
+			listener.onProcessSuccess(v);
 		}
 	}
 }

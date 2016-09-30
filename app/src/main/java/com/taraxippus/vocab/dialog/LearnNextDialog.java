@@ -43,10 +43,10 @@ public class LearnNextDialog extends DialogFragment
 		final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		dbHelper = new DBHelper(getContext());
 
-		vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.UNLEARNED, null, null);
+		vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.UNLEARNED, null, false, null);
 		
 		if (preferences.getInt("showType", 0) != ShowType.LEARNED.ordinal())
-			vocabularies_filtered = dbHelper.getVocabularies(SortType.values()[preferences.getInt("sortType", 0)], ShowType.UNLEARNED, StringHelper.toBooleanArray(preferences.getString("show", "")), null);
+			vocabularies_filtered = dbHelper.getVocabularies(SortType.values()[preferences.getInt("sortType", 0)], ShowType.UNLEARNED, StringHelper.toBooleanArray(preferences.getString("show", "")), preferences.getBoolean("sortReversed", false), null);
 		else
 			vocabularies_filtered = new int[0];
 			
@@ -191,7 +191,7 @@ public class LearnNextDialog extends DialogFragment
 		}
 
 		text_preview.setText(sb.toString());
-
+		
 		if (scroll_preview.canScrollVertically(1)) 
 			divider_scroll_bottom.setVisibility(View.VISIBLE);
 		else

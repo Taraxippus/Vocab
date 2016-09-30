@@ -13,8 +13,7 @@
 		android:layout_margin="8dp"
 		app:cardCornerRadius="4dp"
 		app:cardElevation="4dp"
-		app:cardBackgroundColor="@color/primary"
-		android:animateLayoutChanges="true" >
+		app:cardBackgroundColor="@color/primary" >
 
 		<RelativeLayout
 			android:layout_width="match_parent"
@@ -135,11 +134,13 @@
 
 			<TextView
 				android:id="@+id/text_solution"
-				android:layout_width="wrap_content"
+				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:layout_alignParentBottom="true"
 				android:layout_centerHorizontal="true"
-				android:layout_margin="8dp"
+				android:layout_marginLeft="52dp"
+				android:layout_marginRight="52dp"
+				android:layout_marginBottom="8dp"
 				android:textAppearance="?android:textAppearanceMedium"
 				android:textColor="@color/accent"
 				android:textStyle="bold"

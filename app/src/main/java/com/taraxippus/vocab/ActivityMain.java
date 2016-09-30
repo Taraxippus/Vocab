@@ -19,12 +19,14 @@ import com.taraxippus.vocab.fragment.FragmentGrammar;
 import com.taraxippus.vocab.fragment.FragmentHome;
 import com.taraxippus.vocab.fragment.FragmentQuiz;
 import java.util.Locale;
+import com.taraxippus.vocab.fragment.FragmentKana;
+import com.taraxippus.vocab.fragment.FragmentKanji;
 
 public class ActivityMain extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener
 {
 	public static final String ACTION_QUIZ = "com.taraxippus.vocab.action.ACTION_QUIZ";
 	
-	public Fragment home, quiz, grammar;
+	public Fragment home, grammar, kana, kanji, quiz;
               
     DrawerLayout drawerLayout;     
 	NavigationView navigationView;
@@ -78,18 +80,27 @@ public class ActivityMain extends AppCompatActivity implements NavigationView.On
 		};
 
 		home = getFragmentManager().findFragmentByTag("HOME");
-		quiz = getFragmentManager().findFragmentByTag("QUIZ");
+		kana = getFragmentManager().findFragmentByTag("KANA");
+		kanji = getFragmentManager().findFragmentByTag("KANJI");
 		grammar = getFragmentManager().findFragmentByTag("GRAMMAR");
+		quiz = getFragmentManager().findFragmentByTag("QUIZ");
 		
 		if (home == null)
 			home = new FragmentHome().setDefaultTransitions(this);
 			
+		if (kana == null)
+			kana = new FragmentKana().setDefaultTransitions(this);
+		
+		if (kanji == null)
+			kanji = new FragmentKanji().setDefaultTransitions(this);
+		
+		if (grammar == null)
+			grammar = new FragmentGrammar().setDefaultTransitions(this);
+		
 		if (quiz == null)
 			quiz = new FragmentQuiz().setDefaultTransitions(this);
 			
-		if (grammar == null)
-			grammar = new FragmentGrammar().setDefaultTransitions(this);
-			
+		
 		getFragmentManager().addOnBackStackChangedListener(new FragmentManager.OnBackStackChangedListener() 
 		{
 				public void onBackStackChanged() 
@@ -102,11 +113,18 @@ public class ActivityMain extends AppCompatActivity implements NavigationView.On
 					if (tag.equals("HOME"))
 						navigationView.setCheckedItem(R.id.item_home);
 						
+					else if (tag.equals("KANA"))
+						navigationView.setCheckedItem(R.id.item_kana);
+						
+					else if (tag.equals("KANJI"))
+						navigationView.setCheckedItem(R.id.item_kanji);
+					
+					else if (tag.equals("GRAMMAR"))
+						navigationView.setCheckedItem(R.id.item_grammar);
+					
 					else if (tag.equals("QUIZ"))
 						navigationView.setCheckedItem(R.id.item_quiz);
 						
-					else if (tag.equals("GRAMMAR"))
-						navigationView.setCheckedItem(R.id.item_grammar);
 				}
 		});
 			
@@ -150,15 +168,30 @@ public class ActivityMain extends AppCompatActivity implements NavigationView.On
 				startActivity(new Intent(ActivityMain.this, ActivityAdd.class));
 				break;
 
-			case R.id.item_quiz:
+			case R.id.item_kana:
 				getFragmentManager().beginTransaction()
-					.replace(R.id.layout_content, quiz, "QUIZ")
+					.replace(R.id.layout_content, kana, "KANA")
 					.addToBackStack("")
 					.commit();
 				break;
+				
+			case R.id.item_kanji:
+				getFragmentManager().beginTransaction()
+					.replace(R.id.layout_content, kanji, "KANJI")
+					.addToBackStack("")
+					.commit();
+				break;
+				
 			case R.id.item_grammar:
 				getFragmentManager().beginTransaction()
 					.replace(R.id.layout_content, grammar, "GRAMMAR")
+					.addToBackStack("")
+					.commit();
+				break;
+				
+			case R.id.item_quiz:
+				getFragmentManager().beginTransaction()
+					.replace(R.id.layout_content, quiz, "QUIZ")
 					.addToBackStack("")
 					.commit();
 				break;

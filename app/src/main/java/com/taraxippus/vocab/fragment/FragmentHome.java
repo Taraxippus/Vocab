@@ -18,7 +18,9 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.text.format.DateFormat;
+import android.transition.AutoTransition;
 import android.transition.TransitionInflater;
+import android.transition.TransitionManager;
 import android.transition.TransitionSet;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -105,6 +107,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		super.onCreate(savedInstanceState);
 		setHasOptionsMenu(true);
 		
+		searchQuery = savedInstanceState == null ? "" : savedInstanceState.getString("searchQuery");
 		dbHelper = new DBHelper(getContext());
 		preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		
@@ -150,6 +153,11 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.item_search));
 		searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
 		searchView.setOnQueryTextListener(this);
+		if (!searchQuery.isEmpty())
+		{
+			menu.findItem(R.id.item_search).expandActionView();
+			searchView.setQuery(searchQuery, true);
+		}
 		super.onCreateOptionsMenu(menu, inflater);
 	}
 
@@ -247,7 +255,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					{
 						public void onClick(DialogInterface dialog, int which) 
 						{
-							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), null);
+							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), preferences.getBoolean("sortReversed", false), null);
 							dbHelper.resetVocabulary(vocabularies);
 
 							updateFilter();
@@ -260,7 +268,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					{
 						public void onClick(DialogInterface dialog, int which) 
 						{
-							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.ALL, null, null);
+							int[] vocabularies = dbHelper.getVocabularies(SortType.TIME_ADDED, ShowType.ALL, null, false, null);
 							dbHelper.resetVocabulary(vocabularies);
 
 							updateFilter();
@@ -329,9 +337,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	@Override
 	public boolean onQueryTextChange(String query)
 	{
-		searchQuery = query;
-		recyclerView.scrollToPosition(0);
-		updateFilter();
+		if (!searchQuery.equals(query))
+		{
+			searchQuery = query;
+			recyclerView.scrollToPosition(0);
+			updateFilter();
+		}
 
 		return true;
 	}
@@ -346,6 +357,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			case "viewType":
 			case "showType":
 			case "hideType":
+			case "sortReversed":
 			case "vocabulariesChanged":
 				updateFilter();
 				break;
@@ -354,9 +366,11 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	
 	public void updateFilter()
 	{
-		vocabularies = dbHelper.getVocabularies((sortType = SortType.values()[preferences.getInt("sortType", 0)]), ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), searchQuery);
+		vocabularies = dbHelper.getVocabularies((sortType = SortType.values()[preferences.getInt("sortType", 0)]), ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")), preferences.getBoolean("sortReversed", false), searchQuery);
 		viewType = ViewType.values()[preferences.getInt("viewType", 1)];
 		hideType = HideType.values()[preferences.getInt("hideType", 0)];
+		
+		TransitionManager.beginDelayedTransition(recyclerView, new AutoTransition().excludeTarget(TextView.class, true).setDuration(300));
 		
 		if (recyclerView != null)
 			recyclerView.getAdapter().notifyDataSetChanged();
@@ -409,6 +423,14 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		}
 
 		super.onActivityResult(requestCode, resultCode, data);
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState)
+	{
+		super.onSaveInstanceState(outState);
+		
+		outState.putString("searchQuery", searchQuery);
 	}
 	
 	@Override
@@ -510,37 +532,55 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				popup.getMenu().findItem(R.id.learn_remove).setVisible(learned);
 				popup.show();
 			}
-			else if (v.getId() == R.id.button_overflow)
+			else if (v.getId() == R.id.button_overflow_stroke_order)
 			{
-				v.findViewById(R.id.button_overflow).setOnClickListener(new View.OnClickListener()
+				PopupMenu popup = new PopupMenu(getContext(), v);
+				popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
 					{
 						@Override
-						public void onClick(View view)
+						public boolean onMenuItemClick(MenuItem item)
 						{
-							PopupMenu popup = new PopupMenu(getContext(), view);
-							popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
-								{
-									@Override
-									public boolean onMenuItemClick(MenuItem item)
-									{
-										switch (item.getItemId()) 
-										{
-											case R.id.item_open_jisho_kanji:
-												JishoHelper.search(getContext(), searchQuery + " #kanji");
-												return true;
-											case R.id.item_settings:
-												getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
-												return true;
-											default:
-												return false;
-										}
-									}
-								});
-							MenuInflater inflater = popup.getMenuInflater();
-							inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
-							popup.show();
+							switch (item.getItemId()) 
+							{
+								case R.id.item_open_jisho_kanji:
+									JishoHelper.search(getContext(), searchQuery + " #kanji");
+									return true;
+								case R.id.item_settings:
+									getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_STROKE_ORDER));
+									return true;
+								default:
+									return false;
+							}
 						}
 					});
+				MenuInflater inflater = popup.getMenuInflater();
+				inflater.inflate(R.menu.item_stroke_order, popup.getMenu());
+				popup.show();
+			}
+			else if (v.getId() == R.id.button_overflow_sentences)
+			{
+				PopupMenu popup = new PopupMenu(getContext(), v);
+				popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+					{
+						@Override
+						public boolean onMenuItemClick(MenuItem item)
+						{
+							switch (item.getItemId()) 
+							{
+								case R.id.item_open_jisho_sentences:
+									JishoHelper.search(getContext(), searchQuery + "" + " #sentences");
+									return true;
+								case R.id.item_settings:
+									getContext().startActivity(new Intent(getContext(), ActivitySettings.class).setAction(ActivitySettings.ACTION_SENTENCES));
+									return true;
+								default:
+									return false;
+							}
+						}
+					});
+				MenuInflater inflater = popup.getMenuInflater();
+				inflater.inflate(R.menu.item_sentences, popup.getMenu());
+				popup.show();
 			}
 			else
 			{
@@ -591,6 +631,8 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						@Override
 						public void onClick(View p1)
 						{
+							TransitionManager.beginDelayedTransition(recyclerView);
+							
 							if (layout_stats.getVisibility() == View.VISIBLE)
 							{
 								layout_stats.setVisibility(View.GONE);
@@ -634,9 +676,11 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		
 		public class SearchViewHolder extends RecyclerView.ViewHolder 
 		{
-			final View button_stroke_order, card_stroke_order, progress_stroke_order;
+			final View button_stroke_order, button_sentences, card_stroke_order, card_sentences, progress_stroke_order, progress_sentences, text_title_kanji_contained;
 			final TextView text_results;
-			final ViewGroup layout_stroke_order;
+			final ViewGroup layout_stroke_order, layout_sentences;
+			final RecyclerView recycler_kanji_contained;
+			final FragmentDetail.KanjiAdapter adapter_kanji_contained;
 			
 			public SearchViewHolder(View v) 
 			{
@@ -646,14 +690,29 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				layout_stroke_order = (ViewGroup) v.findViewById(R.id.layout_stroke_order);
 				progress_stroke_order = v.findViewById(R.id.progress_stroke_order);
 				
+				card_sentences = v.findViewById(R.id.card_sentences);
+				layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
+				progress_sentences = v.findViewById(R.id.progress_sentences);
+				
+				text_title_kanji_contained = v.findViewById(R.id.text_title_kanji_contained);
+				
+				recycler_kanji_contained = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
+				recycler_kanji_contained.setHasFixedSize(true);
+				recycler_kanji_contained.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+				recycler_kanji_contained.setAdapter(adapter_kanji_contained = new FragmentDetail.KanjiAdapter(getActivity(), dbHelper, recyclerView, null));
+				
 				v.findViewById(R.id.button_jisho).setOnClickListener(HomeAdapter.this);
 				v.findViewById(R.id.button_filter).setOnClickListener(HomeAdapter.this);
-				v.findViewById(R.id.button_overflow).setOnClickListener(HomeAdapter.this);
+				v.findViewById(R.id.button_overflow_stroke_order).setOnClickListener(HomeAdapter.this);
+				v.findViewById(R.id.button_overflow_sentences).setOnClickListener(HomeAdapter.this);
+				
 				(button_stroke_order = v.findViewById(R.id.button_stroke_order)).setOnClickListener(new View.OnClickListener()
 				{
 						@Override
 						public void onClick(View p1)
 						{
+							TransitionManager.beginDelayedTransition(recyclerView);
+							
 							if (card_stroke_order.getVisibility() == View.VISIBLE)
 								card_stroke_order.setVisibility(View.GONE);
 						
@@ -671,6 +730,30 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 							}
 						}
 				});
+				(button_sentences = v.findViewById(R.id.button_sentences)).setOnClickListener(new View.OnClickListener()
+					{
+						@Override
+						public void onClick(View p1)
+						{
+							TransitionManager.beginDelayedTransition(recyclerView);
+							
+							if (card_sentences.getVisibility() == View.VISIBLE)
+								card_sentences.setVisibility(View.GONE);
+
+							else
+							{
+								card_sentences.setVisibility(View.VISIBLE);
+
+								if (progress_sentences.getVisibility() == View.VISIBLE)
+								{
+									final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+									params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
+
+									JishoHelper.addExampleSentences(getContext(), "", new String[] { searchQuery }, layout_sentences, params, progress_sentences);
+								}
+							}
+						}
+					});
 				text_results = (TextView) v.findViewById(R.id.text_results);
 			}
 		}
@@ -723,7 +806,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			{
 				StatsViewHolder holder1 = (StatsViewHolder) holder;
 				
-				int learned_total = 0,critical = 0;
+				int learned_total = 0, critical = 0;
 				int correct_kanji = 0, total_kanji = 0, correct_reading = 0, total_reading = 0,
 				correct_meaning = 0, total_meaning = 0;
 				long nextReview = 0;
@@ -878,13 +961,25 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				SearchViewHolder holder1 = (SearchViewHolder) holder;
 				
 				holder1.button_stroke_order.setVisibility(JishoHelper.isStrokeOrderAvailable(getContext()) && StringHelper.isKanaOrKanji(searchQuery) ? View.VISIBLE : View.GONE);
-				holder1.text_results.setText(vocabularies.length + " results for search \"" + searchQuery + "\"");
+				holder1.button_sentences.setVisibility(JishoHelper.isInternetAvailable(getContext()) ? View.VISIBLE : View.GONE);
+				holder1.text_results.setText(vocabularies.length + (vocabularies.length == 1 ? " result" : " results") + " for search \"" + searchQuery + "\"");
 				holder1.card_stroke_order.setVisibility(View.GONE);
+				holder1.card_sentences.setVisibility(View.GONE);
+				char[] kanji = StringHelper.getKanji(searchQuery);
+				holder1.text_title_kanji_contained.setVisibility(kanji.length > 0 ? View.VISIBLE : View.GONE);
+				holder1.recycler_kanji_contained.setVisibility(kanji.length > 0 ? View.VISIBLE : View.GONE);
+				holder1.adapter_kanji_contained.data = kanji;
+				holder1.adapter_kanji_contained.notifyDataSetChanged();
 				
 				if (holder1.progress_stroke_order.getVisibility() == View.GONE)
 				{
 					holder1.progress_stroke_order.setVisibility(View.VISIBLE);
 					holder1.layout_stroke_order.removeView(holder1.itemView.findViewWithTag("stroke_order"));
+				}
+				if (holder1.progress_sentences.getVisibility() == View.GONE)
+				{
+					holder1.progress_sentences.setVisibility(View.VISIBLE);
+					holder1.layout_sentences.removeView(holder1.itemView.findViewWithTag("sentences"));
 				}
 			}
 			else
@@ -910,7 +1005,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				
 				if ((searchQuery == null || searchQuery.isEmpty()))
 				{
-					if (sortType == SortType.CATEGORY || sortType == SortType.CATEGORY_REVERSED)
+					if (sortType == SortType.CATEGORY)
 					{
 						if (position == 1 || dbHelper.getInt(vocabularies[position - 2], "category") != category)
 						{

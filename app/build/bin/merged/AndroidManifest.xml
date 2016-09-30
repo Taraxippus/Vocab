@@ -94,8 +94,27 @@
             </intent-filter>
         </activity>
         <activity
+            android:name="com.taraxippus.vocab.ActivityAddKanji"
+            android:label="Add Kanji"
+            android:parentActivityName="com.taraxippus.vocab.ActivityMain"
+            android:theme="@style/DialogTheme"
+            android:windowSoftInputMode="adjustResize" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ActivityMain" />
+        </activity>
+        <activity
             android:name="com.taraxippus.vocab.ActivityDetail"
             android:label="Detail"
+            android:parentActivityName="com.taraxippus.vocab.ActivityMain"
+            android:windowSoftInputMode="adjustResize" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ActivityMain" />
+        </activity>
+        <activity
+            android:name="com.taraxippus.vocab.ActivityDetailKanji"
+            android:label="Kanji Detail"
             android:parentActivityName="com.taraxippus.vocab.ActivityMain"
             android:windowSoftInputMode="adjustResize" >
             <meta-data

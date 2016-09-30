@@ -1,0 +1,34 @@
+<menu 
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto" >
+	
+    <item
+		android:id="@+id/item_search"
+		android:icon="@drawable/search"
+		android:title="Search"
+		app:showAsAction="ifRoom|collapseActionView"
+		app:actionViewClass="android.support.v7.widget.SearchView" />
+
+	<item
+		android:id="@+id/item_filter"
+		android:icon="@drawable/filter"
+		android:title="Filter"
+		app:showAsAction="ifRoom"/>
+
+	<item
+		android:id="@+id/item_add"
+		android:title="Add Kanji"/>
+
+	<item
+		android:id="@+id/item_learn_add_next"
+		android:title="Learn next kanji"/>
+	
+    <item
+		android:id="@+id/item_import_jisho"
+		android:title="Import from jisho.org"/>
+	
+	<item
+		android:id="@+id/item_debug"
+		android:title="Debug"/>
+	
+</menu>

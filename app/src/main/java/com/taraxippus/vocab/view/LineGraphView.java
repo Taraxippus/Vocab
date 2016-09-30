@@ -68,7 +68,7 @@ public class LineGraphView extends View
 
 	public void setValues(String unit, int... values1)
 	{
-		if (values1.length == 0)
+		if (values1.length <= 1)
 			return;
 			
 		this.numbers = true;
