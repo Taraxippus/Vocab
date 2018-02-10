@@ -1,73 +1,31 @@
 package com.taraxippus.vocab.fragment;
 
-import android.app.Activity;
-import android.app.Fragment;
-import android.app.SearchManager;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import android.app.*;
+import android.content.*;
+import android.database.*;
+import android.database.sqlite.*;
+import android.os.*;
+import android.preference.*;
+import android.support.v4.view.*;
+import android.support.v4.widget.*;
+import android.support.v7.widget.*;
+import android.text.format.*;
+import android.transition.*;
+import android.util.*;
+import android.view.*;
+import android.widget.*;
+import com.taraxippus.vocab.*;
+import com.taraxippus.vocab.dialog.*;
+import com.taraxippus.vocab.util.*;
+import com.taraxippus.vocab.view.*;
+import com.taraxippus.vocab.vocabulary.*;
+import java.io.*;
+import java.text.*;
+import java.util.*;
+
 import android.support.v7.widget.SearchView;
 import android.text.format.DateFormat;
-import android.transition.AutoTransition;
-import android.transition.TransitionInflater;
-import android.transition.TransitionManager;
-import android.transition.TransitionSet;
-import android.util.TypedValue;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.PopupMenu;
-import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
-import com.taraxippus.vocab.ActivityAdd;
-import com.taraxippus.vocab.ActivityQuiz;
-import com.taraxippus.vocab.ActivitySettings;
-import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.dialog.DialogHelper;
-import com.taraxippus.vocab.dialog.FilterDialog;
-import com.taraxippus.vocab.dialog.ImportDialog;
-import com.taraxippus.vocab.dialog.LearnNextDialog;
-import com.taraxippus.vocab.util.JishoHelper;
-import com.taraxippus.vocab.util.NotificationHelper;
-import com.taraxippus.vocab.util.StringHelper;
-import com.taraxippus.vocab.view.GraphView;
-import com.taraxippus.vocab.view.LineGraphView;
-import com.taraxippus.vocab.view.PercentageGraphView;
-import com.taraxippus.vocab.vocabulary.DBHelper;
-import com.taraxippus.vocab.vocabulary.HideType;
-import com.taraxippus.vocab.vocabulary.QuestionType;
-import com.taraxippus.vocab.vocabulary.ShowType;
-import com.taraxippus.vocab.vocabulary.SortType;
-import com.taraxippus.vocab.vocabulary.ViewType;
-import com.taraxippus.vocab.vocabulary.Vocabulary;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Locale;
 
 public class FragmentHome extends Fragment implements SearchView.OnQueryTextListener, SharedPreferences.OnSharedPreferenceChangeListener
 {
@@ -152,12 +110,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		SearchManager searchManager = (SearchManager) getContext().getSystemService(Context.SEARCH_SERVICE);
 		SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.item_search));
 		searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-		searchView.setOnQueryTextListener(this);
 		if (!searchQuery.isEmpty())
 		{
 			menu.findItem(R.id.item_search).expandActionView();
 			searchView.setQuery(searchQuery, true);
 		}
+		searchView.setOnQueryTextListener(this);
 		super.onCreateOptionsMenu(menu, inflater);
 	}
 
@@ -167,7 +125,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
         switch (item.getItemId())
 		{
 			case R.id.item_filter:
-				new FilterDialog().show(getFragmentManager(), "filter");
+				new DialogFilter().show(getFragmentManager(), "filter");
 				return true;
 				
 			case R.id.item_add:
@@ -175,7 +133,34 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
             	return true;
         
 			case R.id.item_learn_add_next:
-				new LearnNextDialog().show(getFragmentManager(), "learn_next");
+				Set<String> queue = new HashSet<>();
+				queue = preferences.getStringSet("addQueue", queue);
+
+				if (queue.size() > 0)
+					DialogHelper.createDialog(getContext(), "Queued Vocabularies", "You have queued vocabularies, do you want to add them now?", "No", new DialogInterface.OnClickListener()
+						{
+							@Override
+							public void onClick(DialogInterface p1, int p2)
+							{
+								new DialogLearnNext().show(getFragmentManager(), "learn_next");
+							}
+						
+						}, "Yes", new DialogInterface.OnClickListener()
+						{
+							@Override
+							public void onClick(DialogInterface p1, int p2)
+							{
+								new DialogQueued().show(getFragmentManager(), "queued");
+							}
+						}, true);
+				
+				else
+					new DialogLearnNext().show(getFragmentManager(), "learn_next");
+					
+				return true;
+				
+			case R.id.item_queued:
+				new DialogQueued().show(getFragmentManager(), "queued");
 				return true;
 				
 			case R.id.item_import_file:
@@ -190,7 +175,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					Bundle bundle = new Bundle();
 					bundle.putString("text", clipboard.getText().toString());
 
-					ImportDialog dialog = new ImportDialog();
+					DialogImport dialog = new DialogImport();
 					dialog.setArguments(bundle);
 					dialog.show(getFragmentManager(), "import");
 				}
@@ -225,18 +210,6 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 
 			case R.id.item_clear:
 				DialogHelper.createDialog(getContext(), "Clear", "Do you really want to delete every vocabulary? This cannot be undone!",
-					"Delete filtered", 
-					new DialogInterface.OnClickListener() 
-					{
-						public void onClick(DialogInterface dialog, int which) 
-						{
-							dbHelper.deleteVocabularies(ShowType.values()[preferences.getInt("showType", 0)], StringHelper.toBooleanArray(preferences.getString("show", "")));
-							updateFilter();
-							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-							
-							dialog.dismiss();
-						}
-					}, 
 					"Delete", new DialogInterface.OnClickListener() 
 					{
 						public void onClick(DialogInterface dialog, int which) 
@@ -279,6 +252,10 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					});
 				return true;
 
+			case R.id.item_import_jisho:
+				new DialogImportVocabularyJisho().show(getFragmentManager(), "import_jisho");
+				return true;
+				
 			case R.id.item_learn_add_all:
 				dbHelper.updateVocabulariesLearned(true);
 				updateFilter();
@@ -403,7 +380,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				Bundle bundle = new Bundle();
 				bundle.putString("text", sb.toString());
 
-				ImportDialog dialog = new ImportDialog();
+				DialogImport dialog = new DialogImport();
 				dialog.setArguments(bundle);
 				dialog.show(getFragmentManager(), "import");
 			}
@@ -429,7 +406,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 	public void onSaveInstanceState(Bundle outState)
 	{
 		super.onSaveInstanceState(outState);
-		
+	
 		outState.putString("searchQuery", searchQuery);
 	}
 	
@@ -451,13 +428,148 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 		preferences.unregisterOnSharedPreferenceChangeListener(this);
 	}
 
+	public static class StatsViewHolder extends RecyclerView.ViewHolder 
+	{
+		final TextView text_progress_learned, text_progress_total,
+		text_date, text_next_review_values, date_next_review;
+
+		final ProgressBar progress_learned, progress_total;
+
+		final PercentageGraphView percentage_graph_types, percentage_graph_categories;
+		final LineGraphView line_graph_review;
+		final GraphView graph_reviewed;
+		final Button button_start_quiz;
+
+		public StatsViewHolder(View v, View.OnClickListener listener, final RecyclerView recyclerView) 
+		{
+			super(v);
+
+			final View layout_stats = v.findViewById(R.id.layout_stats);
+			final ImageView image_menu = (ImageView) v.findViewById(R.id.image_menu);
+			final Button button_stats = (Button) v.findViewById(R.id.button_stats);
+			button_stats.setOnClickListener(listener);
+			date_next_review = (TextView) v.findViewById(R.id.date_next_review);
+			final RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) date_next_review.getLayoutParams();
+
+			v.setOnClickListener(new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View p1)
+					{
+						TransitionManager.beginDelayedTransition(recyclerView);
+
+						if (layout_stats.getVisibility() == View.VISIBLE)
+						{
+							layout_stats.setVisibility(View.GONE);
+							image_menu.setImageResource(R.drawable.menu_down);
+							button_stats.setVisibility(View.GONE);
+							params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+							params.removeRule(RelativeLayout.ALIGN_PARENT_LEFT);
+						}
+						else
+						{
+							layout_stats.setVisibility(View.VISIBLE);
+							image_menu.setImageResource(R.drawable.menu_up);
+							button_stats.setVisibility(View.VISIBLE);
+							params.removeRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+							params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+						}
+					}
+				});
+
+			button_start_quiz = (Button) v.findViewById(R.id.button_start_quiz);
+			button_start_quiz.setOnClickListener(listener);
+
+			text_progress_learned = (TextView) v.findViewById(R.id.text_progress_learned);
+			text_progress_total = (TextView) v.findViewById(R.id.text_progress_total);
+
+			text_date = (TextView) v.findViewById(R.id.text_date);
+			text_next_review_values = (TextView) v.findViewById(R.id.text_next_review_values);
+
+			progress_learned = (ProgressBar) v.findViewById(R.id.progress_learned);
+			progress_total = (ProgressBar) v.findViewById(R.id.progress_total);
+
+			percentage_graph_types = (PercentageGraphView) v.findViewById(R.id.percentage_graph_types);
+			percentage_graph_categories = (PercentageGraphView) v.findViewById(R.id.percentage_graph_categories);
+
+			line_graph_review = (LineGraphView) v.findViewById(R.id.line_graph_review);
+
+			graph_reviewed = (GraphView) v.findViewById(R.id.graph_reviewed);
+		}
+	}
+
+	public static class SearchViewHolder extends RecyclerView.ViewHolder 
+	{
+		final View button_stroke_order, button_sentences, card_stroke_order, card_sentences, progress_stroke_order, progress_sentences;
+		final TextView text_results, text_title_kanji_contained;
+		final ViewGroup layout_stroke_order, layout_sentences;
+		final RecyclerView recycler_kanji_contained;
+		RecyclerView.Adapter adapter_kanji_contained;
+		
+		public SearchViewHolder(View v, View.OnClickListener listener) 
+		{
+			super(v);
+
+			card_stroke_order = v.findViewById(R.id.card_stroke_order);
+			layout_stroke_order = (ViewGroup) v.findViewById(R.id.layout_stroke_order);
+			progress_stroke_order = v.findViewById(R.id.progress_stroke_order);
+
+			card_sentences = v.findViewById(R.id.card_sentences);
+			layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
+			progress_sentences = v.findViewById(R.id.progress_sentences);
+
+			text_title_kanji_contained = (TextView) v.findViewById(R.id.text_title_kanji_contained);
+
+			recycler_kanji_contained = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
+			recycler_kanji_contained.setHasFixedSize(true);
+			recycler_kanji_contained.setLayoutManager(new LinearLayoutManager(v.getContext(), LinearLayoutManager.HORIZONTAL, false));
+			
+			v.findViewById(R.id.button_jisho).setOnClickListener(listener);
+			v.findViewById(R.id.button_filter).setOnClickListener(listener);
+			v.findViewById(R.id.button_overflow_stroke_order).setOnClickListener(listener);
+			v.findViewById(R.id.button_overflow_sentences).setOnClickListener(listener);
+
+			(button_stroke_order = v.findViewById(R.id.button_stroke_order)).setOnClickListener(listener);
+			(button_sentences = v.findViewById(R.id.button_sentences)).setOnClickListener(listener);
+			text_results = (TextView) v.findViewById(R.id.text_results);
+		}
+	}
+
+	public static class VocabularyViewHolder extends RecyclerView.ViewHolder 
+	{
+		final TextView text_category, text_kanji, text_reading, text_meaning;
+		final ImageView image_check;
+		final View card_vocabulary;
+
+		public VocabularyViewHolder(View v, View.OnClickListener listener) 
+		{
+			super(v);
+
+			card_vocabulary = v.findViewById(R.id.card_vocabulary);
+			card_vocabulary.setOnClickListener(listener);
+			v.findViewById(R.id.button_overflow).setOnClickListener(listener);
+
+			text_category = (TextView) v.findViewById(R.id.text_category);
+			text_kanji = (TextView) v.findViewById(R.id.text_kanji);
+			text_reading = (TextView) v.findViewById(R.id.text_reading);
+			text_meaning = (TextView) v.findViewById(R.id.text_meaning);
+
+			image_check = (ImageView) v.findViewById(R.id.image_check);
+
+			text_kanji.setTextLocale(Locale.JAPANESE);
+		}
+	}
+	
 	public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements View.OnClickListener
 	{
 		@Override
 		public void onClick(final View v)
 		{
-			if (v.getId() == R.id.button_filter)
-				new FilterDialog().show(getFragmentManager(), "filter");
+			if (v.getId() == R.id.button_stats)
+				getContext().startActivity(new Intent(getContext(), ActivityStats.class));
+				
+			else if (v.getId() == R.id.button_filter)
+				new DialogFilter().show(getFragmentManager(), "filter");
 
 			else if (v.getId() == R.id.button_jisho)
 				JishoHelper.search(getContext(), searchQuery);
@@ -486,8 +598,8 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 												dbHelper.deleteVocabulary(id);
 										
 												int[] vocabularies1 = new int[vocabularies.length - 1];
-												System.arraycopy(vocabularies, 0, vocabularies1, 0, index - 1);
-												System.arraycopy(vocabularies, index, vocabularies1, index - 1, vocabularies.length - index);
+												System.arraycopy(vocabularies, 0, vocabularies1, 0, index);
+												System.arraycopy(vocabularies, index + 1, vocabularies1, index, vocabularies.length - index - 1);
 												vocabularies = vocabularies1;
 												notifyItemRemoved(index);
 
@@ -531,6 +643,50 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				popup.getMenu().findItem(R.id.learn_add).setVisible(!learned);
 				popup.getMenu().findItem(R.id.learn_remove).setVisible(learned);
 				popup.show();
+			}
+			else if (v.getId() == R.id.button_stroke_order)
+			{
+				SearchViewHolder holder = (SearchViewHolder) recyclerView.getChildViewHolder((View) ((View) ((View) v.getParent()).getParent()).getParent());
+				
+				TransitionManager.beginDelayedTransition(recyclerView);
+
+				if (holder.card_stroke_order.getVisibility() == View.VISIBLE)
+					holder.card_stroke_order.setVisibility(View.GONE);
+
+				else
+				{
+					holder.card_stroke_order.setVisibility(View.VISIBLE);
+
+					if (holder.progress_stroke_order.getVisibility() == View.VISIBLE)
+					{
+						final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+						params.addRule(RelativeLayout.BELOW, R.id.text_title_stroke_order);
+
+						JishoHelper.addStrokeOrderView(getContext(), searchQuery, holder.layout_stroke_order, params, holder.progress_stroke_order, false, true);
+					}
+				}
+			}
+			else if (v.getId() == R.id.button_sentences)
+			{
+				SearchViewHolder holder = (SearchViewHolder) recyclerView.getChildViewHolder((View) ((View) ((View) v.getParent()).getParent()).getParent());
+
+				TransitionManager.beginDelayedTransition(recyclerView);
+
+				if (holder.card_sentences.getVisibility() == View.VISIBLE)
+					holder.card_sentences.setVisibility(View.GONE);
+
+				else
+				{
+					holder.card_sentences.setVisibility(View.VISIBLE);
+
+					if (holder.progress_sentences.getVisibility() == View.VISIBLE)
+					{
+						final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+						params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
+
+						JishoHelper.addExampleSentences(getContext(), "", new String[] { searchQuery }, holder.layout_sentences, params, holder.progress_sentences);
+					}
+				}
 			}
 			else if (v.getId() == R.id.button_overflow_stroke_order)
 			{
@@ -584,10 +740,14 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 			}
 			else
 			{
+				int pos = recyclerView.getChildAdapterPosition((View) v.getParent()) - 1;
+				if (pos < 0)
+					return;
+				
 				Fragment fragment = new FragmentDetail().setDefaultTransitions(getContext());
-
+				
 				Bundle bundle = new Bundle();
-				bundle.putInt("id", vocabularies[recyclerView.getChildAdapterPosition((View) v.getParent()) - 1]);
+				bundle.putInt("id", vocabularies[pos]);
 				fragment.setArguments(bundle);
 
 				View v1 = v.findViewById(R.id.text_kanji);
@@ -604,197 +764,21 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 					.commit();
 			}
 		}
-
-		public class StatsViewHolder extends RecyclerView.ViewHolder 
-		{
-			final TextView text_progress_learned, text_progress_total,
-			text_progress_kanji, text_progress_reading, text_progress_meaning,
-			text_date, text_next_review_values, date_next_review;
-			
-			final ProgressBar progress_learned, progress_total,
-			progress_kanji, progress_meaning, progress_reading;
-			
-			final PercentageGraphView percentage_graph_types, percentage_graph_categories;
-			final LineGraphView line_graph_review;
-			final GraphView graph_reviewed;
-			final Button button_start_quiz;
-			
-			public StatsViewHolder(View v) 
-			{
-				super(v);
-				
-				final View layout_stats = v.findViewById(R.id.layout_stats);
-				final ImageView image_menu = (ImageView) v.findViewById(R.id.image_menu);
-
-				v.setOnClickListener(new View.OnClickListener()
-				{
-						@Override
-						public void onClick(View p1)
-						{
-							TransitionManager.beginDelayedTransition(recyclerView);
-							
-							if (layout_stats.getVisibility() == View.VISIBLE)
-							{
-								layout_stats.setVisibility(View.GONE);
-								image_menu.setImageResource(R.drawable.menu_down);
-							}
-							else
-							{
-								layout_stats.setVisibility(View.VISIBLE);
-								image_menu.setImageResource(R.drawable.menu_up);
-							}
-						}
-				});
-				
-				button_start_quiz = (Button) v.findViewById(R.id.button_start_quiz);
-				button_start_quiz.setOnClickListener(HomeAdapter.this);
-				
-				text_progress_learned = (TextView) v.findViewById(R.id.text_progress_learned);
-				text_progress_total = (TextView) v.findViewById(R.id.text_progress_total);
-				text_progress_kanji = (TextView) v.findViewById(R.id.text_progress_kanji);
-				text_progress_reading = (TextView) v.findViewById(R.id.text_progress_reading);
-				text_progress_meaning = (TextView) v.findViewById(R.id.text_progress_meaning);
-				
-				text_date = (TextView) v.findViewById(R.id.text_date);
-				text_next_review_values = (TextView) v.findViewById(R.id.text_next_review_values);
-				date_next_review = (TextView) v.findViewById(R.id.date_next_review);
-				
-				progress_learned = (ProgressBar) v.findViewById(R.id.progress_learned);
-				progress_total = (ProgressBar) v.findViewById(R.id.progress_total);
-				progress_kanji = (ProgressBar) v.findViewById(R.id.progress_kanji);
-				progress_reading = (ProgressBar) v.findViewById(R.id.progress_reading);
-				progress_meaning = (ProgressBar) v.findViewById(R.id.progress_meaning);
-				
-				percentage_graph_types = (PercentageGraphView) v.findViewById(R.id.percentage_graph_types);
-				percentage_graph_categories = (PercentageGraphView) v.findViewById(R.id.percentage_graph_categories);
-				
-				line_graph_review = (LineGraphView) v.findViewById(R.id.line_graph_review);
-				
-				graph_reviewed = (GraphView) v.findViewById(R.id.graph_reviewed);
-			}
-		}
-		
-		public class SearchViewHolder extends RecyclerView.ViewHolder 
-		{
-			final View button_stroke_order, button_sentences, card_stroke_order, card_sentences, progress_stroke_order, progress_sentences, text_title_kanji_contained;
-			final TextView text_results;
-			final ViewGroup layout_stroke_order, layout_sentences;
-			final RecyclerView recycler_kanji_contained;
-			final FragmentDetail.KanjiAdapter adapter_kanji_contained;
-			
-			public SearchViewHolder(View v) 
-			{
-				super(v);
-				
-				card_stroke_order = v.findViewById(R.id.card_stroke_order);
-				layout_stroke_order = (ViewGroup) v.findViewById(R.id.layout_stroke_order);
-				progress_stroke_order = v.findViewById(R.id.progress_stroke_order);
-				
-				card_sentences = v.findViewById(R.id.card_sentences);
-				layout_sentences = (ViewGroup) v.findViewById(R.id.layout_sentences);
-				progress_sentences = v.findViewById(R.id.progress_sentences);
-				
-				text_title_kanji_contained = v.findViewById(R.id.text_title_kanji_contained);
-				
-				recycler_kanji_contained = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
-				recycler_kanji_contained.setHasFixedSize(true);
-				recycler_kanji_contained.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-				recycler_kanji_contained.setAdapter(adapter_kanji_contained = new FragmentDetail.KanjiAdapter(getActivity(), dbHelper, recyclerView, null));
-				
-				v.findViewById(R.id.button_jisho).setOnClickListener(HomeAdapter.this);
-				v.findViewById(R.id.button_filter).setOnClickListener(HomeAdapter.this);
-				v.findViewById(R.id.button_overflow_stroke_order).setOnClickListener(HomeAdapter.this);
-				v.findViewById(R.id.button_overflow_sentences).setOnClickListener(HomeAdapter.this);
-				
-				(button_stroke_order = v.findViewById(R.id.button_stroke_order)).setOnClickListener(new View.OnClickListener()
-				{
-						@Override
-						public void onClick(View p1)
-						{
-							TransitionManager.beginDelayedTransition(recyclerView);
-							
-							if (card_stroke_order.getVisibility() == View.VISIBLE)
-								card_stroke_order.setVisibility(View.GONE);
-						
-							else
-							{
-								card_stroke_order.setVisibility(View.VISIBLE);
-								
-								if (progress_stroke_order.getVisibility() == View.VISIBLE)
-								{
-									final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-									params.addRule(RelativeLayout.BELOW, R.id.text_title_stroke_order);
-
-									JishoHelper.addStrokeOrderView(getContext(), searchQuery, layout_stroke_order, params, progress_stroke_order, false, true);
-								}
-							}
-						}
-				});
-				(button_sentences = v.findViewById(R.id.button_sentences)).setOnClickListener(new View.OnClickListener()
-					{
-						@Override
-						public void onClick(View p1)
-						{
-							TransitionManager.beginDelayedTransition(recyclerView);
-							
-							if (card_sentences.getVisibility() == View.VISIBLE)
-								card_sentences.setVisibility(View.GONE);
-
-							else
-							{
-								card_sentences.setVisibility(View.VISIBLE);
-
-								if (progress_sentences.getVisibility() == View.VISIBLE)
-								{
-									final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-									params.addRule(RelativeLayout.BELOW, R.id.text_title_sentences);
-
-									JishoHelper.addExampleSentences(getContext(), "", new String[] { searchQuery }, layout_sentences, params, progress_sentences);
-								}
-							}
-						}
-					});
-				text_results = (TextView) v.findViewById(R.id.text_results);
-			}
-		}
-		
-		public class VocabularyViewHolder extends RecyclerView.ViewHolder 
-		{
-			final TextView text_category, text_kanji, text_reading, text_meaning;
-			final ImageView image_check;
-			final View card_vocabulary;
-			
-			public VocabularyViewHolder(View v) 
-			{
-				super(v);
-				
-				card_vocabulary = v.findViewById(R.id.card_vocabulary);
-				card_vocabulary.setOnClickListener(HomeAdapter.this);
-				v.findViewById(R.id.button_overflow).setOnClickListener(HomeAdapter.this);
-				
-				text_category = (TextView) v.findViewById(R.id.text_category);
-				text_kanji = (TextView) v.findViewById(R.id.text_kanji);
-				text_reading = (TextView) v.findViewById(R.id.text_reading);
-				text_meaning = (TextView) v.findViewById(R.id.text_meaning);
-				
-				image_check = (ImageView) v.findViewById(R.id.image_check);
-				
-				text_kanji.setTextLocale(Locale.JAPANESE);
-			}
-		}
-
 		
 		@Override
 		public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
 		{
 			if (viewType == 0)
-				return new StatsViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_stats, parent, false));
+				return new StatsViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_stats, parent, false), this, recyclerView);
 			
 			else if (viewType == 1)
-				return new SearchViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_search, parent, false));
-			
+			{
+				SearchViewHolder holder = new SearchViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_search, parent, false), this);
+				holder.recycler_kanji_contained.setAdapter(holder.adapter_kanji_contained = new FragmentDetail.KanjiAdapter(getActivity(), dbHelper, holder.recycler_kanji_contained, null));
+				return holder;
+			} 
 			else
-				return new VocabularyViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_vocabulary, parent, false));
+				return new VocabularyViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_vocabulary, parent, false), this);
 			
 		}
 
@@ -807,14 +791,12 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				StatsViewHolder holder1 = (StatsViewHolder) holder;
 				
 				int learned_total = 0, critical = 0;
-				int correct_kanji = 0, total_kanji = 0, correct_reading = 0, total_reading = 0,
-				correct_meaning = 0, total_meaning = 0;
 				long nextReview = 0;
 				int[] review = new int[25], types = new int[Vocabulary.types.size()];
 				final ArrayList<Integer> categories_count = new ArrayList<>();
 				categories_count.add(0);
 				
-				Cursor res = dbHelper.getReadableDatabase().rawQuery("SELECT category, learned, type, nextReview, timesChecked_kanji, timesChecked_reading, timesChecked_meaning, timesCorrect_kanji, timesCorrect_reading, timesCorrect_meaning FROM vocab", null);
+				Cursor res = dbHelper.getReadableDatabase().rawQuery("SELECT category, learned, type, nextReview FROM vocab", null);
 				int count = res.getCount();
 				if (count > 0)
 				{
@@ -840,13 +822,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 							learned_total++;
 							if (vCategory <= 1)
 								critical++;
-							correct_kanji += res.getInt(res.getColumnIndex("timesCorrect_kanji"));
-							total_kanji += res.getInt(res.getColumnIndex("timesChecked_kanji"));
-							correct_reading += res.getInt(res.getColumnIndex("timesCorrect_reading"));
-							total_reading += res.getInt(res.getColumnIndex("timesChecked_reading"));
-							correct_meaning += res.getInt(res.getColumnIndex("timesCorrect_meaning"));
-							total_meaning += res.getInt(res.getColumnIndex("timesChecked_meaning"));
-
+							
 							if (nextReview == 0)
 								nextReview = vNextReview;
 							else
@@ -874,7 +850,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				categories[0] = "Not Learned";
 				if (categories.length > 1)
 				{
-					categories[1] = "Critical";
+					categories[1] = "New";
 					for (int i = 2; i < categories.length; ++i)
 						categories[i] = "" + (i - 1);
 				}
@@ -893,22 +869,6 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				holder1.percentage_graph_types.setValues(Vocabulary.types.toArray(new String[Vocabulary.types.size()]), types, true, true);
 				holder1.percentage_graph_categories.setValues(categories, categories_values, true, true);
 				
-				holder1.text_progress_total.setText((correct_meaning + correct_reading + correct_kanji) + " / " + (total_meaning + total_reading + total_meaning));
-				holder1.progress_total.setMax(total_meaning + total_reading + total_kanji);
-				holder1.progress_total.setProgress(correct_meaning + correct_reading + correct_kanji);
-
-				holder1.text_progress_kanji.setText(correct_kanji + " / " + total_kanji);
-				holder1.progress_kanji.setMax(total_kanji);
-				holder1.progress_kanji.setProgress(correct_kanji);
-
-				holder1.text_progress_reading.setText(correct_reading + " / " + total_reading);
-				holder1.progress_reading.setMax(total_reading);
-				holder1.progress_reading.setProgress(correct_reading);
-
-				holder1.text_progress_meaning.setText(correct_meaning + " / " + total_meaning);
-				holder1.progress_meaning.setMax(total_meaning);
-				holder1.progress_meaning.setProgress(correct_meaning);
-
 				holder1.line_graph_review.setValues(review);
 
 				long lastDate = preferences.getLong("lastReviewDate", 0);
@@ -968,7 +928,8 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 				char[] kanji = StringHelper.getKanji(searchQuery);
 				holder1.text_title_kanji_contained.setVisibility(kanji.length > 0 ? View.VISIBLE : View.GONE);
 				holder1.recycler_kanji_contained.setVisibility(kanji.length > 0 ? View.VISIBLE : View.GONE);
-				holder1.adapter_kanji_contained.data = kanji;
+				holder1.text_title_kanji_contained.setText(kanji.length + " Kanji");
+				((FragmentDetail.KanjiAdapter) holder1.adapter_kanji_contained).data = kanji;
 				holder1.adapter_kanji_contained.notifyDataSetChanged();
 				
 				if (holder1.progress_stroke_order.getVisibility() == View.GONE)
@@ -1010,7 +971,7 @@ public class FragmentHome extends Fragment implements SearchView.OnQueryTextList
 						if (position == 1 || dbHelper.getInt(vocabularies[position - 2], "category") != category)
 						{
 							holder1.text_category.setVisibility(View.VISIBLE);
-							holder1.text_category.setText(category == 0 ? "Critical vocabularies" : "Category " + category);
+							holder1.text_category.setText(category == 0 ? "New vocabularies" : "Category " + category);
 						}
 					}
 					else if (sortType == SortType.TYPE)

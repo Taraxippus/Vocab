@@ -29,6 +29,10 @@
 		android:title="Show kanji on jisho.org"/>
 	
 	<item
+		android:id="@+id/item_quiz_preferences"
+		android:title="Quiz preferences"/>
+	
+	<item
 		android:id="@+id/item_reset"
 		android:title="Reset stats"/>
 	

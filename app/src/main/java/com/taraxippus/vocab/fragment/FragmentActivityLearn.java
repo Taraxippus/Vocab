@@ -75,12 +75,14 @@ public class FragmentActivityLearn extends Fragment
 			if (pos == 0)
 				f = new FragmentActivityLearnOverview();
 			else if (pos == 1)
+				f = new FragmentActivityLearnPreferences();
+			else if (pos == 2)
 				f = new FragmentActivityLearnKanji();
-			else if (pos == 2 && hasReading)
+			else if (pos == 3 && hasReading)
 				f = new FragmentActivityLearnReading();
-			else if (pos == 3 && hasReading || pos == 2 && ! hasReading)
+			else if (pos == 4 && hasReading || pos == 3 && ! hasReading)
 				f = new FragmentActivityLearnMeaning();
-			else
+			else 
 				f = new FragmentActivityLearnPractice();
 			
 			final Bundle args = new Bundle();
@@ -93,15 +95,18 @@ public class FragmentActivityLearn extends Fragment
 		@Override
 		public int getCount()
 		{
-			return hasReading ? 5 : 4;
+			return hasReading ? 6 : 5;
 		}
 
-		private static final String[] TITLES = new String[] { "Overview", "Kanji", "Reading", "Meaning", "Practice"};
-		private static final String[] TITLES_NO_READING = new String[] { "Overview", "Kana", "Meaning", "Practice"};
+		private static final String[] TITLES = new String[] { "Overview", "Preferences", "Kanji", "Reading", "Meaning", "Practice"};
+		private static final String[] TITLES_NO_READING = new String[] { "Overview", "Preferences", "Kana", "Meaning", "Practice"};
 		
 		@Override
 		public CharSequence getPageTitle(int position)
 		{
+			if (position == 0)
+				return (getArguments().getInt("index") + 1) + " / " + getArguments().getIntArray("newVocabularies").length + "  " + TITLES[0];
+				
 			return hasReading ? TITLES[position] : TITLES_NO_READING[position];
 		}
 	}

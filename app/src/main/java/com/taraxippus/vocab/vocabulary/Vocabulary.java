@@ -16,6 +16,7 @@ import android.widget.ActionMenuView.*;
 public class Vocabulary
 {
 	public static final Random random = new Random();
+	public static MediaPlayer mediaPlayer;
 	
 	public int id;
 	public String kanji;
@@ -62,6 +63,11 @@ public class Vocabulary
 	public long added;
 	public long nextReview;
 	
+	public ReviewType kanjiReview = ReviewType.NORMAL;
+	public ReviewType readingReview = ReviewType.NORMAL;
+	public ReviewType meaningReview = ReviewType.NORMAL;
+	public boolean quickReview;
+	
 	public String soundFile;
 	public String imageFile;
 	
@@ -74,6 +80,8 @@ public class Vocabulary
 	{
 		answer = StringHelper.trim(answer);
 		answer = answer.replace("・", "");
+		if (reading.length == 0 && type == QuestionType.KANJI || type == QuestionType.READING)
+			answer = answer.replace("一", "ー").replace("二", "ニ").replace("才", "オ").replace("口", "ロ").replace("夕", "タ").replace("力", "カ").replace("工", "エ");
 
 		if (type == QuestionType.READING)
 			answer = StringHelper.toHiragana(answer);
@@ -102,7 +110,7 @@ public class Vocabulary
 					return Answer.RETRY;
 			}
 				
-		if (answer.equalsIgnoreCase(kanji))
+		if (answer.equalsIgnoreCase(kanji) || reading.length == 0 && StringHelper.equalsKana(answer, kanji))
 			if (type == QuestionType.KANJI)
 				return Answer.CORRECT;
 			else
@@ -118,6 +126,9 @@ public class Vocabulary
 			for (int id : question == QuestionType.READING ? sameReading : sameMeaning)
 			{
 				kanji = dbHelper.getString(id, "kanji");
+				if (kanji == null)
+					continue;
+					
 				if (answer.equalsIgnoreCase(kanji))
 					if (type == QuestionType.KANJI)
 						return Answer.DIFFERENT;
@@ -149,6 +160,8 @@ public class Vocabulary
 	{
 		answer = StringHelper.trim(answer);
 		answer = answer.replace("・", "");
+		if (reading.length == 0 && type == QuestionType.KANJI || type == QuestionType.READING)
+			answer = answer.replace("一", "ー").replace("二", "ニ").replace("才", "オ").replace("口", "ロ").replace("夕", "タ").replace("力", "カ").replace("工", "エ");
 		
 		if (type == QuestionType.READING)
 			answer = StringHelper.toHiragana(answer);
@@ -187,7 +200,7 @@ public class Vocabulary
 					return Answer.RETRY;
 			}
 		
-		if (answer.equalsIgnoreCase(kanji))
+		if (answer.equalsIgnoreCase(kanji) || reading.length == 0 && StringHelper.equalsKana(answer, kanji))
 		{
 			if (type == QuestionType.KANJI)
 			{
@@ -263,7 +276,6 @@ public class Vocabulary
 		}
 		
 		answered_correct = false;
-		
 		category = getLastSavePoint(context);
 			
 		return Answer.WRONG;
@@ -409,7 +421,7 @@ public class Vocabulary
 				sb.append(reading[reading.length - 1]);
 			}
 
-			return sb.toString();
+			return sb.toString().replace("・", "");
 		}
 		else if (type == QuestionType.KANJI)
 		{
@@ -503,7 +515,7 @@ public class Vocabulary
 		if ("-".equals(soundFile))
 			return;
 
-		if (soundFile == null || soundFile.isEmpty())
+		if (soundFile == null || soundFile.isEmpty() || soundFile.contains("\""))
 		{
 			JishoHelper.findSoundFile(dbHelper, this, new OnProcessSuccessListener()
 				{
@@ -532,8 +544,12 @@ public class Vocabulary
 				return;
 			}
 			
+			if (mediaPlayer != null)
+				return;
+				
 			MediaPlayer player = new MediaPlayer();
-			player.setAudioStreamType(AudioManager.STREAM_NOTIFICATION);
+			mediaPlayer = player;
+			player.setAudioStreamType(AudioManager.STREAM_MUSIC);
 			player.setDataSource(soundFile);
 			player.prepareAsync();
 			
@@ -551,7 +567,7 @@ public class Vocabulary
 					@Override
 					public void onPrepared(MediaPlayer p1)
 					{
-						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_NOTIFICATION, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+						((AudioManager) context.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 						
 						p1.start();
 					}
@@ -565,11 +581,23 @@ public class Vocabulary
 						
 						p1.stop();
 						p1.release();
+						mediaPlayer = null;
+					}
+			});
+			player.setOnErrorListener(new MediaPlayer.OnErrorListener()
+			{
+					@Override
+					public boolean onError(MediaPlayer p1, int p2, int p3)
+					{
+						System.err.println("Mediaplayer error: " + p2 + "/" + p3 + " (" + soundFile + ")");
+						return false;
 					}
 			});
 		}
 		catch (Exception e)
 		{
+			System.err.println("Mediaplayer error (" + soundFile + ")");
+			
 			e.printStackTrace();
 		}
 	}
@@ -590,10 +618,12 @@ public class Vocabulary
 	public static final ArrayList<String> types = new ArrayList<>();
 	public static final ArrayList<String> types_import = new ArrayList<>();
 	public static final ArrayList<String> types_sort = new ArrayList<>();
+	public static final ArrayList<String> types_sort_kanji = new ArrayList<>();
 	public static final ArrayList<String> types_view = new ArrayList<>();
 	public static final ArrayList<String> types_show = new ArrayList<>();
 	public static final ArrayList<String> types_hide = new ArrayList<>();
-	
+	public static final ArrayList<String> types_review = new ArrayList<>();
+
 	static
 	{
 		types.add("None");
@@ -620,18 +650,28 @@ public class Vocabulary
 		types_sort.add("Vocabulary type");
 		types_sort.add("Next review");
 		
+		types_sort_kanji.add("Category");
+		types_sort_kanji.add("Date added");
+		types_sort_kanji.add("Stroke count");
+		types_sort_kanji.add("Next review");
+		
 		types_view.add("Large");
 		types_view.add("Medium");
 		types_view.add("Small");
 		
-		types_show.add("All vocabularies");
-		types_show.add("Learned vocabularies");
-		types_show.add("Other vocabularies");
+		types_show.add("All");
+		types_show.add("Learned");
+		types_show.add("Not yet learned");
 		
 		types_hide.add("Nothing");
 		types_hide.add("Kanji");
 		types_hide.add("Reading");
 		types_hide.add("Meaning");
+		
+		types_review.add("Don't Review");
+		types_review.add("Normal");
+		types_review.add("Fast");
+		types_review.add("Mixed");
 	}
 	
 	public String getType()
@@ -701,8 +741,10 @@ public class Vocabulary
 				return 1000L * 60 * 60 * (24 * (30 * 6 + 5) + 3);
 			case 15:
 				return 1000L * 60 * 60 * (24 * (30 * 9 + 7) + 5);
+			case 16:
+				return 1000L * 60 * 60 * 24 * 365;
 			default:
-				return 1000L * 60 * 60 * 24 * 356;
+				return 1000L * 60 * 60 * 24 * 365 * 2;
 				
 		}
 	}

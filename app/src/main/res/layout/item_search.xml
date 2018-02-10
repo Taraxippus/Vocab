@@ -22,7 +22,7 @@
 				android:id="@+id/button_sentences"
 				android:layout_width="24dp"
 				android:layout_height="24dp"
-				android:layout_alignParentRight="true"
+				android:layout_alignParentLeft="true"
 				android:layout_alignParentTop="true"
 				android:scaleType="center"
 				android:src="@drawable/sentences"
@@ -33,7 +33,7 @@
 				android:id="@+id/button_stroke_order"
 				android:layout_width="24dp"
 				android:layout_height="24dp"
-				android:layout_toLeftOf="@id/button_sentences"
+				android:layout_toRightOf="@id/button_sentences"
 				android:layout_alignParentTop="true"
 				android:scaleType="center"
 				android:src="@drawable/stroke_order"
@@ -44,8 +44,8 @@
 				android:id="@+id/text_results"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:layout_below="@id/button_sentences"
 				android:layout_centerHorizontal="true"
+				android:layout_marginTop="24dp"
 				android:padding="8dp"
 				android:textStyle="bold" />
 

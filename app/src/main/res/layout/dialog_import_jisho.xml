@@ -1,0 +1,103 @@
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+
+	android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+	<ProgressBar
+		android:id="@+id/progress_jisho"
+		style="?android:attr/progressBarStyleHorizontal"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_alignParentTop="true"
+		android:layout_marginBottom="-6dp"
+		android:indeterminate="true"
+		android:visibility="invisible"/>
+	
+	<EditText
+		android:id="@+id/text_search"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/progress_jisho"
+		android:layout_marginTop="8dp" 
+		android:layout_marginLeft="8dp" 
+		android:layout_marginRight="8dp"
+		android:hint="Search query for jisho.org"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:maxLines="1"
+		android:singleLine="true" />
+	
+	<TextView
+		android:id="@+id/text_import"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/text_search" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="12dp"
+		android:text="Conflicts:"
+		android:visibility="gone" />
+
+	<Spinner
+		android:id="@+id/spinner_import"
+		android:layout_width="200dp"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true"
+		android:layout_below="@id/text_search" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:visibility="gone" />
+	
+	<CheckBox android:id="@+id/checkbox_learned"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_import" 
+		android:layout_marginTop="8dp"
+		android:layout_marginLeft="12dp"
+		android:text="Add to learned kanji"
+		android:visibility="gone" />
+	
+	<TextView
+		android:id="@+id/text_results"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="16dp"
+		android:layout_below="@id/checkbox_learned"
+		android:paddingRight="12dp"
+		android:gravity="right"
+		android:textColor="?android:attr/textColorSecondary" />
+	
+	<View
+		android:id="@+id/divider_scroll_top"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_below="@id/text_results"
+		android:background="?android:attr/listDivider"
+		android:visibility="gone" />
+
+	<View
+		android:id="@+id/divider_scroll_bottom"
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:layout_alignParentBottom="true"
+		android:background="?android:attr/listDivider"
+		android:visibility="gone" />
+
+	<android.support.v7.widget.RecyclerView
+		android:id="@+id/recycler_preview"
+		android:layout_width="match_parent" 
+		android:layout_height="0dp"
+		android:layout_below="@id/divider_scroll_top"
+		android:layout_above="@id/divider_scroll_bottom"
+		android:paddingTop="8dp" 
+		android:paddingBottom="8dp"
+		android:paddingLeft="8dp" 
+		android:paddingRight="8dp"
+		android:clipToPadding="false"
+		android:background="@color/darkGray"
+		android:gravity="center" 
+		android:layout_gravity="center" 
+		android:visibility="gone" />
+
+</RelativeLayout>

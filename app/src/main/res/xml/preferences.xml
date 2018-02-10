@@ -32,6 +32,12 @@
 			android:summary="Auto play sound in quiz. Requires internet. Not all vocabularies have sound" 
 			android:defaultValue="false"/>
 		
+		<CheckBoxPreference
+			android:key="autoImport"
+			android:title="Enable automatic import"
+			android:summary="When using the share menu to add a new vocabulary, the data will be automatically fetched from Jisho.org" 
+			android:defaultValue="true"/>
+		
     </PreferenceCategory>
 	
 	<PreferenceCategory

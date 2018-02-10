@@ -44,7 +44,7 @@ import java.util.Locale;
 import java.util.Random;
 import android.transition.TransitionPropagation;
 
-public class FragmentActivityQuizRandom extends Fragment implements View.OnClickListener
+public class FragmentActivityQuizFast extends Fragment implements View.OnClickListener
 {
 	Random random = new Random();
 	DBHelper dbHelper;
@@ -67,7 +67,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 	TextView text_answer[] = new TextView[4];
 	TextView text_solution_icon, text_solution, text_level_up;
 	
-	public FragmentActivityQuizRandom() {}
+	public FragmentActivityQuizFast() {}
 
 	public Fragment setDefaultTransitions(Context context)
 	{
@@ -80,7 +80,9 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 		this.setExitTransition(exit);
 		
 		TransitionSet set = new TransitionSet();
-		set.addTransition(new ChangeTransform());
+		ChangeTransform changeTransform = new ChangeTransform();
+		changeTransform.setReparentWithOverlay(false);
+		set.addTransition(changeTransform);
 		ChangeBounds changeBounds = new ChangeBounds();
 		changeBounds.setResizeClip(false);
 		set.addTransition(changeBounds);
@@ -212,7 +214,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 	{
-		return inflater.inflate(R.layout.activity_quiz_random, container, false);
+		return inflater.inflate(R.layout.activity_quiz_fast, container, false);
 	}
 
 	@Override
@@ -239,6 +241,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 		text_solution = (TextView) v.findViewById(R.id.text_solution);
 		text_level_up = (TextView) v.findViewById(R.id.text_level_up);
 		card_layout_answer = v.findViewById(R.id.card_answer);
+		v.findViewById(R.id.layout_answer).bringToFront();
 		
 		text_answer[0] = (TextView) v.findViewById(R.id.text_answer1);
 		text_answer[1] = (TextView) v.findViewById(R.id.text_answer2);
@@ -362,6 +365,16 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 		button_stroke_order.setVisibility(JishoHelper.isStrokeOrderAvailable(getContext()) && question_type == QuestionType.KANJI ? View.VISIBLE : View.GONE);
 		button_stroke_order2.setVisibility(JishoHelper.isStrokeOrderAvailable(getContext()) ? View.VISIBLE : View.GONE);
 		
+		final ImageButton button_skip = (ImageButton) v.findViewById(R.id.button_skip);
+		button_skip.setOnClickListener(new View.OnClickListener() 
+			{
+				public void onClick(View v) 
+				{
+					
+				}
+			});
+		button_skip.setVisibility(View.GONE);
+		
 		if (JishoHelper.isInternetAvailable(getContext()) && preferences.getBoolean("soundQuiz", false) && question_type == QuestionType.READING)
 			vocabulary.playSound(dbHelper);
 	}
@@ -417,7 +430,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 				text_solution_icon.setText("✔");
 				text_solution.setText("Correct");
 
-				if (preferences.getBoolean("soundQuiz", false) && answer_type == QuestionType.READING)
+				if (preferences.getBoolean("soundQuiz", false) && answer_type == QuestionType.READING && JishoHelper.isInternetAvailable(getContext()))
 					vocabulary.playSound(dbHelper);
 			}
 			else
@@ -431,7 +444,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 				text_solution.setText("Correct answer was:\n" + vocabulary.correctAnswer(answer_type));
 				text_level_up.setText("-" + (vocabulary.category - vocabulary.getLastSavePoint(getContext())));
 
-				if (preferences.getBoolean("soundQuiz", false) && answer_type == QuestionType.READING)
+				if (preferences.getBoolean("soundQuiz", false) && answer_type == QuestionType.READING && JishoHelper.isInternetAvailable(getContext()))
 					vocabulary.playSound(dbHelper);
 			}
 			
@@ -475,7 +488,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 		
 		if (view.getId() == R.id.card_solution)
 		{
-			Fragment fragment = new FragmentActivityQuizRandom().setDefaultTransitions(getContext());
+			Fragment fragment = new FragmentActivityQuizFast().setDefaultTransitions(getContext());
 			Bundle bundle = new Bundle();
 			bundle.putIntArray("history_quiz", history_quiz);
 			bundle.putInt("timesChecked_kanji", timesChecked_kanji);
@@ -499,7 +512,7 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 					@Override
 					public boolean onMenuItemClick(MenuItem item)
 					{
-						return FragmentActivityQuizRandom.this.onOptionsItemSelected(item);
+						return FragmentActivityQuizFast.this.onOptionsItemSelected(item);
 					}
 				});
 			MenuInflater inflater = popup.getMenuInflater();
@@ -564,9 +577,9 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 				return true;
 				
 			case R.id.item_skip:
-				Fragment fragment1 = new FragmentActivityQuizRandom().setDefaultTransitions(getContext());
+				Fragment fragment1 = new FragmentActivityQuizFast().setDefaultTransitions(getContext());
 				fragment1.setArguments(getArguments());
-				getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment1).commit();
+				getFragmentManager().beginTransaction().replace(R.id.layout_content, fragment1).addSharedElement(card_layout_answer, card_layout_answer.getTransitionName()).commit();
 				return true;
 
 			case R.id.item_detail:
@@ -585,7 +598,8 @@ public class FragmentActivityQuizRandom extends Fragment implements View.OnClick
 	{
 		inflater.inflate(R.menu.fragment_quiz_random, menu);
 		menu.findItem(R.id.item_detail).setVisible(false);
-
+		menu.findItem(R.id.item_stats).setVisible(false);
+		
 		super.onCreateOptionsMenu(menu, inflater);
 	}
 	

@@ -100,7 +100,7 @@ public class FragmentActivityLearnMeaning extends Fragment
 		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_meaning);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, sameMeaning));		
+		recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, sameMeaning));		
 		
 		
 		final View progress_sentences = v.findViewById(R.id.progress_sentences);

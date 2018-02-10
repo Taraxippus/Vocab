@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <meta-data
+        android:name="android.support.VERSION"
+        android:value="25.3.1" />
+
     <application
         android:allowBackup="true"
         android:hardwareAccelerated="true"
@@ -22,6 +26,14 @@
         <receiver android:name="com.taraxippus.vocab.util.NotificationHelper" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="com.taraxippus.vocab.util.AddQueueReceiver"
+            android:enabled="true"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="com.taraxippus.vocab.action.ACTION_QUEUE" />
             </intent-filter>
         </receiver>
 
@@ -115,6 +127,15 @@
         <activity
             android:name="com.taraxippus.vocab.ActivityDetailKanji"
             android:label="Kanji Detail"
+            android:parentActivityName="com.taraxippus.vocab.ActivityMain"
+            android:windowSoftInputMode="adjustResize" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ActivityMain" />
+        </activity>
+        <activity
+            android:name="com.taraxippus.vocab.ActivityStats"
+            android:label="Statistics"
             android:parentActivityName="com.taraxippus.vocab.ActivityMain"
             android:windowSoftInputMode="adjustResize" >
             <meta-data

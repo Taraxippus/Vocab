@@ -12,7 +12,9 @@
 	<RelativeLayout
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:padding="8dp" >
+		android:paddingTop="8dp" 
+		android:paddingLeft="8dp" 
+		android:paddingRight="8dp" >
 
 		<Button
 			android:id="@+id/button_start_quiz"
@@ -63,7 +65,9 @@
 			android:layout_height="wrap_content"
 			android:layout_alignParentRight="true"
 			android:layout_below="@id/text_learned_progress"
-			android:padding="8dp" />
+			android:minWidth="64dp"
+			android:padding="8dp" 
+			android:gravity="center" />
 		
 		<ProgressBar
 			android:id="@+id/progress_learned"
@@ -117,132 +121,11 @@
 				android:layout_below="@id/text_percentage_graph_categories" />
 			
 			<TextView
-				android:id="@+id/text_total_progress"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/percentage_graph_categories"
-				android:text="Total success rate in quiz:"
-				android:paddingLeft="8dp"
-				android:paddingTop="16dp"/>
-
-			<TextView
-				android:id="@+id/text_progress_total"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignParentRight="true"
-				android:layout_below="@id/text_total_progress"
-				android:padding="8dp" />
-			
-			<ProgressBar
-				android:id="@+id/progress_total"
-				style="?android:attr/progressBarStyleHorizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_total_progress"
-				android:layout_toLeftOf="@id/text_progress_total"
-				android:padding="8dp" />
-
-			<TextView
-				android:id="@+id/text_kanji_progress"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_progress_total"
-				android:text="Success rate for entering kanji:"
-				android:paddingLeft="8dp"
-				android:paddingTop="8dp"/>
-			
-			<TextView
-				android:id="@+id/text_progress_kanji"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignLeft="@id/text_progress_total"
-				android:layout_alignParentRight="true"
-				android:layout_below="@id/text_kanji_progress"
-				android:padding="8dp"
-				android:gravity="center" />
-
-			<ProgressBar
-				android:id="@+id/progress_kanji"
-				style="?android:attr/progressBarStyleHorizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_kanji_progress"
-				android:layout_toLeftOf="@id/text_progress_kanji"
-				android:layout_alignRight="@id/progress_total"
-				android:padding="8dp" />
-			
-			<TextView
-				android:id="@+id/text_reading_progress"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_progress_kanji"
-				android:text="Success rate for entering reading:"
-				android:paddingLeft="8dp"
-				android:paddingTop="8dp"/>
-
-			<TextView
-				android:id="@+id/text_progress_reading"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignLeft="@id/text_progress_total"
-				android:layout_alignParentRight="true"
-				android:layout_below="@id/text_reading_progress"
-				android:padding="8dp"
-				android:gravity="center" />
-			
-			<ProgressBar
-				android:id="@+id/progress_reading"
-				style="?android:attr/progressBarStyleHorizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_reading_progress"
-				android:layout_toLeftOf="@id/text_progress_reading"
-				android:layout_alignRight="@id/progress_total"
-				android:padding="8dp" />
-
-			<TextView
-				android:id="@+id/text_meaning_progress"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_progress_reading"
-				android:text="Success rate for entering meaning:"
-				android:paddingLeft="8dp"
-				android:paddingTop="8dp"/>
-
-			<TextView
-				android:id="@+id/text_progress_meaning"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_alignLeft="@id/text_progress_total"
-				android:layout_alignParentRight="true"
-				android:layout_below="@id/text_meaning_progress"
-				android:padding="8dp" 
-				android:gravity="center" />
-			
-			<ProgressBar
-				android:id="@+id/progress_meaning"
-				style="?android:attr/progressBarStyleHorizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_alignParentLeft="true"
-				android:layout_below="@id/text_meaning_progress"
-				android:layout_toLeftOf="@id/text_progress_meaning"
-				android:layout_alignRight="@id/progress_total"
-				android:padding="8dp" />
-
-			<TextView
 				android:id="@+id/text_graph_reviewed"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:layout_alignParentLeft="true"
-				android:layout_below="@id/progress_meaning"
+				android:layout_below="@id/percentage_graph_categories"
 				android:text="Vocabularies reviewed:"
 				android:paddingLeft="8dp"
 				android:paddingTop="16dp"
@@ -286,8 +169,7 @@
 				android:id="@+id/line_graph_review"
 				android:layout_width="match_parent"
 				android:layout_height="125dp"
-				android:layout_below="@id/text_line_graph_review"
-			/>
+				android:layout_below="@id/text_line_graph_review" />
 			
 			<TextView
 				android:id="@+id/text_now"
@@ -340,12 +222,25 @@
 			android:gravity="center"
 			android:textStyle="bold" />
 		
-		<TextView
-			android:id="@+id/date_next_review"
+		<Button
+			android:id="@+id/button_stats"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignParentRight="true"
 			android:layout_below="@id/text_next_review_category"
+			android:layout_alignLeft="@id/text_progress_learned"
+			android:text="More"
+			android:textColor="@color/accent"
+			style="?android:attr/borderlessButtonStyle"
+			android:visibility="gone"/>
+		
+		<TextView
+			android:id="@+id/date_next_review"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/text_next_review_category"
+			android:layout_alignParentRight="true"
+			android:layout_alignBaseline="@id/button_stats"
 			android:padding="8dp"/>
 
 	</RelativeLayout>

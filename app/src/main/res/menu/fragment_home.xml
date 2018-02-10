@@ -24,6 +24,10 @@
 		android:title="Learn next vocabularies"/>
 
 	<item
+		android:id="@+id/item_queued"
+		android:title="Show queued vocabularies"/>
+	
+	<item
 		android:id="@+id/menu_file"
 		android:title="File">
 
@@ -55,6 +59,10 @@
 		android:title="Vocabularies">
 
 		<menu>
+			<item
+				android:id="@+id/item_import_jisho"
+				android:title="Import from jisho.org"/>
+			
 			<item
 				android:id="@+id/item_learn_add_all"
 				android:title="Add all to learned vocabularies"/>

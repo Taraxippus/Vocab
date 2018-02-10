@@ -21,6 +21,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import com.taraxippus.vocab.ActivityLearn;
 import com.taraxippus.vocab.ActivityQuiz;
+import com.taraxippus.vocab.ActivityStats;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.view.GraphView;
@@ -30,7 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import android.support.v7.widget.CardView;
 
 public class FragmentQuiz extends Fragment
 {
@@ -70,11 +70,12 @@ public class FragmentQuiz extends Fragment
 	public void onViewCreated(View v, Bundle savedInstanceState)
 	{
 		int[] newVocabularies = dbHelper.getNewVocabularies();
+		char[] newKanji = dbHelper.getNewKanji();
 		
 		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_new_vocabularies);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, newVocabularies));
+		recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), dbHelper, recyclerView, newVocabularies));
 		TextView text_new_vocabularies = (TextView) v.findViewById(R.id.text_title_new_vocabularies);
 		text_new_vocabularies.setText(newVocabularies.length + (newVocabularies.length == 0 ? " New Vocabulary" : " New Vocabularies"));
 		
@@ -82,6 +83,29 @@ public class FragmentQuiz extends Fragment
 		{
 			text_new_vocabularies.setVisibility(View.GONE);
 			recyclerView.setVisibility(View.GONE);
+		}
+		else
+		{
+			text_new_vocabularies.setVisibility(View.VISIBLE);
+			recyclerView.setVisibility(View.VISIBLE);
+		}
+		
+		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_new_kanji);
+		recyclerView.setHasFixedSize(true);
+		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+		recyclerView.setAdapter(new FragmentDetail.KanjiAdapter(getActivity(), dbHelper, recyclerView, newKanji));
+		TextView text_new_kanji = (TextView) v.findViewById(R.id.text_title_new_kanji);
+		text_new_kanji.setText(newKanji.length + " New Kanji");
+
+		if (newKanji.length == 0)
+		{
+			text_new_kanji.setVisibility(View.GONE);
+			recyclerView.setVisibility(View.GONE);
+		}
+		else
+		{
+			text_new_kanji.setVisibility(View.VISIBLE);
+			recyclerView.setVisibility(View.VISIBLE);
 		}
 		
 		v.findViewById(R.id.button_start_quiz).setOnClickListener(new View.OnClickListener()
@@ -111,7 +135,16 @@ public class FragmentQuiz extends Fragment
 				}
 			});
 			
-		int learned_total = 0,critical = 0;
+		v.findViewById(R.id.button_stats).setOnClickListener(new View.OnClickListener()
+			{
+				@Override
+				public void onClick(View p1)
+				{
+					getContext().startActivity(new Intent(getContext(), ActivityStats.class));
+				}
+			});
+			
+		int learned_total = 0, critical = 0;
 		int correct_kanji = 0, total_kanji = 0, correct_reading = 0, total_reading = 0,
 			correct_meaning = 0, total_meaning = 0;
 		long nextReview = 0;
@@ -159,18 +192,68 @@ public class FragmentQuiz extends Fragment
 
 		res.close();
 
-		int reviews1 = 0;
-		for (int i = 0; i < review.length; i++)
-			review[i] = (reviews1 += review[i]);
-
-		v.findViewById(R.id.button_start_quiz).setVisibility(review[0] > 0 ? View.VISIBLE : View.GONE);
-
 		((TextView) v.findViewById(R.id.text_progress_learned)).setText(learned_total + " / " + count);
 		ProgressBar progress_learned = (ProgressBar) v.findViewById(R.id.progress_learned);
 		progress_learned.setMax(count);
 		progress_learned.setProgress(learned_total - critical);
 		progress_learned.setSecondaryProgress(learned_total);
+		
+		learned_total = 0;
+		critical = 0;
+		res = dbHelper.getReadableDatabase().rawQuery("SELECT category, learned, nextReview, timesChecked_kanji, timesChecked_reading_kun, timesChecked_reading_on, timesChecked_meaning, timesCorrect_kanji, timesCorrect_reading_kun, timesCorrect_reading_on, timesCorrect_meaning FROM kanji", null);
+		count = res.getCount();
+		if (count > 0)
+		{
+			res.moveToFirst();
 
+			int vCategory;
+			long vNextReview;
+
+			do
+			{
+				if (res.getInt(res.getColumnIndex("learned")) == 1)
+				{
+					vCategory = res.getInt(res.getColumnIndex("category"));
+					vNextReview = res.getLong(res.getColumnIndex("nextReview"));
+
+					learned_total++;
+					if (vCategory <= 1)
+						critical++;
+					correct_kanji += res.getInt(res.getColumnIndex("timesCorrect_kanji"));
+					total_kanji += res.getInt(res.getColumnIndex("timesChecked_kanji"));
+					correct_reading += res.getInt(res.getColumnIndex("timesCorrect_reading_kun")) + res.getInt(res.getColumnIndex("timesCorrect_reading_on"));
+					total_reading += res.getInt(res.getColumnIndex("timesChecked_reading_kun")) + res.getInt(res.getColumnIndex("timesChecked_reading_on"));
+					correct_meaning += res.getInt(res.getColumnIndex("timesCorrect_meaning"));
+					total_meaning += res.getInt(res.getColumnIndex("timesChecked_meaning"));
+
+					if (nextReview == 0)
+						nextReview = vNextReview;
+					else
+						nextReview = Math.min(nextReview, vNextReview);
+
+					if (vNextReview < System.currentTimeMillis())
+						review[0]++;
+					else if (vNextReview < System.currentTimeMillis() + 1000 * 60 * 60 * 24)
+						review[1 + (int) ((vNextReview - System.currentTimeMillis()) / (1000 * 60 * 60))]++;
+				}
+			}
+			while (res.moveToNext());
+		}
+
+		res.close();
+		
+		((TextView) v.findViewById(R.id.text_progress_learned_kanji)).setText(learned_total + " / " + count);
+		ProgressBar progress_learned_kanji = (ProgressBar) v.findViewById(R.id.progress_learned_kanji);
+		progress_learned_kanji.setMax(count);
+		progress_learned_kanji.setProgress(learned_total - critical);
+		progress_learned_kanji.setSecondaryProgress(learned_total);
+		
+		int reviews1 = 0;
+		for (int i = 0; i < review.length; i++)
+			review[i] = (reviews1 += review[i]);
+
+		v.findViewById(R.id.button_start_quiz).setVisibility(review[0] > 0 ? View.VISIBLE : View.GONE);
+		
 		((TextView) v.findViewById(R.id.text_progress_total)).setText((correct_meaning + correct_reading + correct_kanji) + " / " + (total_meaning + total_reading + total_meaning));
 		ProgressBar progress_total = (ProgressBar) v.findViewById(R.id.progress_total);
 		progress_total.setMax(total_meaning + total_reading + total_kanji);
@@ -279,6 +362,7 @@ public class FragmentQuiz extends Fragment
 		super.onResume();
 
 		getActivity().setTitle("Quiz");
+		onViewCreated(getView(), null);
 	}
 
 	@Override

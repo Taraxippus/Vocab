@@ -5,6 +5,9 @@ public class StringHelper
 {
 	public static String trim(String oldString) 
 	{
+		if (oldString == null)
+			return null;
+		
 		final int length = oldString.length();
 		
 		if (length == 0)
@@ -60,6 +63,9 @@ public class StringHelper
 	
 	public static boolean isKana(String s)
 	{
+		if (s == null)
+			return false;
+			
 		String trimed = trim(s);
 
 		char c;
@@ -176,8 +182,40 @@ public class StringHelper
 	
 	public static boolean equalsKana(String s1, String s2)
 	{
-		return s1.replace("・", "").equals(s2.replace("・", ""));
+		if (s1.length() != s2.length())
+			return false;
+			
+		for (int i = 0; i < s1.length(); ++i)
+			if (toHiragana(s1.charAt(i)) != toHiragana(s2.charAt(i)))
+				return false;
+		
+		return true;
 	}
+	
+	public static boolean equalsKanjiIgnoreKana(String s1, String s2)
+	{
+		int i1 = -1;
+		s1:
+		for (int i = 0; i < s1.length(); ++i)
+		{
+			if (!isKanji(s1.charAt(i)))
+				continue;
+			
+			for (i1++; i1 < s2.length(); ++i1)
+			{
+				if (!isKanji(s2.charAt(i1)))
+					continue;
+					
+				if (s1.charAt(i) == s2.charAt(i1))
+					continue s1;
+			}
+			
+			return false;
+		}
+		
+		return true;
+	}
+	
 	
 	public static boolean similiarMeaning(String s1, String s2)
 	{
@@ -186,54 +224,34 @@ public class StringHelper
 
 		int match = 0;
 
-		if (s1.length() > s2.length())
+		if (s1.length() < s2.length())
 		{
-			for (int i = 0; i < s2.length(); ++i)
-			{
-				if (s1.charAt(i) == s2.charAt(i))
-				{
-					match++;
-				}
-				else
-					break;
-			}
-
-			for (int i = 0; i < s2.length(); ++i)
-			{
-				if (s1.charAt(s1.length() - i - 1) == s2.charAt(s2.length() - 1 - i))
-				{
-					match++;
-				}
-				else
-					break;
-			}
-
-			return match >= s2.length();
+			String s3 = s2;
+			s2 = s1;
+			s1 = s3;
 		}
-		else
+			
+		for (int i = 0; i < s2.length(); ++i)
 		{
-			for (int i = 0; i < s1.length(); ++i)
+			if (Character.toLowerCase(s1.charAt(i)) == Character.toLowerCase(s2.charAt(i)))
 			{
-				if (s2.charAt(i) == s1.charAt(i))
-				{
-					match++;
-				}
-				else
-					break;
+				match++;
 			}
-
-			for (int i = 0; i < s1.length(); ++i)
-			{
-				if (s2.charAt(s2.length() - i - 1) == s1.charAt(s1.length() - 1 - i))
-				{
-					match++;
-				}
-				else
-					break;
-			}
-
-			return match >= s1.length();
+			else
+				break;
 		}
+		
+		for (int i = 0; i < s2.length(); ++i)
+		{
+			if (Character.toLowerCase(s1.charAt(s1.length() - i - 1)) == Character.toLowerCase(s2.charAt(s2.length() - 1 - i)))
+			{
+				match++;
+			}
+			else
+				break;
+		}
+
+		return s2.length() > 10 ? match >= s2.length() - 1 : match >= s2.length();
 	}
 	
 	public static String toRomaji(char hiragana)
@@ -302,27 +320,48 @@ public class StringHelper
 	public static String replaceWithFurigana(String kanji, String furigana, boolean addSeperatorStart, boolean addSeperatorEnd)
 	{
 		int start = -1, end = kanji.length();
+		int start1 = -1, end1 = -1;
 		for (int i = 0; i < kanji.length(); ++i)
 		{
 			if (start == -1 && !isKana(kanji.charAt(i)))
 				start = i;
 				
 			else if (start != -1 && end == kanji.length() && isKana(kanji.charAt(i)))
+			{
+				if (start1 != -1 && end1 == -1)
+					end1 = i - 1;
+					
 				end = i;
-			
+			}
 			else if (start != -1 && end != kanji.length() && !isKana(kanji.charAt(i)))
+			{
+				start1 = end;
 				end = kanji.length();
+			}
 		}
 		
-		if (start != 0 && furigana.startsWith(kanji.substring(0, start)) || end != kanji.length() && furigana.endsWith(kanji.substring(end)))
+		if (start > 0 && furigana.startsWith(kanji.substring(0, start)) || end != kanji.length() && furigana.endsWith(kanji.substring(end)))
 			return furigana;
 			
 		StringBuilder sb = new StringBuilder();
-		if (start != 0)
+		if (start > 0)
 			sb.append(kanji.substring(0, start + 1));
-		if (addSeperatorStart && (start == 0 || isKanaOrKanji(kanji.substring(start - 1, start))))
+		if (addSeperatorStart && (start <= 0 || isKanaOrKanji(kanji.substring(start - 1, start))))
 			sb.append("・");
-		sb.append(furigana);
+		
+		if (end1 != -1 && !furigana.contains(kanji.subSequence(start1, end1)))
+		{
+			sb.append(furigana.substring(0, furigana.length() / 2));
+			if (addSeperatorStart || addSeperatorEnd)
+				sb.append("・");
+			sb.append(kanji.subSequence(start1, end1));
+			if (addSeperatorStart || addSeperatorEnd)
+				sb.append("・");
+			sb.append(furigana.substring(furigana.length() / 2));
+		}
+		else
+			sb.append(furigana);
+			
 		if (addSeperatorEnd && (end == kanji.length() || isKanaOrKanji(kanji.substring(end, end + 1))))
 			sb.append("・");
 		if (end != kanji.length())
@@ -331,9 +370,9 @@ public class StringHelper
 		return sb.toString();
 	}
 	
-	private static final char seperator = '\\';
-	private static final String seperatorString = "\\";
-	private static final String seperatorRegex = "\\\\";
+	public static final char seperator = '\\';
+	public static final String seperatorString = "\\";
+	public static final String seperatorRegex = "\\\\";
 	
 	public static String toString(String[] in)
 	{
@@ -421,5 +460,21 @@ public class StringHelper
 			out[i] = array[i].equals("1");
 
 		return out;
+	}
+	
+	public static int lengthOfArray(String in)
+	{
+		if (in == null || in.startsWith(seperatorString) ? in.length() <= 2 : in.isEmpty())
+			return 0;
+
+		int count = 0;
+		if (in.startsWith(seperatorString))
+			count = -1;
+
+		for (int i = 0; i < in.length(); ++i)
+			if (in.charAt(i) == seperator)
+				count++;
+			
+		return count;
 	}
 }

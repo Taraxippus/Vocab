@@ -8,8 +8,9 @@ import com.taraxippus.vocab.*;
 import java.util.*;
 import android.support.v4.view.*;
 import android.text.TextPaint;
+import com.taraxippus.vocab.dialog.DialogHelper;
 
-public class PercentageGraphView extends View
+public class PercentageGraphView extends View implements View.OnClickListener
 {
 	float size;
 	final RectF circle = new RectF();
@@ -20,7 +21,10 @@ public class PercentageGraphView extends View
 
 	public String[] names = new String[] {"No values"};
 	public float[] values = new float[] {1};
+	public String[] orgNames = new String[] {};
+	public float[] orgValues = new float[] {};
 	public int largest;
+	float sum;
 	
 	public float differenceWidth = 0.1F;
 	public int width, height;
@@ -35,6 +39,7 @@ public class PercentageGraphView extends View
 		super(context, attributeSet);
 
 		setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+		setOnClickListener(this);
 
 		circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		circlePaint.setStyle(Paint.Style.FILL);
@@ -80,7 +85,10 @@ public class PercentageGraphView extends View
 					}
 		}
 		
-		float sum = 0;
+		orgNames = names1;
+		orgValues = values1;
+		
+		sum = 0;
 		
 		for (int i = 0; i < values.length; ++i)
 			sum += values1[i];
@@ -114,13 +122,13 @@ public class PercentageGraphView extends View
 		boolean first = true;
 		for (int i = 0; i < names.length; ++i)
 		{
-			if (names[i].length() > 20 && (names.length < 5 || !first))
-				names[i] = names[i].substring(0, 19) + "...";
+			if (names[i].length() > 18 && (names.length < 5 || !first))
+				names[i] = names[i].substring(0, 17) + "...";
 
 			if (first && !names[i].isEmpty())
 				first = false;
 		}
-		differenceWidth = 0.05F + length / 80F;
+		differenceWidth = 0.05F + length / 100F;
 		circle.set(width / 2F - (size * (1 - differenceWidth * 2)) / 2F, height / 2F - (size * (1 - differenceWidth * 2)) / 2F, width / 2F + (size * (1 - differenceWidth * 2)) / 2F, height / 2F + (size * (1 - differenceWidth * 2)) / 2F);
 		
 		invalidate();
@@ -148,8 +156,13 @@ public class PercentageGraphView extends View
 						values1[m + 1] = swapInt;
 					}
 		}
-				
-		float sum = 0;
+		
+		orgNames = names1;
+		orgValues = new float[values1.length];
+		for (int i = 0; i < values.length; ++i)
+			orgValues[i] = values1[i];
+			
+		sum = 0;
 		
 		for (int i = 0; i < values.length; ++i)
 			sum += values1[i];
@@ -183,14 +196,14 @@ public class PercentageGraphView extends View
 		boolean first = true;
 		for (int i = 0; i < names.length; ++i)
 		{
-			if (names[i].length() > 20 && (names.length < 5 || !first))
-				names[i] = names[i].substring(0, 19) + "...";
+			if (names[i].length() > 18 && (names.length < 5 || !first))
+				names[i] = names[i].substring(0, 17) + "...";
 			
 			if (first && !names[i].isEmpty())
 				first = false;
 		}
 			
-		differenceWidth = 0.05F + length / 80F;
+		differenceWidth = 0.05F + length / 100F;
 		circle.set(width / 2F - (size * (1 - differenceWidth * 2)) / 2F, height / 2F - (size * (1 - differenceWidth * 2)) / 2F, width / 2F + (size * (1 - differenceWidth * 2)) / 2F, height / 2F + (size * (1 - differenceWidth * 2)) / 2F);
 		
 		invalidate();
@@ -204,7 +217,7 @@ public class PercentageGraphView extends View
 		width = w;
 		height = h;
 		
-		size = Math.min(w, h) * 0.9F;
+		size = Math.min(w, h) * 0.8F;
 		circle.set(w / 2F - (size * (1 - differenceWidth * 2)) / 2F, h / 2F - (size * (1 - differenceWidth * 2)) / 2F, w / 2F + (size * (1 - differenceWidth * 2)) / 2F, h / 2F + (size * (1 - differenceWidth * 2)) / 2F);
 	}
 	
@@ -238,7 +251,7 @@ public class PercentageGraphView extends View
 			
 			textPaint.setTextAlign(y < -0.95 || y >= 0.95 ? Paint.Align.CENTER : x > 0 ? Paint.Align.LEFT : Paint.Align.RIGHT);
 
-			y = y * (size / 2F * 1.075F - textPaint.getTextSize() / 4F) + textPaint.getTextSize() / 4F;
+			y = y * (size / 2F * 1.025F - textPaint.getTextSize() / 4F + (i == largest ? 0 : differenceWidth * size * (1 - i / (values.length + 2F)))) + textPaint.getTextSize() / 4F;
 			
 			if (x > 0 && lastY == lastY && y - lastY < textPaint.getTextSize() * 1.05F)
 			{
@@ -246,7 +259,7 @@ public class PercentageGraphView extends View
 				x = (float) Math.cos(Math.asin((y - textPaint.getTextSize() / 4F) / (size / 2F * 1.075F - textPaint.getTextSize() / 4F)));
 			}
 			
-			x *= size / 2F * 1.075F;
+			x *= size / 2F * 1.025F + (i == largest ? 0 : differenceWidth * size * (1 - i / (values.length + 2F)));
 				
 			if (!names[i].isEmpty())
 			{
@@ -256,5 +269,17 @@ public class PercentageGraphView extends View
 				
 			sum += values[i];
 		}
+	}
+
+
+	@Override
+	public void onClick(View p1)
+	{
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < orgNames.length; ++i)
+			sb.append(orgNames[i]).append(": ").append(orgValues[i]).append(String.format(" (%.2f%%)\n", orgValues[i] / sum * 100));
+			
+		sb.append("\nTotal: ").append(sum);
+		DialogHelper.createDialog(getContext(), "Percentage Graph", sb.toString());
 	}
 }

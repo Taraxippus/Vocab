@@ -151,7 +151,7 @@ public class FragmentActivityLearnKanji extends Fragment
 					recycler.setPadding((int) (8 * dp), 0, (int) (8 * dp), 0);
 					recycler.setHasFixedSize(true);
 					recycler.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-					recycler.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), vocabActivity.getDBHelper(), recycler, ids));		
+					recycler.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), vocabActivity.getDBHelper(), recycler, ids));		
 					
 					layout_main.addView(text_title, params_title);
 					layout_main.addView(recycler, params_recycler);

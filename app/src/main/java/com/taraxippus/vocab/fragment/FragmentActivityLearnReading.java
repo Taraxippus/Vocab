@@ -3,6 +3,7 @@ import android.app.Activity;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -12,10 +13,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import com.taraxippus.vocab.IVocabActivity;
 import com.taraxippus.vocab.R;
+import com.taraxippus.vocab.util.JishoHelper;
 import com.taraxippus.vocab.util.OnProcessSuccessListener;
 import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
-import android.preference.PreferenceManager;
 
 public class FragmentActivityLearnReading extends Fragment
 {
@@ -46,11 +47,11 @@ public class FragmentActivityLearnReading extends Fragment
 	}
 
 	@Override
-	public void onViewCreated(View v, Bundle savedInstanceState)
+	public void onViewCreated(final View v, Bundle savedInstanceState)
 	{
 		int id = getArguments().getInt("id");
 		SQLiteDatabase db = vocabActivity.getDBHelper().getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT kanji, reading, sameReading, soundFile FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT kanji, reading, reading_trimed, sameReading, soundFile FROM vocab WHERE id = ?", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -61,6 +62,7 @@ public class FragmentActivityLearnReading extends Fragment
 		
 		final String kanji = res.getString(0);
 		final String[] reading = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading")));
+		final String[] reading_trimed = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading_trimed")));
 		final int[] sameReading = StringHelper.toIntArray(res.getString(res.getColumnIndex("sameReading")));
 		soundFile = res.getString(res.getColumnIndex("soundFile"));
 		
@@ -85,7 +87,7 @@ public class FragmentActivityLearnReading extends Fragment
 		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, sameReading));	
+		recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), vocabActivity.getDBHelper(), recyclerView, sameReading));	
 		
 		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_kanji_contained);
 		recyclerView.setHasFixedSize(true);
@@ -101,7 +103,25 @@ public class FragmentActivityLearnReading extends Fragment
 				}
 			});
 
-		if (soundFile != null && !soundFile.isEmpty() && !"-".equals(soundFile))
+		if (soundFile == null || soundFile.isEmpty() || soundFile.contains("\""))
+		{
+			final Vocabulary v1 = new Vocabulary(id);
+			v1.kanji = kanji;
+			v1.reading_trimed = reading_trimed;
+			
+			JishoHelper.findSoundFile(vocabActivity.getDBHelper(), v1, new OnProcessSuccessListener()
+				{
+					@Override
+					public void onProcessSuccess(Object... args)
+					{
+						soundFile = v1.soundFile;
+						if (soundFile != null && !soundFile.isEmpty() && !"-".equals(soundFile))
+							v.findViewById(R.id.button_sound).setVisibility(View.VISIBLE);
+					}
+				});
+			return;
+		}
+		else if (soundFile != null && !soundFile.isEmpty() && !"-".equals(soundFile))
 			v.findViewById(R.id.button_sound).setVisibility(View.VISIBLE);
 	}
 	

@@ -20,7 +20,7 @@ import com.taraxippus.vocab.vocabulary.ImportType;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import com.taraxippus.vocab.vocabulary.VocabularyType;
 
-public class ImportDialog extends DialogFragment
+public class DialogImport extends DialogFragment
 {
 	DBHelper dbHelper;
 	

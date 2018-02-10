@@ -15,6 +15,7 @@ import com.taraxippus.vocab.ActivityQuiz;
 import com.taraxippus.vocab.IVocabActivity;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.dialog.DialogHelper;
+import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.StringHelper;
 import java.util.Locale;
 
@@ -144,6 +145,8 @@ public class FragmentActivityLearnPractice extends Fragment
 					{
 						getActivity().finish();
 						getContext().startActivity(new Intent(getContext(), ActivityQuiz.class));
+						getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+						
 						return;
 					}
 					

@@ -43,6 +43,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import com.taraxippus.vocab.vocabulary.VocabularyType;
 
 public final class JishoHelper
 {
@@ -204,6 +205,42 @@ public final class JishoHelper
 		}
 	}
 	
+	public static void searchKanji(Context context, String query, final OnProcessSuccessListener listener)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			new SearchKanjiTask(context, listener).execute(query);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void searchVocabulary(Context context, String query, final OnProcessSuccessListener listener)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			new SearchVocabularyTask(context, listener).execute(query);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public static void addReadingCompounds(Context context, char kanji, final ViewGroup layout, final ViewGroup.LayoutParams params, final View progress)
 	{
 		if (!isInternetAvailable(context))
@@ -339,6 +376,24 @@ public final class JishoHelper
 		return v;
 	}
 	
+	public static void importVocabulary(Context context, Vocabulary vocab, final OnProcessSuccessListener listener)
+	{
+		if (!isInternetAvailable(context))
+		{
+			Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		try
+		{
+			new ImportVocabularyTask(context, listener).execute(vocab);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	public static class FindSoundFileTask extends AsyncTask<Vocabulary, Void, Boolean>
 	{
 		final OnProcessSuccessListener listener;
@@ -377,29 +432,18 @@ public final class JishoHelper
 				reader.close();
 
 				String page = sb.toString();
-
 				String id = "audio_" + v.kanji + ":" + v.reading_trimed[0];
 
-				Matcher m = Pattern.compile("<audio id=\"" + id + "\">(.*)</audio>").matcher(page);
-				if (m.find())
-				{
-					Matcher m2 = Pattern.compile("<source src=\"(.*)\" type=\"audio/mpeg\"></source>").matcher(m.group(1));
-					if (m2.find())
-					{
-						String file = m2.group(1);
-
-						v.soundFile = file;
-						return true;
-					}
-					else
-					{
-						v.soundFile = "-";
-					}
-				}
+				int index0, index1;
+				index0 = page.indexOf("<audio id=\"" + id + "\">");
+				index1 = index0 == -1 ? -1 : page.indexOf("<source src=\"", index0 + 13 + id.length());
+				
+				if (index1 != -1)
+					v.soundFile = page.substring(index1 + 13, page.indexOf("\"", index1 + 13));
+				
 				else
-				{
 					v.soundFile = "-";
-				}
+				
 			}
 			catch (Exception e)
 			{
@@ -623,6 +667,7 @@ public final class JishoHelper
 					index = 0;
 					count = 0;
 					
+					searchSentences:
 					for (i1 = 0; count < MAX_SENTENCE_COUNT; ++i1)
 					{
 						sb.setLength(0);
@@ -689,6 +734,10 @@ public final class JishoHelper
 							else
 								s = line.substring(index2 + 17, line.indexOf("</", index2));
 							
+							if (s.isEmpty())
+
+								continue searchSentences;
+								
 							if (index1 != -1 && index1 < line.indexOf("</li", index0))
 							{
 								sb.append(s);
@@ -974,8 +1023,7 @@ public final class JishoHelper
 		@Override
 		protected void onPostExecute(Kanji kanji)
 		{
-			if (kanji != null)
-				listener.onProcessSuccess(kanji);
+			listener.onProcessSuccess(kanji);
 		}
 	}
 	
@@ -1093,4 +1141,404 @@ public final class JishoHelper
 			listener.onProcessSuccess(v);
 		}
 	}
+	
+
+	public static class SearchKanjiTask extends AsyncTask<String, Void, char[]>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+
+		public SearchKanjiTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected char[] doInBackground(String...  p1)
+		{
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder();
+				String page, line;
+				String url = "http://jisho.org/search/" + URLEncoder.encode(p1[0] + " #kanji", "UTF-8").replace("+", "%20");
+				int index, index0;
+				ArrayList<Character> kanjiList = new ArrayList<>();
+				
+				while (true)
+				{
+					httpget.setURI(URI.create(url));
+					response = httpclient.execute(httpget); 
+					entity = response.getEntity();
+
+					reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+					sb.setLength(0);
+
+					while ((line = reader.readLine()) != null)
+					{
+						sb.append(line);
+					}
+
+					reader.close();
+					page = sb.toString();
+					
+					index = 0;
+					while (true)
+					{
+						index = page.indexOf("class=\"character\"", index + 1);
+						if (index == -1)
+							break;
+
+						index0 = page.indexOf(">", index);
+						kanjiList.add(page.substring(index0 + 1, page.indexOf("<", index0)).charAt(0));
+					}
+					
+					index = 0;
+					while (true)
+					{
+						index = page.indexOf("class=\"character literal japanese_gothic\"", index + 1);
+						if (index == -1)
+							break;
+							
+						index0 = page.indexOf(">", page.indexOf("<a", index));
+						kanjiList.add(page.substring(index0 + 1, page.indexOf("<", index0)).charAt(0));
+					}
+							
+					index = page.indexOf("class=\"more\"");
+					if (index == -1)
+						break;
+						
+					index0 = page.indexOf("href=\"", index);
+					url = page.substring(index0 + 6, page.indexOf("\"", index0 + 6));
+					
+					if (url.startsWith("//"))
+						url = "http:" + url;
+				}
+				
+				char[] kanji = new char[kanjiList.size()];
+				for (int i = 0; i < kanji.length; ++i)
+					kanji[i] = kanjiList.get(i);
+				return kanji;
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(char[] kanji)
+		{
+			listener.onProcessSuccess(kanji);
+		}
+	}
+	
+	public static class SearchVocabularyTask extends AsyncTask<String, Void, ArrayList<String>>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+
+		public SearchVocabularyTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected ArrayList<String> doInBackground(String...  p1)
+		{
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder();
+				String page, line;
+				String url = "http://jisho.org/search/" + URLEncoder.encode(p1[0] + " #words", "UTF-8").replace("+", "%20");
+				int index, index0;
+				ArrayList<String> vocabularyList = new ArrayList<>();
+
+				while (true)
+				{
+					httpget.setURI(URI.create(url));
+					response = httpclient.execute(httpget); 
+					entity = response.getEntity();
+
+					reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+					sb.setLength(0);
+
+					while ((line = reader.readLine()) != null)
+					{
+						sb.append(line);
+					}
+
+					reader.close();
+					page = sb.toString();
+
+					index = 0;
+					while (true)
+					{
+						index = page.indexOf("<span class=\"text\">", index + 1);
+						index0 = page.indexOf("</div>", index);
+						
+						if (index == -1 || index0 == -1)
+							break;
+						
+						vocabularyList.add(StringHelper.trim(Html.fromHtml(page.substring(index, index0)).toString()));
+					}
+
+					index = page.indexOf("class=\"more\"");
+					if (index == -1)
+						break;
+
+					index0 = page.indexOf("href=\"", index);
+					url = page.substring(index0 + 6, page.indexOf("\"", index0 + 6));
+					if (url.startsWith("//"))
+						url = "http:" + url;
+				}
+
+				return vocabularyList;
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		@Override
+		protected void onPostExecute(ArrayList<String> vocabularies)
+		{
+			listener.onProcessSuccess(vocabularies);
+		}
+	}
+	
+	public static class ImportVocabularyTask extends AsyncTask<Vocabulary, Void, Vocabulary>
+	{
+		final OnProcessSuccessListener listener;
+		final Context context;
+
+		public ImportVocabularyTask(Context context, OnProcessSuccessListener listener)
+		{
+			this.context = context;
+			this.listener = listener;
+		}
+
+		@Override
+		protected Vocabulary doInBackground(Vocabulary...  p1)
+		{
+			Vocabulary v = p1[0];
+
+			try
+			{
+				HttpClient httpclient = new DefaultHttpClient(); 
+				HttpGet httpget = new HttpGet();
+				HttpResponse response;
+				HttpEntity entity;
+				BufferedReader reader;
+				StringBuilder sb = new StringBuilder();
+				String line, page;
+				int index, index0, index1, index2, index3;
+		
+				httpget.setURI(URI.create("http://jisho.org/search/" + URLEncoder.encode(v.kanji + " #words", "UTF-8").replace("+", "%20")));
+				response = httpclient.execute(httpget); 
+				entity = response.getEntity();
+
+				reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+				sb.setLength(0);
+
+				while ((line = reader.readLine()) != null)
+				{
+					sb.append(line);
+				}
+
+				reader.close();
+				page = sb.toString();
+				sb.setLength(0);
+
+				index = page.indexOf("class=\"furigana\"");
+				index = page.indexOf(">", index) + 1;
+				index0 = page.indexOf("<span class=\"text\">", index);
+				v.reading = new String[] { StringHelper.trim(Html.fromHtml(page.substring(index, index0)).toString()) };
+				index = page.indexOf("</div>", index0);
+				v.kanji = StringHelper.trim(Html.fromHtml(page.substring(index0, index)).toString());
+				v.reading[0] = StringHelper.replaceWithFurigana(v.kanji, v.reading[0], false, false);
+				
+				index = page.indexOf("class=\"concept_light-status", index);
+				index0 = page.indexOf("class=\"concept_light-status_link\"", index);
+				
+				String tags = page.substring(page.indexOf("\"", index + 10) + 1, index0 - 3);
+				if (tags.contains("Common"))
+					v.notes = "Common Word";
+				if (tags.contains("N5"))
+					v.notes = (v.notes == null ? "" : v.notes + "\n") + "JLPT level N5";
+				if (tags.contains("N4"))
+					v.notes = (v.notes == null ? "" : v.notes + "\n") + "JLPT level N4";
+				if (tags.contains("N3"))
+					v.notes = (v.notes == null ? "" : v.notes + "\n") + "JLPT level N3";
+				if (tags.contains("N2"))
+					v.notes = (v.notes == null ? "" : v.notes + "\n") + "JLPT level N2";
+				if (tags.contains("N1"))
+					v.notes = (v.notes == null ? "" : v.notes + "\n") + "JLPT level N1";
+				
+				index2 = page.indexOf("class=\"light-details_link\"", index);
+					
+				String tmp[];
+				boolean otherForms, notes, trans = false, intrans = false;
+				ArrayList<String> meanings = new ArrayList<>();
+				
+				v.type = VocabularyType.NONE;
+				v.additionalInfo = "";
+				
+				int timeout = 0;
+				while (true)
+				{
+					otherForms = false;
+					notes = false;
+					
+					if (timeout++ > 50)
+						return null;
+					
+					index0 = page.indexOf("class=\"meaning-tags\"", index);
+					index1 = index0 == -1 ? -1 : page.indexOf("<", index0);
+					index3 = page.indexOf("class=\"meaning-meaning\"", index);
+					
+					if (index1 != -1 && index1 < index2 && (index3 == -1 || index3 > index0))
+					{
+						tmp = page.substring(index0 + 21, index1).split(", ");
+						for (String tag : tmp)
+						{
+							if (tag.equalsIgnoreCase("Other Forms"))
+								otherForms = true;
+								
+							else if (tag.equalsIgnoreCase("Notes"))
+								notes = true;
+								
+							else if (tag.equalsIgnoreCase("Na-adjective"))
+							{
+								v.type = VocabularyType.NA_ADJECTIVE;
+							}
+							else if (tag.contains("Noun") && v.type == VocabularyType.NONE)
+								v.type = VocabularyType.NOUN;
+								
+							else if (tag.equalsIgnoreCase("No-adjective") && v.type == VocabularyType.NONE)
+							{
+								v.type = VocabularyType.OTHER;
+								v.additionalInfo = v.additionalInfo + "; No-adjective";
+							}
+							else if (tag.equalsIgnoreCase("Conjunction") && v.type == VocabularyType.NONE)
+								v.type = VocabularyType.CONJUNCTION;
+							
+							else if (tag.equalsIgnoreCase("Expression") && v.type == VocabularyType.NONE)
+								v.type = VocabularyType.EXPRESSION;
+							
+							else if (tag.equalsIgnoreCase("I-adjective"))
+								v.type = VocabularyType.I_ADJECTIVE;
+							
+							else if (tag.equalsIgnoreCase("Adverb"))
+								v.type = VocabularyType.ADVERB;
+							
+							else if (tag.equalsIgnoreCase("Counter") && v.type == VocabularyType.NONE)
+								v.type = VocabularyType.COUNTER;
+							
+							else if (tag.equalsIgnoreCase("Particle") && v.type == VocabularyType.NONE)
+								v.type = VocabularyType.PARTICLE;
+								
+							else if (tag.contains("'to' particle"))
+							{
+								v.type = VocabularyType.ADVERB;
+								v.additionalInfo = v.additionalInfo + "; takes the 'to' particle";
+							}
+							else if (tag.contains("Godan verb"))
+								v.type = VocabularyType.U_VERB;
+								
+							else if (tag.contains("Ichidan verb"))
+								v.type = VocabularyType.RU_VERB;
+								
+							else if (tag.contains("Suru"))
+								v.additionalInfo = v.additionalInfo + "; Suru verb";
+
+							else if (tag.contains("Special class"))
+							{
+								v.type = VocabularyType.OTHER;
+								v.additionalInfo = v.additionalInfo + "; special class";
+							}
+							else if (tag.contains("intransitive"))
+								intrans = true;
+								
+							else if (tag.contains("Transitive"))
+								trans = true;
+								
+							if (tag.contains("prefix"))
+								v.additionalInfo = v.additionalInfo + "; used as prefix";
+								
+							else if (tag.contains("suffix"))
+								v.additionalInfo = v.additionalInfo + "; used as suffix";
+							
+						}
+						
+						index = index1;
+					}
+					
+					index0 = notes ? page.indexOf("class=\"\"", index) + 9 : index3 + 24;
+					index1 = index0 <= 23 ? -1 : page.indexOf("</span>", index0);
+					
+					if (index1 == -1 || index1 > index2)
+						break;
+					 
+					if (otherForms)
+						v.notes = (v.notes == null ? "" : v.notes + "\n\n") + "Other forms:\n" + Html.fromHtml(page.substring(index0, page.indexOf("</div>", index0))).toString().replace("、", "\n");
+					
+					else if (notes)
+						v.notes = (v.notes == null ? "" : v.notes + "\n\n") + Html.fromHtml(page.substring(index0, page.indexOf("</div>", index0))).toString().replace("、", "\n");
+					
+					else
+					{
+						tmp = Html.fromHtml(page.substring(index0, index1)).toString().split(";");
+						
+						for (String meaning : tmp)
+							meanings.add(StringHelper.trim(meaning));
+					}
+					
+					index = index1;
+				}
+				
+				if (meanings.size() > 1 && StringHelper.similiarMeaning(meanings.get(meanings.size() - 1), meanings.get(meanings.size() - 2)))
+					meanings.remove(meanings.size() - 1);
+				
+				v.meaning = meanings.toArray(new String[meanings.size()]);
+				
+				if (trans)
+					v.additionalInfo = v.additionalInfo + "; transitive";
+				
+				if (intrans)
+					v.additionalInfo = v.additionalInfo + "; intransitive";
+				
+				if (v.additionalInfo != null && v.additionalInfo.startsWith("; "))
+					v.additionalInfo = v.additionalInfo.substring(2);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+
+			return v;
+		}
+
+		@Override
+		protected void onPostExecute(Vocabulary vocabulary)
+		{
+			listener.onProcessSuccess(vocabulary);
+		}
+	}
+	
 }

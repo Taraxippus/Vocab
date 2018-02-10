@@ -11,6 +11,7 @@ import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.transition.ChangeBounds;
@@ -52,6 +53,8 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import android.util.TypedValue;
+import com.taraxippus.vocab.dialog.DialogQuizPreferences;
 
 public class FragmentDetail extends Fragment
 {
@@ -103,7 +106,8 @@ public class FragmentDetail extends Fragment
 		
 		if (vocabulary == null)
 		{
-			getFragmentManager().popBackStack();
+			if (getFragmentManager() != null)
+				getFragmentManager().popBackStack();
 			return;
 		}
 		
@@ -314,12 +318,12 @@ public class FragmentDetail extends Fragment
 		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_reading);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameReading));
+		recyclerView.setAdapter(new VocabularyAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameReading));
 
 		recyclerView = (RecyclerView)v.findViewById(R.id.recycler_same_meaning);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameMeaning));
+		recyclerView.setAdapter(new VocabularyAdapter(getActivity(), dbHelper, recyclerView, vocabulary.sameMeaning));
 
 		((TextView) v.findViewById(R.id.text_progress_total)).setText((vocabulary.timesCorrect_kanji + vocabulary.timesCorrect_reading + vocabulary.timesCorrect_meaning) + " / " + (vocabulary.timesChecked_kanji + vocabulary.timesChecked_reading + vocabulary.timesChecked_meaning));
 		final ProgressBar progress_total = (ProgressBar)v.findViewById(R.id.progress_total);
@@ -333,7 +337,7 @@ public class FragmentDetail extends Fragment
 		
 		if (vocabulary.reading.length > 0)
 		{
-			((TextView)v.findViewById(R.id.text_progress_reading)).setText(vocabulary.timesCorrect_reading + " / " + vocabulary.timesChecked_reading);
+			((TextView) v.findViewById(R.id.text_progress_reading)).setText(vocabulary.timesCorrect_reading + " / " + vocabulary.timesChecked_reading);
 			final ProgressBar progress_reading = (ProgressBar)v.findViewById(R.id.progress_reading);
 			progress_reading.setMax(vocabulary.timesChecked_reading);
 			progress_reading.setProgress(vocabulary.timesCorrect_reading);
@@ -343,6 +347,7 @@ public class FragmentDetail extends Fragment
 			v.findViewById(R.id.text_reading_progress).setVisibility(View.GONE);
 			v.findViewById(R.id.text_progress_reading).setVisibility(View.GONE);
 			v.findViewById(R.id.progress_reading).setVisibility(View.GONE);
+			((TextView) v.findViewById(R.id.text_kanji_progress)).setText("Success rate for entering kana:");
 		}
 		
 		((TextView) v.findViewById(R.id.text_progress_meaning)).setText(vocabulary.timesCorrect_meaning + " / " + vocabulary.timesChecked_meaning);
@@ -357,7 +362,7 @@ public class FragmentDetail extends Fragment
 		}
 		else
 		{
-			((TextView) v.findViewById(R.id.text_streak_category)).setText("Kanji\nMeaning");
+			((TextView) v.findViewById(R.id.text_streak_category)).setText("Kana\nMeaning");
 			((TextView) v.findViewById(R.id.text_streak_values)).setText(vocabulary.streak_kanji + " / " + vocabulary.streak_kanji_best + "\n" + vocabulary.streak_meaning + " / " + vocabulary.streak_meaning_best);
 		}
 		
@@ -439,19 +444,24 @@ public class FragmentDetail extends Fragment
 		{
 				case R.id.item_open_jisho:
 					JishoHelper.search(getActivity(), vocabulary.kanji);
-
 					return true;
 				
 				case R.id.item_open_jisho_kanji:
 					JishoHelper.search(getActivity(), vocabulary.kanji + " #kanji");
-
 					return true;
+					
 				case R.id.item_edit:
 					Intent intent = new Intent(getContext(), ActivityAdd.class);
 					intent.putExtra("id", getArguments().getInt("id"));
 					startActivity(intent);
-
 					return true;
+					
+				case R.id.item_quiz_preferences:
+					DialogQuizPreferences d = new DialogQuizPreferences();
+					d.setArguments(getArguments());
+					d.show(getFragmentManager(), "quiz_preferences");
+					return true;
+				
 				case R.id.item_reset:
 					DialogHelper.createDialog(getContext(), "Reset", "Do you really want to reset this vocabulary? All progress and statistics will be lost!", "Reset", new DialogInterface.OnClickListener() 
 						{
@@ -553,6 +563,7 @@ public class FragmentDetail extends Fragment
 	{
 		super.onPrepareOptionsMenu(menu);
 		
+		menu.findItem(R.id.item_open_jisho_kanji).setVisible(vocabulary.reading.length > 0);
 		menu.findItem(R.id.item_learn_add).setVisible(!vocabulary.learned);
 		menu.findItem(R.id.item_learn_remove).setVisible(vocabulary.learned);
 	}
@@ -640,7 +651,7 @@ public class FragmentDetail extends Fragment
 
 		protected void onPostExecute(Bitmap result)
 		{
-			TransitionManager.beginDelayedTransition(layout);
+			//TransitionManager.beginDelayedTransition(layout);
 			
 			if (result != null)
 			{
@@ -652,7 +663,7 @@ public class FragmentDetail extends Fragment
 		}
 	}
 	
-	public static class SynonymAdapter extends RecyclerView.Adapter<SynonymAdapter.SynonymViewHolder> implements View.OnClickListener
+	public static class VocabularyAdapter extends RecyclerView.Adapter<VocabularyAdapter.VocabularyViewHolder> implements View.OnClickListener
 	{
 		@Override
 		public void onClick(View v)
@@ -681,58 +692,137 @@ public class FragmentDetail extends Fragment
 			}
 		}
 
-		public class SynonymViewHolder extends RecyclerView.ViewHolder 
+		public class VocabularyViewHolder extends RecyclerView.ViewHolder 
 		{
 			final TextView text_kanji;
 
-			public SynonymViewHolder(View v) 
+			public VocabularyViewHolder(final View v) 
 			{
 				super(v);
 
 				text_kanji = (TextView) v.findViewById(R.id.text_kanji);
 				text_kanji.setTextLocale(Locale.JAPANESE);
+				
+				if (vertical)
+				{
+					v.getLayoutParams().width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, context.getResources().getDisplayMetrics());
+					v.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+					
+					text_kanji.getLayoutParams().width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 84, context.getResources().getDisplayMetrics());
+					text_kanji.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+				}
+				
+				if (canRemove)
+				{
+					v.setOnLongClickListener(new View.OnLongClickListener()
+						{
+							@Override
+							public boolean onLongClick(View p1)
+							{
+								PopupMenu popup = new PopupMenu(context, v);
+								popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+									{
+										@Override
+										public boolean onMenuItemClick(MenuItem item)
+										{
+											int index = view.getChildAdapterPosition(v);
+											int[] data1 = new int[data.length - 1];
+											System.arraycopy(data, 0, data1, 0, index);
+											System.arraycopy(data, index + 1, data1, index, data.length - index - 1);
+											data = data1;
+											cache = null;
+											notifyItemRemoved(index);
+
+											return true;
+										}
+									});
+								popup.getMenu().add("Exclude");
+								popup.show();
+								return true;
+							}
+						});
+				}
 			}
 		}
 
 		final Activity context;
 		final DBHelper dbHelper;
 		final RecyclerView view;
-		final int[] data;
-
-		public SynonymAdapter(Activity context, DBHelper dbHelper, RecyclerView view, int[] data)
+		public int[] data;
+		String[] cache;
+		final boolean vertical, canRemove;
+		
+		public VocabularyAdapter(Activity context, DBHelper dbHelper, RecyclerView view, int[] data)
+		{
+			this(context, dbHelper, view, false, false, data);
+		}
+		
+		public VocabularyAdapter(Activity context, DBHelper dbHelper, RecyclerView view, boolean vertical, boolean canRemove, int[] data)
 		{
 			this.context = context;
 			this.dbHelper = dbHelper;
 			this.view = view;
 			this.data = data;
+			this.vertical = vertical;
+			this.canRemove = canRemove;
 			
 			if (data == null)
 				this.data = new int[0];
 		}
 
 		@Override
-		public SynonymAdapter.SynonymViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
+		public VocabularyAdapter.VocabularyViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
 		{
 			View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_synonym, parent, false);
 			v.setOnClickListener(this);
 
-			return new SynonymViewHolder(v);
+			return new VocabularyViewHolder(v);
 		}
 
 		@Override
-		public void onBindViewHolder(SynonymViewHolder holder, int position) 
+		public void onBindViewHolder(VocabularyViewHolder holder, int position) 
 		{
 			int id = data[position];
 			
 			holder.itemView.setTransitionName("card" + id);
 			holder.text_kanji.setTransitionName("kanji" + id);
-			holder.text_kanji.setText(dbHelper.getString(id, "kanji"));
+			holder.text_kanji.setText(getKanjiAtPosition(position));
+		}
+		
+		public String getKanjiAtPosition(int position)
+		{
+			if (data == null || data.length == 0)
+				return "";
+				
+			if (cache == null || cache.length != data.length)
+				cache = new String[data.length];
+				
+			if (cache[position] == null)
+				cache[position] = dbHelper.getString(data[position], "kanji");
+			
+			return cache[position];
 		}
 
 		@Override
 		public int getItemCount() 
 		{
 			return data.length;
+		}
+	}
+	
+	public static class VocabularySpanSizeLookup extends GridLayoutManager.SpanSizeLookup
+	{
+		VocabularyAdapter adapter;
+		
+		public VocabularySpanSizeLookup(VocabularyAdapter adapter)
+		{
+			this.adapter = adapter;
+		}
+		
+		@Override
+		public int getSpanSize(int position)
+		{
+			return adapter.getKanjiAtPosition(position).length();
 		}
 	}
 	
@@ -747,9 +837,9 @@ public class FragmentDetail extends Fragment
 				return;
 			}
 			
-			if (!JishoHelper.isInternetAvailable(context))
+			if (!dbHelper.existsKanji(data[view.getChildAdapterPosition(v)]) &&!JishoHelper.isInternetAvailable(context))
 			{
-				DialogHelper.createDialog(context, "Unknown kanji", "This character is not in your kanji database. Do you want to add it now?",
+				DialogHelper.createDialog(context, "Unknown Kanji", "This character is not in your kanji database. Do you want to add it now?",
 					"Add", new DialogInterface.OnClickListener()
 					{
 						@Override
@@ -789,7 +879,7 @@ public class FragmentDetail extends Fragment
 		{
 			final TextView text_kanji;
 
-			public KanjiViewHolder(View v) 
+			public KanjiViewHolder(final View v) 
 			{
 				super(v);
 
@@ -797,20 +887,68 @@ public class FragmentDetail extends Fragment
 				text_kanji.setTextLocale(Locale.JAPANESE);
 				
 				((CardView) v).setRadius(0);
+				
+				if (vertical)
+				{
+					v.getLayoutParams().width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, context.getResources().getDisplayMetrics());
+					v.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+					text_kanji.getLayoutParams().width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 84, context.getResources().getDisplayMetrics());
+					text_kanji.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+				}
+				
+				if (canRemove)
+				{
+					v.setOnLongClickListener(new View.OnLongClickListener()
+					{
+							@Override
+							public boolean onLongClick(View p1)
+							{
+								PopupMenu popup = new PopupMenu(context, v);
+								popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+									{
+										@Override
+										public boolean onMenuItemClick(MenuItem item)
+										{
+											int index = view.getChildAdapterPosition(v);
+											char[] data1 = new char[data.length - 1];
+											System.arraycopy(data, 0, data1, 0, index);
+											System.arraycopy(data, index + 1, data1, index, data.length - index - 1);
+											data = data1;
+											notifyItemRemoved(index);
+
+											return true;
+										}
+									});
+								popup.getMenu().add("Exclude");
+								popup.show();
+								return true;
+							}
+					});
+				}
 			}
 		}
 
 		final Activity context;
 		final DBHelper dbHelper;
 		final RecyclerView view;
-		char[] data;
-
+		public char[] data;
+		final boolean vertical, canRemove;
+		
 		public KanjiAdapter(Activity context, DBHelper dbHelper, RecyclerView view, char[] data)
+		{
+			this(context, dbHelper, view, false, false, data);
+		}
+		
+
+		public KanjiAdapter(Activity context, DBHelper dbHelper, RecyclerView view, boolean vertical, boolean canRemove, char[] data)
 		{
 			this.context = context;
 			this.dbHelper = dbHelper;
 			this.view = view;
 			this.data = data;
+			this.vertical = vertical;
+			this.canRemove = canRemove;
 			
 			if (data == null)
 				this.data = new char[0];

@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import com.taraxippus.vocab.ActivityAddKanji;
@@ -29,6 +30,7 @@ import com.taraxippus.vocab.ActivitySettings;
 import com.taraxippus.vocab.R;
 import com.taraxippus.vocab.dialog.DialogHelper;
 import com.taraxippus.vocab.util.JishoHelper;
+import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.OnProcessSuccessListener;
 import com.taraxippus.vocab.view.LineGraphView;
 import com.taraxippus.vocab.view.PercentageGraphView;
@@ -85,17 +87,19 @@ public class FragmentDetailKanji extends Fragment
 	@Override
 	public void onViewCreated(final View v, Bundle savedInstanceState)
 	{
-		if (getArguments().getChar("kanji", (char) 0) != 0)
+		if (getArguments().getChar("kanji", '\n') != '\n')
 		{
-			if (!online)
+			if (dbHelper.existsKanji(getArguments().getChar("kanji")))
+				kanji = dbHelper.getKanji(getArguments().getChar("kanji"));
+			
+			else if (!online)
 			{
 				online = true;
-				v.findViewById(R.id.card_stats).setVisibility(View.GONE);
+				v.findViewById(R.id.card_stats_kanji).setVisibility(View.GONE);
 				final View progress_jisho = v.findViewById(R.id.progress_jisho);
 				progress_jisho.setVisibility(View.VISIBLE);
 
-				kanji = new Kanji(-1);
-				kanji.kanji = getArguments().getChar("kanji");
+				kanji = new Kanji(getArguments().getChar("kanji"));
 				kanji.vocabularies = dbHelper.findVocabulariesForKanji(dbHelper.getReadableDatabase(), kanji.kanji);
 				JishoHelper.importKanji(getContext(), kanji, new OnProcessSuccessListener()
 					{
@@ -110,14 +114,11 @@ public class FragmentDetailKanji extends Fragment
 					});
 			}
 		}
-		else
+			
+		if (kanji == null || v == null)
 		{
-			//kanji = dbHelper.getVocabulary(getArguments().getInt("id"));
-		}
-		
-		if (kanji == null)
-		{
-			getFragmentManager().popBackStack();
+			if (getFragmentManager() != null)
+				getFragmentManager().popBackStack();
 			return;
 		}
 		
@@ -132,14 +133,10 @@ public class FragmentDetailKanji extends Fragment
 		
 		if (kanji.reading_kun != null)
 		{
-			final TextView reading_kun = (TextView)v.findViewById(R.id.text_reading_kun);
-			reading_kun.setTransitionName("reading_kun" + kanji.kanji);
-			reading_kun.setText(kanji.reading_kun.length == 0 ? "" : kanji.correctAnswer(QuestionType.READING_KUN));
-
-			final TextView reading_on = (TextView)v.findViewById(R.id.text_reading_on);
-			reading_on.setTransitionName("reading_on" + kanji.kanji);
-			reading_on.setText(kanji.reading_on.length == 0 ? "" : kanji.correctAnswer(QuestionType.READING_ON));
-
+			final TextView reading = (TextView)v.findViewById(R.id.text_reading);
+			reading.setTransitionName("reading" + kanji.kanji);
+			reading.setText(kanji.correctAnswer(QuestionType.READING_INFO));
+			
 			meaning.setTransitionName("meaning" + kanji.kanji);
 			meaning.setText(kanji.correctAnswer(QuestionType.MEANING_INFO));
 		}
@@ -262,10 +259,97 @@ public class FragmentDetailKanji extends Fragment
 		RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_vocabularies);
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-		recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, kanji.vocabularies));
+		recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), dbHelper, recyclerView, kanji.vocabularies));
+		
+		if (kanji.vocabularies.length == 0)
+		{
+			recyclerView.setVisibility(View.GONE);
+			v.findViewById(R.id.text_title_vocabularies).setVisibility(View.GONE);
+		}
 		
 		if (!online)
 		{
+			((TextView) v.findViewById(R.id.text_progress_total)).setText((kanji.timesCorrect_kanji + kanji.timesCorrect_reading_kun + kanji.timesCorrect_reading_on + kanji.timesCorrect_meaning) + " / " + (kanji.timesChecked_kanji + kanji.timesChecked_reading_kun + kanji.timesChecked_reading_on + kanji.timesChecked_meaning));
+			final ProgressBar progress_total = (ProgressBar)v.findViewById(R.id.progress_total);
+			progress_total.setMax(kanji.timesChecked_kanji + kanji.timesChecked_reading_kun + kanji.timesChecked_reading_on + kanji.timesChecked_meaning);
+			progress_total.setProgress(kanji.timesCorrect_kanji + kanji.timesCorrect_reading_kun + kanji.timesCorrect_reading_on + kanji.timesCorrect_meaning);
+
+			((TextView) v.findViewById(R.id.text_progress_kanji)).setText(kanji.timesCorrect_kanji + " / " + kanji.timesChecked_kanji);
+			final ProgressBar progress_kanji = (ProgressBar)v.findViewById(R.id.progress_kanji);
+			progress_kanji.setMax(kanji.timesChecked_kanji);
+			progress_kanji.setProgress(kanji.timesCorrect_kanji);
+
+			if (kanji.reading_kun.length > 0)
+			{
+				((TextView)v.findViewById(R.id.text_progress_reading_kun)).setText(kanji.timesCorrect_reading_kun + " / " + kanji.timesChecked_reading_kun);
+				final ProgressBar progress_reading = (ProgressBar) v.findViewById(R.id.progress_reading_kun);
+				progress_reading.setMax(kanji.timesChecked_reading_kun);
+				progress_reading.setProgress(kanji.timesCorrect_reading_kun);
+			}
+			else
+			{
+				v.findViewById(R.id.text_reading_kun_progress).setVisibility(View.GONE);
+				v.findViewById(R.id.text_progress_reading_kun).setVisibility(View.GONE);
+				v.findViewById(R.id.progress_reading_kun).setVisibility(View.GONE);
+			}
+
+			if (kanji.reading_on.length > 0)
+			{
+				((TextView)v.findViewById(R.id.text_progress_reading_on)).setText(kanji.timesCorrect_reading_on + " / " + kanji.timesChecked_reading_on);
+				final ProgressBar progress_reading = (ProgressBar) v.findViewById(R.id.progress_reading_on);
+				progress_reading.setMax(kanji.timesChecked_reading_on);
+				progress_reading.setProgress(kanji.timesCorrect_reading_on);
+			}
+			else
+			{
+				v.findViewById(R.id.text_reading_on_progress).setVisibility(View.GONE);
+				v.findViewById(R.id.text_progress_reading_on).setVisibility(View.GONE);
+				v.findViewById(R.id.progress_reading_on).setVisibility(View.GONE);
+			}
+			
+			((TextView) v.findViewById(R.id.text_progress_meaning)).setText(kanji.timesCorrect_meaning + " / " + kanji.timesChecked_meaning);
+			final ProgressBar progress_meaning = (ProgressBar) v.findViewById(R.id.progress_meaning);
+			progress_meaning.setMax(kanji.timesChecked_meaning);
+			progress_meaning.setProgress(kanji.timesCorrect_meaning);
+
+			StringBuilder sb = new StringBuilder();
+			StringBuilder sb2 = new StringBuilder();
+			
+			for (int i = 0; i < kanji.reading_kun.length; ++i)
+			{
+				if (i != 0)
+				{
+					sb.append("\n");
+					sb2.append("\n");
+				}
+					
+				sb.append(kanji.reading_kun[i]);
+				sb2.append(kanji.timesCorrect_reading[i] + " / " + kanji.timesChecked_reading[i]);
+			}
+			
+			for (int i = 0; i < kanji.reading_on.length; ++i)
+			{
+				if (i != 0)
+				{
+					sb.append("\n");
+					sb2.append("\n");
+				}
+				else if (kanji.reading_kun.length != 0)
+				{
+					sb.append("\n\n");
+					sb2.append("\n\n");
+				}
+
+				sb.append(kanji.reading_on[i]);
+				sb2.append(kanji.timesCorrect_reading[i + kanji.reading_kun.length] + " / " + kanji.timesChecked_reading[i + kanji.reading_kun.length]);
+			}
+			
+			((TextView) v.findViewById(R.id.text_success_reading_category)).setText(sb.toString());
+			((TextView) v.findViewById(R.id.text_success_reading_values)).setText(sb2.toString());
+			
+			((TextView) v.findViewById(R.id.text_streak_category)).setText("Kanji\nKunyomi\nOnyomi\nMeaning");
+			((TextView) v.findViewById(R.id.text_streak_values)).setText(kanji.streak_kanji + " / " + kanji.streak_kanji_best + "\n" + kanji.streak_reading_kun + " / " + kanji.streak_reading_kun_best + "\n" + kanji.streak_reading_on + " / " + kanji.streak_reading_on_best + "\n" + kanji.streak_meaning + " / " + kanji.streak_meaning_best);
+			
 			final LineGraphView category_history = (LineGraphView) v.findViewById(R.id.line_graph_category);
 			if (kanji.category_history[kanji.category_history.length - 2] >= 0)
 				category_history.setValues(kanji.category_history);
@@ -305,7 +389,10 @@ public class FragmentDetailKanji extends Fragment
 						@Override
 						public void onClick(DialogInterface p1, int p2)
 						{
-							
+							dbHelper.updateKanji(kanji);
+							online = false;
+							refreshDetailView();
+							getView().findViewById(R.id.card_stats_kanji).setVisibility(View.VISIBLE);
 						}
 				});
 				return true;
@@ -316,70 +403,70 @@ public class FragmentDetailKanji extends Fragment
 				
 			case R.id.item_edit:
 				Intent intent = new Intent(getContext(), ActivityAddKanji.class);
-				intent.putExtra("id", getArguments().getInt("id"));
+				intent.putExtra("kanji", kanji.kanji);
 				startActivity(intent);
 				return true;
 				
-//			case R.id.item_reset:
-//				DialogHelper.createDialog(getContext(), "Reset", "Do you really want to reset this vocabulary? All progress and statistics will be lost!", "Reset", new DialogInterface.OnClickListener() 
-//					{
-//						public void onClick(DialogInterface dialog, int which) 
-//						{
-//							dbHelper.resetVocabulary(getArguments().getInt("id"));
-//							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-//
-//							refreshDetailView();
-//							dialog.dismiss();
-//						}
-//					});
-//
-//
-//				return true;
-//			case R.id.item_reset_category:
-//				DialogHelper.createDialog(getContext(), "Reset", "Do you really want to reset the category of this vocabulary? You'll have to review it again.", "Reset", new DialogInterface.OnClickListener() 
-//					{
-//						public void onClick(DialogInterface dialog, int which) 
-//						{
-//							dbHelper.resetVocabularyCategory(vocabulary.lastChecked, getArguments().getInt("id"));
-//							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-//
-//							refreshDetailView();
-//							dialog.dismiss();
-//						}
-//					});
-//
-//				return true;
-//
-//			case R.id.item_delete:
-//				DialogHelper.createDialog(getContext(), "Delete", "Do you really want to delete this vocabulary?", "Delete", new DialogInterface.OnClickListener() 
-//					{
-//						public void onClick(DialogInterface dialog, int which) 
-//						{
-//							dbHelper.deleteVocabulary(getArguments().getInt("id"));
-//							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-//
-//
-//							dialog.dismiss();
-//							getFragmentManager().popBackStack();
-//						}
-//					});
-//
-//				return true;
-//
-//			case R.id.item_learn_add:
-//				dbHelper.updateVocabularyLearned(getArguments().getInt("id"), true);
-//				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-//
-//				refreshDetailView();
-//				return true;
-//
-//			case R.id.item_learn_remove:
-//				dbHelper.updateVocabularyLearned(getArguments().getInt("id"), false);
-//				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
-//
-//				refreshDetailView();
-//				return true;
-//
+			case R.id.item_reset:
+				DialogHelper.createDialog(getContext(), "Reset", "Do you really want to reset this kanji? All progress and statistics will be lost!", "Reset", new DialogInterface.OnClickListener() 
+					{
+						public void onClick(DialogInterface dialog, int which) 
+						{
+							dbHelper.resetKanji(kanji.kanji);
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+
+							refreshDetailView();
+							dialog.dismiss();
+						}
+					});
+
+
+				return true;
+			case R.id.item_reset_category:
+				DialogHelper.createDialog(getContext(), "Reset", "Do you really want to reset the category of this kanji? You'll have to review it again.", "Reset", new DialogInterface.OnClickListener() 
+					{
+						public void onClick(DialogInterface dialog, int which) 
+						{
+							dbHelper.resetKanjiCategory(kanji.lastChecked, kanji.kanji);
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+
+							refreshDetailView();
+							dialog.dismiss();
+						}
+					});
+
+				return true;
+
+			case R.id.item_delete:
+				DialogHelper.createDialog(getContext(), "Delete", "Do you really want to delete this kanji?", "Delete", new DialogInterface.OnClickListener() 
+					{
+						public void onClick(DialogInterface dialog, int which) 
+						{
+							dbHelper.deleteKanji(kanji.kanji);
+							getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+
+
+							dialog.dismiss();
+							getFragmentManager().popBackStack();
+						}
+					});
+
+				return true;
+
+			case R.id.item_learn_add:
+				dbHelper.updateKanjiLearned(kanji.kanji, true);
+				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+
+				refreshDetailView();
+				return true;
+
+			case R.id.item_learn_remove:
+				dbHelper.updateKanjiLearned(kanji.kanji, false);
+				getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
+
+				refreshDetailView();
+				return true;
+
 //			case R.id.item_cheat:
 //				vocabulary.answer(dbHelper, getContext(), vocabulary.kanji, QuestionType.KANJI, QuestionType.MEANING);
 //				if (vocabulary.reading.length > 0)
@@ -447,7 +534,7 @@ public class FragmentDetailKanji extends Fragment
 
 		refreshDetailView();
 		getActivity().setTitle(kanji.kanji + " #Kanji");
-
+		
 		if (getActivity() instanceof ActivityMain)
 			((ActivityMain) getActivity()).setDisplayHomeAsUp(true);
 	}

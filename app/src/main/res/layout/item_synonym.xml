@@ -5,6 +5,7 @@
 	android:id="@+id/card_vocabulary"
 	android:layout_width="wrap_content"
 	android:layout_height="100dp"
+	android:layout_gravity="center"
 	card_view:cardCornerRadius="2dp"
 	card_view:cardElevation="2dp"
 	card_view:cardUseCompatPadding="true"

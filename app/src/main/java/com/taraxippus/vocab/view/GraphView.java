@@ -19,8 +19,8 @@ public class GraphView extends View
 	int[] values;
 	int[] values2;
 	int tallest;
-	int best;
-
+	int selected;
+	
 	public int width, height;
 	
 	public GraphView(Context context, AttributeSet set)
@@ -67,7 +67,7 @@ public class GraphView extends View
 			
 		values = new int[values1.length];
 		values2 = new int[values12.length];
-		tallest = 0;
+		selected = tallest = 0;
 		
 		for (int i = 0; i < values1.length; ++i)
 		{
@@ -75,14 +75,12 @@ public class GraphView extends View
 			values2[i] = values12[i];
 
 			if (values[i] > values[tallest])
-				best = tallest = i;
+				selected = tallest = i;
 
 //			if ((float) values2[i] / values[i] > (float) values2[best] / values[best]
 //				|| (float) values2[i] / values[i] == (float) values2[best] / values[best] && values2[i] > values2[best])
 //				best = i;
 		}
-		
-		textPaint.setTextAlign(best == 0 ? Paint.Align.LEFT : best == values.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
 		
 		onSizeChanged(getWidth(), getHeight(), getWidth(), getHeight());
 		invalidate();
@@ -112,12 +110,48 @@ public class GraphView extends View
 	{
 		for (int i = 0; i < values.length; ++i)
 		{
-			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[best] ? linePaint2_alpha : linePaint_alpha);
-			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[best] ? linePaint2 : linePaint);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[selected] ? linePaint2_alpha : linePaint_alpha);
+			canvas.drawLine(canvas.getWidth() / (values.length + 1F) * (i + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values2[i] / (float)values[tallest]) + textPaint.getTextSize() * 1.5F, canvas.getWidth() / (values.length + 1F) * (i + 1F), canvas.getHeight() - bottomPaint.getStrokeWidth(), values[i] == values[selected] ? linePaint2 : linePaint);
 		}
-
-		canvas.drawText("" + values2[best] + " / " + values[best], canvas.getWidth() / (values.length + 1F) * (best + 1F), (canvas.getHeight() - bottomPaint.getStrokeWidth() - textPaint.getTextSize() * 1.5F) * (1F - values[best] / (float)values[tallest]) + textPaint.getTextSize() * 1F, textPaint);
-
+		
+		textPaint.setTextAlign(selected == 0 ? Paint.Align.LEFT : selected == values.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
+		if (values[selected] != 0)
+			canvas.drawText("" + values2[selected] + " / " + values[selected], canvas.getWidth() / (values.length + 1F) * (selected + 1F), textPaint.getTextSize() * 1F, textPaint);
 		canvas.drawLine(0, canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F, canvas.getWidth(), canvas.getHeight() - bottomPaint.getStrokeWidth() / 2F, bottomPaint);
+	}
+
+
+	int index = -1;
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event)
+	{
+		switch (event.getAction())
+		{
+			case MotionEvent.ACTION_DOWN:
+				index = event.getActionIndex();
+			case MotionEvent.ACTION_MOVE:
+				if (index != event.getActionIndex())
+					return super.onTouchEvent(event);
+					
+				int selected1 = selected;
+				selected = Math.max(0, Math.min(values.length - 1, Math.round((event.getX() / getWidth()) * (values.length + 1F) -1)));
+				if (selected1 != selected)
+					invalidate();
+				return true;
+				
+			case MotionEvent.ACTION_CANCEL:
+			case MotionEvent.ACTION_UP:
+				if (index != event.getActionIndex())
+					return super.onTouchEvent(event);
+					
+				index = -1;
+				selected = tallest;
+				invalidate();
+				return true;
+				
+			default:
+				return super.onTouchEvent(event);
+		}
 	}
 }

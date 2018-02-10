@@ -12,9 +12,14 @@
 		android:title="Show more details" />
 	
 	<item
+		android:id="@+id/item_stats"
+		android:icon="@drawable/stats"
+		android:title="Stats"
+		app:showAsAction="ifRoom" />
+	
+	<item
 		android:id="@+id/item_finish"
 		android:icon="@drawable/finish"
 		android:title="Finish"
 		app:showAsAction="ifRoom" />
-	
 </menu>

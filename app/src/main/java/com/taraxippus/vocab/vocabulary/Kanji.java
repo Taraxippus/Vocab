@@ -2,7 +2,6 @@ package com.taraxippus.vocab.vocabulary;
 
 public class Kanji
 {
-	public int id;
 	public char kanji;
 	public String[] reading_kun;
 	public String[] reading_on;
@@ -49,12 +48,17 @@ public class Kanji
 
 	public String imageFile;
 	
-	public Kanji(int id)
+	public Kanji(char kanji)
 	{
-		this.id = id;
+		this.kanji = kanji;
 	}
 	
 	public String correctAnswer(QuestionType type)
+	{
+		return correctAnswer(type, kanji, reading_kun, reading_on, meaning);
+	}
+	
+	public static String correctAnswer(QuestionType type, char kanji, String[] reading_kun, String[] reading_on, String[] meaning)
 	{
 		if (type == QuestionType.MEANING || type == QuestionType.MEANING_INFO)
 		{
@@ -76,6 +80,36 @@ public class Kanji
 			}
 
 			sb.append(meaning[meaning.length - 1]);
+			return sb.toString();
+		}
+		else if (type == QuestionType.READING || type == QuestionType.READING_INFO)
+		{
+			StringBuilder sb = new StringBuilder();
+
+			if (reading_kun.length != 0)
+			{
+				for (int i = 0; i < reading_kun.length - 1; ++i)
+				{
+					sb.append(reading_kun[i]);
+					sb.append(" 、");
+				}
+
+				sb.append(reading_kun[reading_kun.length - 1]);
+			}
+			if (reading_on.length != 0)
+			{
+				if (reading_kun.length != 0)
+					sb.append("\n");
+				
+				for (int i = 0; i < reading_on.length - 1; ++i)
+				{
+					sb.append(reading_on[i]);
+					sb.append(" 、");
+				}
+
+				sb.append(reading_on[reading_on.length - 1]);
+			}
+			
 			return sb.toString();
 		}
 		else if (type == QuestionType.READING_KUN)
@@ -112,5 +146,11 @@ public class Kanji
 		}	
 	
 		return "*error*";
+	}
+
+	@Override
+	public String toString()
+	{
+		return "" + kanji;
 	}
 }

@@ -1,0 +1,84 @@
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+	<TextView
+		android:id="@+id/text_kanji"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_alignParentTop="true" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Kanji Reviews:" />
+
+	<Spinner
+		android:id="@+id/spinner_kanji"
+		android:layout_width="200dp"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true"
+		android:layout_alignParentTop="true" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+
+	<TextView
+		android:id="@+id/text_reading"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_kanji" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Reading reviews:" />
+
+	<Spinner
+		android:id="@+id/spinner_reading"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true" 
+		android:layout_alignLeft="@id/spinner_kanji"
+		android:layout_below="@id/spinner_kanji" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+
+	<TextView
+		android:id="@+id/text_meaning"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_reading" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp"
+		android:text="Meaning reviews:" />
+
+	<Spinner
+		android:id="@+id/spinner_meaning"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentRight="true" 
+		android:layout_alignLeft="@id/spinner_kanji"
+		android:layout_below="@id/spinner_reading" 
+		android:layout_marginTop="16dp"
+		android:paddingLeft="24dp" />
+	
+	<CheckBox android:id="@+id/checkbox_quickreview"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_alignParentLeft="true" 
+		android:layout_below="@id/spinner_meaning" 
+		android:layout_marginTop="16dp"
+		android:layout_marginLeft="12dp"
+		android:text="Enable Quick Review"/>
+	
+	<TextView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/checkbox_quickreview" 
+		android:paddingLeft="18dp"
+		android:paddingRight="12dp"
+		android:hint="Automatically level up two categories with each review.Will be automatically disabled, when vocabulary is entered incorrectly." 
+		android:textColor="?android:attr/textColorSecondary" />
+	
+</RelativeLayout>

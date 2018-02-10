@@ -95,7 +95,7 @@
 		android:layout_marginRight="8dp"
 		android:layout_marginLeft="8dp"
 		android:padding="8dp"
-		android:text="Next >"
+		android:text="Next"
 		android:textAppearance="?android:attr/textAppearanceMedium"
 		android:textStyle="bold"
 		android:textColor="@color/white"

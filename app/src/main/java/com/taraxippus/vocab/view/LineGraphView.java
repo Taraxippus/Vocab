@@ -12,12 +12,14 @@ public class LineGraphView extends View
 	public final Paint graphPaint;
 	public final Paint linePaint;
 	public final Paint textPaint;
+	public final Paint selectedPaint;
 	
 	public final Path graphPath = new Path();
 	public final Path linePath = new Path();
+	public final Path selectedPath = new Path();
 	
 	public int[] values;
-	public int tallest;
+	public int tallest, selected = -1;
 	public String unit;
 	public boolean numbers;
 	
@@ -31,10 +33,11 @@ public class LineGraphView extends View
 		
 		TypedValue typedValue = new TypedValue();
 		context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, typedValue, true);
+		final float dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics());
 		
 		borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		borderPaint.setStyle(Paint.Style.STROKE);
-		borderPaint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
+		borderPaint.setStrokeWidth(dp);
 		borderPaint.setColor(context.getColor(typedValue.resourceId));
 		
 		graphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -44,8 +47,14 @@ public class LineGraphView extends View
 		
 		linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		linePaint.setStyle(Paint.Style.STROKE);
-		linePaint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()));
+		linePaint.setStrokeWidth(dp * 2);
 		linePaint.setColor(context.getColor(R.color.accent));
+		
+		selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		selectedPaint.setPathEffect(new DashPathEffect(new float[] {dp * 5, dp * 5}, 10 * dp));
+		selectedPaint.setStyle(Paint.Style.STROKE);
+		selectedPaint.setStrokeWidth(dp);
+		selectedPaint.setColor(context.getColor(typedValue.resourceId));
 		
 		textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		textPaint.setStyle(Paint.Style.FILL);
@@ -63,12 +72,15 @@ public class LineGraphView extends View
 	
 	public void setValues(int... values1)
 	{
-		setValues("", values1);
+		setValues("", 0, values1.length, values1);
 	}
 
-	public void setValues(String unit, int... values1)
+	public void setValues(String unit, int offset1, int length1, int... values1)
 	{
-		if (values1.length <= 1)
+		if (length1 == -1)
+			length1 = values1.length - offset1;
+		
+		if (values1.length < offset1 + length1 || offset1 + length1 <= 1)
 			return;
 			
 		this.numbers = true;
@@ -81,8 +93,8 @@ public class LineGraphView extends View
 		}
 		
 		int length = 0;
-		for (int i = 0; i < values1.length; ++i)
-			if (values1[i] >= 0)
+		for (int i = 0; i < length1; ++i)
+			if (values1[offset1 + i] >= 0)
 				length++;
 		
 		if (length == 0)
@@ -92,11 +104,11 @@ public class LineGraphView extends View
 		tallest = 0;
 		
 		int i1 = 0;
-		for (int i = 0; i < values1.length; i++)
+		for (int i = 0; i < length1; i++)
 		{
-			if (values1[i] >= 0)
+			if (values1[offset1 + i] >= 0)
 			{
-				values[i1] = values1[i];
+				values[i1] = values1[offset1 + i];
 				
 				if (values[i1] > values[tallest])
 					tallest = i1;
@@ -127,9 +139,12 @@ public class LineGraphView extends View
 		invalidate();
 	}
 
-	public void setValues(String unit, float... values1)
+	public void setValues(String unit, int offset1, int length1, float... values1)
 	{
-		if (values1.length <= 1)
+		if (length1 == -1)
+			length1 = values1.length - offset1;
+		
+		if (values1.length < offset1 + length1 || offset1 + length1 <= 1)
 			return;
 			
 		this.numbers = true;
@@ -141,8 +156,8 @@ public class LineGraphView extends View
 			this.numbers = false;
 		}
 		int length = 0;
-		for (int i = 0; i < values1.length; ++i)
-			if (values1[i] >= 0)
+		for (int i = 0; i < length1; ++i)
+			if (values1[offset1 + i] >= 0)
 				length++;
 
 		if (length <= 1)
@@ -151,11 +166,11 @@ public class LineGraphView extends View
 		this.values = new int[length];
 
 		int i1 = 0;
-		for (int i = 0; i < values1.length; i++)
+		for (int i = 0; i < length1; i++)
 		{
-			if (values1[i] >= 0)
+			if (values1[offset1 + i] >= 0)
 			{
-				values[i1] = (int) (values1[i] * 100);
+				values[i1] = (int) (values1[offset1 + i] * 100);
 
 				if (values[i1] > values[tallest])
 					tallest = i1;
@@ -203,12 +218,28 @@ public class LineGraphView extends View
 		canvas.drawPath(graphPath, graphPaint);
 		canvas.drawPath(linePath, linePaint);
 		
+		if (numbers && selected != -1)
+		{
+			textPaint.setTextAlign(selected == 0 ? Paint.Align.LEFT : selected == values.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
+			if (selected != 0)
+			{
+				selectedPath.reset();
+				selectedPath.moveTo(paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * selected, textPaint.getTextSize() * 1.25F);
+				selectedPath.lineTo(paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * selected, height);
+				canvas.drawPath(selectedPath, selectedPaint);
+			}
+				
+			canvas.drawText(selected + " - " + values[selected] + unit, paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * selected, textPaint.getTextSize(), textPaint);
+		}
+		
+		textPaint.setTextAlign(Paint.Align.CENTER);
+		
 		for (int i = 1; i < values.length; ++i)
-			if (i == values.length - 1 || numbers && values[i] - values[i - 1] != 0 && (values[i] - values[i - 1]) != (values[i + 1] - values[i]))
+			if (selected != -1 || i == values.length - 1 || numbers && values[i] - values[i - 1] != 0 && (values[i] - values[i - 1]) != (values[i + 1] - values[i]))
 			{
 				canvas.drawCircle(paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * i, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[i] / values[tallest]), textPaint.getTextSize() / 4F, textPaint);
 				
-				if (numbers && (i == values.length - 1 || values[i + 1] - values[i] < values[i] - values[i - 1]))
+				if (selected == -1 && numbers && (i == values.length - 1 || values[i + 1] - values[i] < values[i] - values[i - 1]))
 					canvas.drawText(values[i] + unit, paddingWidth * width + borderPaint.getStrokeWidth() + width * (maxWidth - paddingWidth * 2) / (values.length - 1F) * i, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[i] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
 			}
 			
@@ -216,11 +247,44 @@ public class LineGraphView extends View
 		canvas.drawLine(width * paddingWidth + borderPaint.getStrokeWidth(), height - borderPaint.getStrokeWidth() / 2F, width - width * paddingWidth, height - borderPaint.getStrokeWidth() / 2F, borderPaint);
 		
 		canvas.drawCircle(borderPaint.getStrokeWidth() / 2F + width * paddingWidth, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[0] / values[tallest]), textPaint.getTextSize() / 4F, textPaint);
-		if (numbers && values[1] - values[0] < 1)
+		if (selected == -1 && numbers && values[1] - values[0] < 1)
 		{
 			textPaint.setTextAlign(Paint.Align.LEFT);
 			canvas.drawText(values[0] + unit, textPaint.getTextSize() * 0.25F + borderPaint.getStrokeWidth() / 2F + width * paddingWidth, (height - borderPaint.getStrokeWidth()) * (1 - maxHeight * values[0] / values[tallest]) - textPaint.getTextSize() * 0.5F, textPaint);
-			textPaint.setTextAlign(Paint.Align.CENTER);
+		}
+	}
+	
+	int index = -1;
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event)
+	{
+		switch (event.getAction())
+		{
+			case MotionEvent.ACTION_DOWN:
+				index = event.getActionIndex();
+			case MotionEvent.ACTION_MOVE:
+				if (index != event.getActionIndex())
+					return super.onTouchEvent(event);
+
+				int selected1 = selected;
+				selected = Math.max(0, Math.min(values.length - 1, Math.round((event.getX() - paddingWidth * width + borderPaint.getStrokeWidth()) / (width * (maxWidth - paddingWidth * 2) / (values.length - 1F)))));
+				if (selected1 != selected)
+					invalidate();
+				return true;
+
+			case MotionEvent.ACTION_CANCEL:
+			case MotionEvent.ACTION_UP:
+				if (index != event.getActionIndex())
+					return super.onTouchEvent(event);
+
+				index = -1;
+				selected = -1;
+				invalidate();
+				return true;
+
+			default:
+				return super.onTouchEvent(event);
 		}
 	}
 }

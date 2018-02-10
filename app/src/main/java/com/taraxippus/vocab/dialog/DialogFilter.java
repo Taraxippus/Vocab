@@ -4,28 +4,25 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.vocabulary.ShowType;
-import com.taraxippus.vocab.vocabulary.SortType;
-import com.taraxippus.vocab.vocabulary.ViewType;
+import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.vocabulary.Vocabulary;
 import java.util.ArrayList;
-import android.app.Fragment;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
-import com.taraxippus.vocab.util.StringHelper;
-import java.util.Arrays;
 
-public class FilterDialog extends DialogFragment
+public class DialogFilter extends DialogFragment
 {
 	ArrayList<CheckBox> boxes_show;
+	boolean kanji;
 	
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
@@ -37,32 +34,35 @@ public class FilterDialog extends DialogFragment
 		
 		View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_filter, null);
 
+		kanji = getArguments() != null && getArguments().getBoolean("kanji", false);
+		final String suffix = kanji ? "Kanji" : "";
+		
 		final Spinner spinner_sort = (Spinner) v.findViewById(R.id.spinner_sort);
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_sort);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, kanji ? Vocabulary.types_sort_kanji : Vocabulary.types_sort);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_sort.setAdapter(adapter);
-		spinner_sort.setSelection(preferences.getInt("sortType", 0));
+		spinner_sort.setSelection(preferences.getInt("sortType" + suffix, 0));
 
 		final CheckBox box_sort = (CheckBox) v.findViewById(R.id.box_sort);
-		box_sort.setChecked(preferences.getBoolean("sortReversed", false));
+		box_sort.setChecked(preferences.getBoolean("sortReversed" + suffix, false));
 		
 		final Spinner spinner_view = (Spinner) v.findViewById(R.id.spinner_view);
 		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_view);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_view.setAdapter(adapter);
-		spinner_view.setSelection(preferences.getInt("viewType", 1));
+		spinner_view.setSelection(preferences.getInt("viewType" + suffix, 1));
 
 		final Spinner spinner_show = (Spinner) v.findViewById(R.id.spinner_show);
 		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_show);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_show.setAdapter(adapter);
-		spinner_show.setSelection(preferences.getInt("showType", 0));
+		spinner_show.setSelection(preferences.getInt("showType" + suffix, 0));
 		
 		final Spinner spinner_hide = (Spinner) v.findViewById(R.id.spinner_hide);
 		adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, Vocabulary.types_hide);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner_hide.setAdapter(adapter);
-		spinner_hide.setSelection(preferences.getInt("hideType", 0));
+		spinner_hide.setSelection(preferences.getInt("hideType" + suffix, 0));
 		
 		boolean[] show = savedInstanceState == null ? StringHelper.toBooleanArray(preferences.getString("show", "")) : savedInstanceState.getBooleanArray("boxes_show");
 		
@@ -89,29 +89,37 @@ public class FilterDialog extends DialogFragment
 		final View divider_scroll_top = v.findViewById(R.id.divider_scroll_top);
 		final View divider_scroll_bottom = v.findViewById(R.id.divider_scroll_bottom);
 
-		scroll_show_boxes.setOnScrollChangeListener(
-			new View.OnScrollChangeListener()
-			{
-				@Override
-				public void onScrollChange(View p1, int p2, int p3, int p4, int p5)
+		if (kanji)
+		{
+			divider_scroll_bottom.setVisibility(View.GONE);
+			divider_scroll_top.setVisibility(View.GONE);
+			scroll_show_boxes.setVisibility(View.GONE);
+		}
+		else
+		{
+			scroll_show_boxes.setOnScrollChangeListener(
+				new View.OnScrollChangeListener()
 				{
-					if (scroll_show_boxes.canScrollVertically(1)) 
-						divider_scroll_bottom.setVisibility(View.VISIBLE);
-					else
-						divider_scroll_bottom.setVisibility(View.INVISIBLE);
+					@Override
+					public void onScrollChange(View p1, int p2, int p3, int p4, int p5)
+					{
+						if (scroll_show_boxes.canScrollVertically(1)) 
+							divider_scroll_bottom.setVisibility(View.VISIBLE);
+						else
+							divider_scroll_bottom.setVisibility(View.INVISIBLE);
 
-					if (scroll_show_boxes.canScrollVertically(-1)) 
-						divider_scroll_top.setVisibility(View.VISIBLE);
-					else
-						divider_scroll_top.setVisibility(View.INVISIBLE);
+						if (scroll_show_boxes.canScrollVertically(-1)) 
+							divider_scroll_top.setVisibility(View.VISIBLE);
+						else
+							divider_scroll_top.setVisibility(View.INVISIBLE);
 
-				}
-			});
-
-
-		divider_scroll_bottom.setVisibility(View.VISIBLE);
-		divider_scroll_top.setVisibility(View.INVISIBLE);
-
+					}
+				});
+				
+			divider_scroll_bottom.setVisibility(View.VISIBLE);
+			divider_scroll_top.setVisibility(View.INVISIBLE);
+		}
+		
 		alertDialog.setView(v);		
 		alertDialog.setPositiveButton("OK",
 			new DialogInterface.OnClickListener() 
@@ -120,18 +128,23 @@ public class FilterDialog extends DialogFragment
 				{
 					dialog.dismiss();
 
-					boolean[] show = new boolean[Vocabulary.types.size()];
-					for (int i = 0; i < show.length; ++i)
-						show[i] = boxes_show.get(i).isChecked();
+					SharedPreferences.Editor editor = preferences.edit()
+						.putInt("sortType" + suffix, spinner_sort.getSelectedItemPosition())
+						.putInt("viewType" + suffix, spinner_view.getSelectedItemPosition())
+						.putInt("showType" + suffix, spinner_show.getSelectedItemPosition())
+						.putInt("hideType" + suffix, spinner_hide.getSelectedItemPosition())
+						.putBoolean("sortReversed" + suffix, box_sort.isChecked());
+						
+					if (!kanji)
+					{
+						boolean[] show = new boolean[Vocabulary.types.size()];
+						for (int i = 0; i < show.length; ++i)
+							show[i] = boxes_show.get(i).isChecked();
+							
+						editor.putString("show", StringHelper.toString(show));
+					}
 					
-					preferences.edit()
-						.putInt("sortType", spinner_sort.getSelectedItemPosition())
-						.putInt("viewType", spinner_view.getSelectedItemPosition())
-						.putInt("showType", spinner_show.getSelectedItemPosition())
-						.putInt("hideType", spinner_hide.getSelectedItemPosition())
-						.putBoolean("sortReversed", box_sort.isChecked())
-						.putString("show", StringHelper.toString(show))
-					.apply();
+					editor.apply();
 				}
 			});
 		alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
@@ -144,16 +157,19 @@ public class FilterDialog extends DialogFragment
 		});
 		return alertDialog.create();
 	}
-
+	
 	@Override
 	public void onSaveInstanceState(Bundle outState)
 	{
 		super.onSaveInstanceState(outState);
 		
-		boolean[] show = new boolean[Vocabulary.types.size()];
-		for (int i = 0; i < show.length; ++i)
-			show[i] = boxes_show.get(i).isChecked();
-			
-		outState.putBooleanArray("boxes_show", show);
+		if (!kanji)
+		{
+			boolean[] show = new boolean[Vocabulary.types.size()];
+			for (int i = 0; i < show.length; ++i)
+				show[i] = boxes_show.get(i).isChecked();
+
+			outState.putBooleanArray("boxes_show", show);
+		}
 	}
 }

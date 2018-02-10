@@ -7,5 +7,6 @@ public enum ImportType
 	REPLACE,
 	REPLACE_KEEP_STATS,
 	KEEP,
-	ASK
+	ASK,
+	UPDATE,
 }

@@ -22,6 +22,16 @@
 			</intent-filter>
 		</receiver>
 		
+		<receiver 
+			android:name=".util.AddQueueReceiver" 
+			android:enabled="true"
+			android:exported="true" >
+
+			<intent-filter>
+				<action android:name="com.taraxippus.vocab.action.ACTION_QUEUE"/>
+			</intent-filter>
+		</receiver>
+		
         <activity
             android:name=".ActivityMain"
             android:label="Vocab"
@@ -119,6 +129,17 @@
 		<activity
 			android:name=".ActivityDetailKanji" 
 			android:label="Kanji Detail"
+			android:parentActivityName=".ActivityMain"
+			android:windowSoftInputMode="adjustResize" >
+
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".ActivityMain" />
+
+		</activity>
+		<activity
+			android:name=".ActivityStats" 
+			android:label="Statistics"
 			android:parentActivityName=".ActivityMain"
 			android:windowSoftInputMode="adjustResize" >
 

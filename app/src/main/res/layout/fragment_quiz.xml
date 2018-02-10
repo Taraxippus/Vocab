@@ -14,7 +14,6 @@
 			android:id="@+id/text_title_new_vocabularies"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_alignParentTop="true"
 			android:paddingTop="8dp"
 			android:paddingLeft="16dp"
 			android:paddingBottom="4dp"
@@ -22,6 +21,24 @@
 		
 		<android.support.v7.widget.RecyclerView
 			android:id="@+id/recycler_new_vocabularies"
+			android:layout_width="match_parent"
+			android:layout_height="100dp" 
+			android:layout_marginBottom="12dp"
+			android:paddingLeft="8dp" 
+			android:paddingRight="8dp"
+			android:clipToPadding="false" />
+		
+		<TextView
+			android:id="@+id/text_title_new_kanji"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingTop="8dp"
+			android:paddingLeft="16dp"
+			android:paddingBottom="4dp"
+			android:textStyle="bold" />
+
+		<android.support.v7.widget.RecyclerView
+			android:id="@+id/recycler_new_kanji"
 			android:layout_width="match_parent"
 			android:layout_height="100dp" 
 			android:layout_marginBottom="12dp"
@@ -111,7 +128,7 @@
 					android:layout_below="@id/text_title_reviews"
 					android:paddingTop="16dp"
 					android:paddingLeft="8dp"
-					android:text="Vocabularies to review:" />
+					android:text="Upcoming reviews:" />
 
 				<TextView
 					android:id="@+id/text_next_review_category"
@@ -165,7 +182,7 @@
 					android:layout_height="wrap_content"
 					android:layout_alignParentLeft="true"
 					android:layout_below="@id/text_now"
-					android:text="Vocabularies reviewed:"
+					android:text="Reviews in the last 30 days:"
 					android:paddingLeft="8dp"
 					android:paddingTop="16dp"
 					android:paddingBottom="16dp"/>
@@ -235,7 +252,9 @@
 					android:layout_height="wrap_content"
 					android:layout_alignParentRight="true"
 					android:layout_below="@id/text_learned_progress"
-					android:padding="8dp" />
+					android:padding="8dp" 
+					android:minWidth="64dp"
+					android:layout_gravity="center" />
 
 				<ProgressBar
 					android:id="@+id/progress_learned"
@@ -246,14 +265,54 @@
 					android:layout_below="@id/text_learned_progress"
 					android:layout_toLeftOf="@id/text_progress_learned"
 					android:padding="8dp" />
+				
+				<Button
+					android:id="@+id/button_stats"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_alignBaseline="@id/text_title_stats"
+					android:layout_alignLeft="@id/text_progress_learned"
+					android:text="More"
+					android:textColor="@color/accent"
+					style="?android:attr/borderlessButtonStyle" />
 
+				<TextView
+					android:id="@+id/text_learned_kanji_progress"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_progress_learned"
+					android:text="Kanji learned:"
+					android:paddingLeft="8dp"
+					android:paddingTop="8dp" />
 
+				<TextView
+					android:id="@+id/text_progress_learned_kanji"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_alignLeft="@id/text_progress_learned"
+					android:layout_below="@id/text_learned_kanji_progress"
+					android:padding="8dp"
+					android:gravity="center"/>
+
+				<ProgressBar
+					android:id="@+id/progress_learned_kanji"
+					style="?android:attr/progressBarStyleHorizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_alignParentLeft="true"
+					android:layout_below="@id/text_learned_kanji_progress"
+					android:layout_toLeftOf="@id/text_progress_learned_kanji"
+					android:padding="8dp" />
+				
 				<TextView
 					android:id="@+id/text_total_progress"
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_alignParentLeft="true"
-					android:layout_below="@id/text_progress_learned"
+					android:layout_below="@id/text_progress_learned_kanji"
 					android:text="Total success rate in quiz:"
 					android:paddingLeft="8dp"
 					android:paddingTop="16dp"/>

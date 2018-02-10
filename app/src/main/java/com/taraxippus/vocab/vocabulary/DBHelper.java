@@ -26,7 +26,7 @@ import java.util.Date;
 public class DBHelper extends SQLiteOpenHelper
 {
 	public final Context context;
-	public static final int VERSION = 16;
+	public static final int VERSION = 18;
 	
 	public DBHelper(Context context)
 	{
@@ -73,8 +73,45 @@ public class DBHelper extends SQLiteOpenHelper
 			+ "meaning_used text,"
 			+ "category_history text,"
 			+ "answered int,"
-			
+			+ "quiz_preferences int,"
 			+ "soundFile text,"
+			+ "imageFile text"
+			+ ");"
+			
+			+ "CREATE TABLE kanji ("
+			+ "kanji integer primary key not null,"
+			+ "reading_kun text,"
+			+ "reading_on text,"
+			+ "meaning text,"
+			+ "notes text,"
+			+ "strokes int,"
+			+ "category int,"
+			+ "learned int,"
+			+ "added int,"
+			+ "lastChecked int,"
+			+ "nextReview int,"
+			+ "vocabularies text,"
+			+ "streak_kanji int,"
+			+ "streak_reading_kun int,"
+			+ "streak_reading_on int,"
+			+ "streak_meaning int,"
+			+ "streak_kanji_best int,"
+			+ "streak_reading_kun_best int,"
+			+ "streak_reading_on_best int,"
+			+ "streak_meaning_best int,"
+			+ "timesChecked_kanji int,"
+			+ "timesChecked_reading text,"
+			+ "timesChecked_reading_kun int,"
+			+ "timesChecked_reading_on int,"
+			+ "timesChecked_meaning int,"
+			+ "timesCorrect_kanji int,"
+			+ "timesCorrect_reading text,"
+			+ "timesCorrect_reading_kun int,"
+			+ "timesCorrect_reading_on int,"
+			+ "timesCorrect_meaning int,"
+			+ "meaning_used text,"
+			+ "category_history text,"
+			+ "answered int,"
 			+ "imageFile text"
 			+ ");"
 		);
@@ -83,12 +120,23 @@ public class DBHelper extends SQLiteOpenHelper
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
 	{
+		AlertDialog alertDialog = new AlertDialog.Builder(context)
+		.setTitle("SQL Database Upgrade")
+		.setMessage("Updating database")
+		.setPositiveButton("OK",
+			new DialogInterface.OnClickListener() 
+			{
+				public void onClick(DialogInterface dialog, int which) 
+				{
+					dialog.dismiss();
+				}
+			})
+			.show();
+		
 		if (oldVersion < 15)
 		{
-			db.execSQL("ALTER TABLE vocab ADD COLUMN nextReview int;");
-			db.execSQL("ALTER TABLE vocab ADD COLUMN sameReading text;");
-			db.execSQL("ALTER TABLE vocab ADD COLUMN sameMeaning text;");
-			
+			db.execSQL("ALTER TABLE vocab ADD COLUMN nextReview int; ALTER TABLE vocab ADD COLUMN sameReading text; ALTER TABLE vocab ADD COLUMN sameMeaning text;");
+		
 			Cursor res =  db.rawQuery("SELECT id, kanji, reading, meaning, category, lastChecked FROM vocab", null);
 			if (res.getCount() <= 0)
 			{
@@ -118,18 +166,81 @@ public class DBHelper extends SQLiteOpenHelper
 		}
 		if (oldVersion < 16)
 		{
-			db.execSQL("ALTER TABLE vocab ADD COLUMN reading_trimed text;");
-			
-			db.execSQL("UPDATE vocab SET reading_trimed = replace(reading, '・', '' );");
+			db.execSQL("ALTER TABLE vocab ADD COLUMN reading_trimed text; UPDATE vocab SET reading_trimed = replace(reading, '・', '' );");
 		}
-		
-		DialogHelper.createDialog(context, "SQL Upgrade", "Updated vocabulary database from version " + oldVersion + " to " + newVersion + "!");
+		if (oldVersion < 17)
+		{
+			db.execSQL("CREATE TABLE kanji ("
+				+ "kanji integer primary key not null,"
+				+ "reading_kun text,"
+				+ "reading_on text,"
+				+ "meaning text,"
+				+ "notes text,"
+				+ "strokes int,"
+				+ "category int,"
+				+ "learned int,"
+				+ "added int,"
+				+ "lastChecked int,"
+				+ "nextReview int,"
+				+ "vocabularies text,"
+				+ "streak_kanji int,"
+				+ "streak_reading_kun int,"
+				+ "streak_reading_on int,"
+				+ "streak_meaning int,"
+				+ "streak_kanji_best int,"
+				+ "streak_reading_kun_best int,"
+				+ "streak_reading_on_best int,"
+				+ "streak_meaning_best int,"
+				+ "timesChecked_kanji int,"
+				+ "timesChecked_reading text,"
+				+ "timesChecked_reading_kun int,"
+				+ "timesChecked_reading_on int,"
+				+ "timesChecked_meaning int,"
+				+ "timesCorrect_kanji int,"
+				+ "timesCorrect_reading text,"
+				+ "timesCorrect_reading_kun int,"
+				+ "timesCorrect_reading_on int,"
+				+ "timesCorrect_meaning int,"
+				+ "meaning_used text,"
+				+ "category_history text,"
+				+ "answered int,"
+				+ "imageFile text"
+				+ ");"
+			);	
+		}
+		if (oldVersion < 18)
+		{
+			db.execSQL("ALTER TABLE vocab ADD COLUMN quiz_preferences int;");
+			
+			Cursor res =  db.rawQuery("SELECT id, reading FROM vocab", null);
+			if (res.getCount() <= 0)
+			{
+				res.close();
+				return;
+			}
+
+			res.moveToFirst();
+
+			final ContentValues contentValues = new ContentValues();
+	
+			do
+			{
+	
+				contentValues.clear();
+				contentValues.put("quiz_preferences", StringHelper.lengthOfArray(res.getString(1)) == 0 ? 0b111111 : 0b010101);
+				db.update("vocab", contentValues, "id = ?", new String[] {"" + res.getInt(0)});
+			}
+			while(res.moveToNext());
+
+			res.close();
+		}
+		alertDialog.setMessage("Updated vocabulary database from version " + oldVersion + " to " + newVersion + "!");
 	}
 
 	public int getId(String kanji)
 	{
 		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji = ?", new String[] {kanji});
+		Cursor res =  db.rawQuery("SELECT id FROM vocab WHERE kanji = ? LIMIT 1", new String[] {kanji});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -152,10 +263,19 @@ public class DBHelper extends SQLiteOpenHelper
 		return count;
 	}
 	
+	public int getKanjiCount(String where)
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT kanji FROM kanji WHERE " + where, null);
+		int count = res.getCount();
+		res.close();
+		return count;
+	}
+	
 	public String getString(int id, String column)
 	{
 		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ? LIMIT 1", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -172,7 +292,7 @@ public class DBHelper extends SQLiteOpenHelper
 	public String[] getStringArray(int id, String column)
 	{
 		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ? LIMIT 1", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -189,7 +309,7 @@ public class DBHelper extends SQLiteOpenHelper
 	public int getInt(int id, String column)
 	{
 		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ? LIMIT 1", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -206,7 +326,7 @@ public class DBHelper extends SQLiteOpenHelper
 	public long getLong(int id, String column)
 	{
 		SQLiteDatabase db = this.getReadableDatabase();
-		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ?", new String[] {"" + id});
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM vocab WHERE id = ? LIMIT 1", new String[] {"" + id});
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -420,7 +540,13 @@ public class DBHelper extends SQLiteOpenHelper
 		vocabulary.answered_reading = (answered & 0b10) != 0;
 		vocabulary.answered_meaning = (answered & 0b100) != 0;
 		vocabulary.answered_correct = (answered & 0b1000) != 0;
-
+	
+		int quiz_preferences = res.getInt(res.getColumnIndex("quiz_preferences"));
+		vocabulary.kanjiReview = ReviewType.values()[quiz_preferences & 0b11];
+		vocabulary.readingReview = ReviewType.values()[(quiz_preferences & 0b1100) >> 2];
+		vocabulary.meaningReview = ReviewType.values()[(quiz_preferences & 0b110000) >> 4];
+		vocabulary.quickReview = (quiz_preferences & 0b1000000) != 0;
+		
 		vocabulary.soundFile = res.getString(res.getColumnIndex("soundFile"));
 		vocabulary.imageFile = res.getString(res.getColumnIndex("imageFile"));
 		return vocabulary;
@@ -452,7 +578,7 @@ public class DBHelper extends SQLiteOpenHelper
 	
 	public void updateVocabulary(final Vocabulary vocabulary)
 	{
-		updateVocabulary(vocabulary, ImportType.REPLACE, null);
+		updateVocabulary(vocabulary, ImportType.UPDATE, null);
 	}
 		
 	public void updateVocabulary(final Vocabulary vocabulary, ImportType importType, final OnProcessSuccessListener listener)
@@ -495,6 +621,12 @@ public class DBHelper extends SQLiteOpenHelper
 						  | (vocabulary.answered_reading ? (byte) 0b10 : 0)
 						  | (vocabulary.answered_meaning ? (byte) 0b100 : 0)
 						  | (vocabulary.answered_correct ? (byte) 0b1000 : 0));
+		contentValues.put("quiz_preferences", 
+						  (vocabulary.kanjiReview.ordinal())
+						  | (vocabulary.readingReview.ordinal() << 2)
+						  | (vocabulary.meaningReview.ordinal() << 4)
+						  | (vocabulary.quickReview ? (byte) 0b1000000 : 0));
+	
 		contentValues.put("soundFile", vocabulary.soundFile);
 		contentValues.put("imageFile", vocabulary.imageFile);
 
@@ -509,20 +641,27 @@ public class DBHelper extends SQLiteOpenHelper
 				case KEEP:
 					break;
 					
+				case UPDATE:
+					db.update("vocab", contentValues, "id = ?", new String[] {"" + id});
+					break;
+					
 				case REPLACE:
-					Cursor res =  db.rawQuery("SELECT sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
+					Cursor res =  db.rawQuery("SELECT kanji, sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
 					res.moveToFirst();
-					updateSynonyms(id, StringHelper.toIntArray(res.getString(0)), StringHelper.toIntArray(res.getString(1)), false);
+					updateKanjiVocabularies(id, StringHelper.getKanji(res.getString(0)), false);
+					updateSynonyms(id, StringHelper.toIntArray(res.getString(1)), StringHelper.toIntArray(res.getString(2)), false);
 					res.close();
 					
 					db.update("vocab", contentValues, "id = ?", new String[] {"" + id});
 					updateSynonyms(id, vocabulary.sameReading, vocabulary.sameMeaning, true);
+					updateKanjiVocabularies(id, StringHelper.getKanji(vocabulary.kanji), true);
 					break;
 					
 				case REPLACE_KEEP_STATS:
 					old = getVocabulary(id);
 					
 					updateSynonyms(id, old.sameReading, old.sameMeaning, false);
+					updateKanjiVocabularies(id, StringHelper.getKanji(old.kanji), false);
 					
 					if (!vocabulary.learned)
 						contentValues.put("learned", old.learned);
@@ -548,12 +687,12 @@ public class DBHelper extends SQLiteOpenHelper
 					contentValues.put("timesCorrect_kanji", vocabulary.timesCorrect_kanji + old.timesCorrect_kanji);
 					contentValues.put("timesCorrect_reading", vocabulary.timesCorrect_reading + old.timesCorrect_reading);
 					contentValues.put("timesCorrect_meaning", vocabulary.timesCorrect_meaning + old.timesCorrect_meaning);
-					contentValues.put("streak_kanji", vocabulary.streak_kanji + old.streak_meaning);
-					contentValues.put("streak_reading", vocabulary.streak_reading + old.streak_meaning);
+					contentValues.put("streak_kanji", vocabulary.streak_kanji + old.streak_kanji);
+					contentValues.put("streak_reading", vocabulary.streak_reading + old.streak_reading);
 					contentValues.put("streak_meaning", vocabulary.streak_meaning + old.streak_meaning);
 					contentValues.put("streak_kanji_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
-					contentValues.put("streak_reading_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
-					contentValues.put("streak_meaning_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
+					contentValues.put("streak_reading_best", Math.max(Math.max(vocabulary.streak_reading + old.streak_reading, old.streak_reading_best), vocabulary.streak_reading_best));
+					contentValues.put("streak_meaning_best", Math.max(Math.max(vocabulary.streak_meaning + old.streak_meaning, old.streak_meaning_best), vocabulary.streak_meaning_best));
 
 					if (old.added < vocabulary.added)
 						contentValues.put("added", old.added);
@@ -566,18 +705,19 @@ public class DBHelper extends SQLiteOpenHelper
 					for (i = 0; i < old.reading_trimed.length; ++i)
 						for (i1 = 0; i1 < vocabulary.reading_trimed.length; ++i1)
 							if (vocabulary.reading_trimed[i1].equalsIgnoreCase(old.reading_trimed[i]))
-								vocabulary.reading_used[i1] = old.reading_used[i];
+								vocabulary.reading_used[i1] += old.reading_used[i];
 
 					for (i = 0; i < old.meaning.length; ++i)
 						for (i1 = 0; i1 < vocabulary.meaning.length; ++i1)
 							if (vocabulary.meaning[i1].equalsIgnoreCase(old.meaning[i]))
-								vocabulary.meaning_used[i1] = old.meaning_used[i];
+								vocabulary.meaning_used[i1] += old.meaning_used[i];
 					
 					contentValues.put("reading_used", StringHelper.toString(vocabulary.reading_used));
 					contentValues.put("meaning_used", StringHelper.toString(vocabulary.meaning_used));
-					
+					  
 					db.update("vocab", contentValues, "id = ?", new String[] {"" + id});
 					updateSynonyms(id, vocabulary.sameReading, vocabulary.sameMeaning, true);
+					updateKanjiVocabularies(id, StringHelper.getKanji(vocabulary.kanji), true);
 					
 					break;
 					
@@ -653,12 +793,12 @@ public class DBHelper extends SQLiteOpenHelper
 						contentValues.put("type", old.type.ordinal());
 						
 					contentValues.put("reading", StringHelper.toString(reading));
-					contentValues.put("reading_trimed", StringHelper.toString(reading).replace("・", ""));
+					contentValues.put("reading_trimed", StringHelper.toHiragana(StringHelper.toString(reading).replace("・", "")));
 					contentValues.put("meaning", StringHelper.toString(meaning));
 					contentValues.put("sameReading", StringHelper.toString(sameReading));
 					contentValues.put("sameMeaning", StringHelper.toString(sameMeaning));
 					contentValues.put("additionalInfo", vocabulary.additionalInfo + (!vocabulary.additionalInfo.isEmpty() && !old.additionalInfo.isEmpty() && ! old.additionalInfo.equalsIgnoreCase(vocabulary.additionalInfo) ? ", " : "") + (old.additionalInfo.equalsIgnoreCase(vocabulary.additionalInfo) ? "" : old.additionalInfo));
-					contentValues.put("notes", vocabulary.notes + (!vocabulary.notes.isEmpty() && !old.notes.isEmpty() && ! old.notes.equalsIgnoreCase(vocabulary.notes) ? ", " : "") + (old.notes.equalsIgnoreCase(vocabulary.notes) ? "" : old.notes));
+					contentValues.put("notes", vocabulary.notes + (!vocabulary.notes.isEmpty() && !old.notes.isEmpty() && !old.notes.equalsIgnoreCase(vocabulary.notes) ? ", " : "") + (old.notes.equalsIgnoreCase(vocabulary.notes) ? "" : old.notes));
 					contentValues.put("reading_used", StringHelper.toString(reading_used));
 					contentValues.put("meaning_used", StringHelper.toString(meaning_used));
 					
@@ -677,12 +817,15 @@ public class DBHelper extends SQLiteOpenHelper
 					contentValues.put("timesCorrect_kanji", vocabulary.timesCorrect_kanji + old.timesCorrect_kanji);
 					contentValues.put("timesCorrect_reading", vocabulary.timesCorrect_reading + old.timesCorrect_reading);
 					contentValues.put("timesCorrect_meaning", vocabulary.timesCorrect_meaning + old.timesCorrect_meaning);
-					contentValues.put("streak_kanji", vocabulary.streak_kanji + old.streak_meaning);
-					contentValues.put("streak_reading", vocabulary.streak_reading + old.streak_meaning);
+					contentValues.put("streak_kanji", vocabulary.streak_kanji + old.streak_kanji);
+					contentValues.put("streak_reading", vocabulary.streak_reading + old.streak_reading);
 					contentValues.put("streak_meaning", vocabulary.streak_meaning + old.streak_meaning);
 					contentValues.put("streak_kanji_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
-					contentValues.put("streak_reading_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
-					contentValues.put("streak_meaning_best", Math.max(Math.max(vocabulary.streak_kanji + old.streak_kanji, old.streak_kanji_best), vocabulary.streak_kanji_best));
+					contentValues.put("streak_reading_best", Math.max(Math.max(vocabulary.streak_reading + old.streak_reading, old.streak_reading_best), vocabulary.streak_reading_best));
+					contentValues.put("streak_meaning_best", Math.max(Math.max(vocabulary.streak_meaning + old.streak_meaning, old.streak_meaning_best), vocabulary.streak_meaning_best));
+					contentValues.put("quiz_preferences", 
+									  (0b010101)
+									  | (vocabulary.quickReview && old.quickReview ? (byte) 0b1000000 : 0));
 					
 					if (old.added < vocabulary.added)
 						contentValues.put("added", old.added);
@@ -698,7 +841,6 @@ public class DBHelper extends SQLiteOpenHelper
 					contentValues.put("answered", (byte) 0b1000);
 					
 					db.update("vocab", contentValues, "id = ?", new String[] {"" + id});
-					
 					break;
 					
 				case ASK:
@@ -710,13 +852,15 @@ public class DBHelper extends SQLiteOpenHelper
 						{
 							public void onClick(DialogInterface dialog, int which) 
 							{
-								Cursor res =  db.rawQuery("SELECT sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
+								Cursor res =  db.rawQuery("SELECT kanji, sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
 								res.moveToFirst();
-								updateSynonyms(id, StringHelper.toIntArray(res.getString(0)), StringHelper.toIntArray(res.getString(1)), false);
+								updateKanjiVocabularies(id, StringHelper.getKanji(res.getString(0)), false);
+								updateSynonyms(id, StringHelper.toIntArray(res.getString(1)), StringHelper.toIntArray(res.getString(2)), false);
 								res.close();
 
 								db.update("vocab", contentValues, "id = ?", new String[] {"" + id});
 								updateSynonyms(id, vocabulary.sameReading, vocabulary.sameMeaning, true);
+								updateKanjiVocabularies(id, StringHelper.getKanji(vocabulary.kanji), true);
 								
 								if (listener != null)
 									listener.onProcessSuccess(true);
@@ -751,8 +895,9 @@ public class DBHelper extends SQLiteOpenHelper
 		}
 		else
 		{
-			db.insert("vocab", null, contentValues);
+			vocabulary.id = (int) db.insert("vocab", null, contentValues);
 			updateSynonyms(vocabulary.id, vocabulary.sameReading, vocabulary.sameMeaning, true);
+			updateKanjiVocabularies(vocabulary.id, StringHelper.getKanji(vocabulary.kanji), true);
 		}
 			
 		if (listener != null)
@@ -787,7 +932,8 @@ public class DBHelper extends SQLiteOpenHelper
 		contentValues.put("meaning_used", "");
 		contentValues.put("category_history", StringHelper.toString(category_history));
 		contentValues.put("answered", (byte) 0b1000);
-		
+		contentValues.put("quiz_preferences", 0b010101);
+						  
 		SQLiteDatabase db = this.getWritableDatabase();
 		StringBuilder list = new StringBuilder();
 		for (int i = 0; i < id.length; ++i)
@@ -825,11 +971,13 @@ public class DBHelper extends SQLiteOpenHelper
 		ContentValues contentValues = new ContentValues();
 		contentValues.put("learned", 1);
 		contentValues.put("lastChecked", 1);
-		contentValues.put("category", known ? 1 : 0);
-		contentValues.put("nextReview", 1 + Vocabulary.getNextReview(known ? 1 : 0));
-		
+		contentValues.put("category", 1);
+		contentValues.put("nextReview", 1 + Vocabulary.getNextReview(1));
+		if (known)
+			contentValues.put("quiz_preferences", 0b1111111);
+						  
 		int[] category_history = new int[32];
-		category_history[category_history.length - 1] = known ? 1 : 0;
+		category_history[category_history.length - 1] = 1;
 		for (int i = 0; i < category_history.length - 1; ++i)
 			category_history[i] = -1;
 		
@@ -868,10 +1016,24 @@ public class DBHelper extends SQLiteOpenHelper
 		db.update("vocab", contentValues, "learned = ?", new String[] {learned ? "0" : "1"});
 	}
 	
+	public void updateVocabularyQuizPreferences(int id, int kanji, int reading, int meaning, boolean quick)
+	{
+		SQLiteDatabase db = this.getWritableDatabase();
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("quiz_preferences", 
+						  (kanji)
+						  | (reading << 2)
+						  | (meaning << 4)
+						  | (quick ? (byte) 0b1000000 : 0));
+		
+		db.update("vocab", contentValues, "id = ? ", new String[] { "" + id });
+	}
+	
 	public void deleteVocabulary(int id)
 	{
 		SQLiteDatabase db = this.getWritableDatabase();
-		Cursor res =  db.rawQuery("SELECT sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
+		Cursor res =  db.rawQuery("SELECT kanji, sameReading, sameMeaning FROM vocab WHERE id = " + id, null);
 		if (res.getCount() <= 0)
 		{
 			res.close();
@@ -879,11 +1041,10 @@ public class DBHelper extends SQLiteOpenHelper
 		}
 
 		res.moveToFirst();
-		int[] sameReading = StringHelper.toIntArray(res.getString(0));
-		int[] sameMeaning = StringHelper.toIntArray(res.getString(1));
+		updateKanjiVocabularies(id, StringHelper.getKanji(res.getString(0)), false);
+		updateSynonyms(id, StringHelper.toIntArray(res.getString(1)), StringHelper.toIntArray(res.getString(2)), false);
 		res.close();
 		
-		updateSynonyms(id, sameReading, sameMeaning, false);
 		db.delete("vocab", "id = ?", new String[] {"" + id});
 	}
 	
@@ -891,11 +1052,10 @@ public class DBHelper extends SQLiteOpenHelper
 	{
 		SQLiteDatabase db = this.getWritableDatabase();
 		db.execSQL("DELETE FROM vocab");
-	}
-	
-	public void deleteVocabularies(ShowType showType, boolean[] show)
-	{
-		this.getWritableDatabase().delete("vocab", getFilteredWhereStatement(showType, show), null);
+		
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("vocabularies", StringHelper.toString(new int[0]));
+		db.update("kanji", contentValues, "", null);
 	}
 	
 	public void saveToFile()
@@ -1059,6 +1219,7 @@ public class DBHelper extends SQLiteOpenHelper
 		v.soundFile = "";
 		v.imageFile = "";
 		v.notes = "";
+		v.showInfo = true;
 		v.category_history = new int[32];
 		v.category_history[v.category_history.length - 1] = v.category;
 		for (int i = 0; i < v.category_history.length - 1; ++i)
@@ -1268,6 +1429,26 @@ public class DBHelper extends SQLiteOpenHelper
 		}
 	}
 	
+	public void updateKanjiVocabularies(int id, char[] kanji, boolean add)
+	{
+		SQLiteDatabase db = getWritableDatabase();
+		if (kanji.length > 0)
+		{
+			StringBuilder list = new StringBuilder();
+			for (int i = 0; i < kanji.length; ++i)
+			{
+				list.append((int) kanji[i]);
+
+				if (i < kanji.length - 1)
+					list.append(", ");
+			}
+			if (add)
+				db.execSQL("UPDATE kanji SET vocabularies = vocabularies || '" + id + "\\' WHERE kanji IN (" + list + ");");
+			else
+				db.execSQL("UPDATE kanji SET vocabularies = replace(vocabularies, '\\" + id + "\\', '\\' ) WHERE kanji IN (" + list + ");");
+		}
+	}
+	
 	public int[] findVocabulariesForKanji(SQLiteDatabase db, char kanji)
 	{
 		Cursor res = db.rawQuery("SELECT id FROM vocab WHERE kanji LIKE '%" + kanji + "%'", null);
@@ -1287,5 +1468,630 @@ public class DBHelper extends SQLiteOpenHelper
 		res.close();
 		
 		return vocabularies;
+	}
+	
+	public char[] getKanji(SortType sortType, ShowType showType, boolean sortReversed, String searchQuery)
+	{
+		String searchStatement, orderStatement;
+
+		switch (sortType)
+		{
+			case CATEGORY:
+				orderStatement = "category";
+				break;
+			case TIME_ADDED:
+				orderStatement = "added";
+				break;
+			case TYPE:
+				orderStatement = "strokes";
+				break;
+			case NEXT_REVIEW:
+				orderStatement = "learned DESC, nextReview";
+				break;
+			default:
+				orderStatement = "category";
+		}
+
+		orderStatement = orderStatement + (sortReversed ? " DESC" : " ASC");
+
+		String[] searchArgs = null;
+		if (searchQuery != null && !searchQuery.isEmpty())
+		{
+			searchStatement = "(kanji LIKE ? OR reading_kun LIKE ? OR reading_on LIKE ? OR meaning LIKE ? OR notes LIKE ?)";
+			orderStatement = "kanji = ? DESC, reading_kun LIKE ? DESC, reading_kun LIKE ? DESC, reading_on LIKE ? DESC, reading_on LIKE ? DESC, meaning LIKE ? DESC, meaning LIKE ? DESC, " + orderStatement;
+			searchArgs = new String[] {StringHelper.trim(searchQuery), "%" + searchQuery + "%", "%" + searchQuery + "%", "%" + searchQuery + "%", "%" + searchQuery + "%",
+				StringHelper.trim(searchQuery),
+				"%\\" + searchQuery + "\\%", "%\\" + searchQuery + "%",
+				"%\\" + searchQuery + "\\%", "%\\" + searchQuery + "%",
+				"%\\" + searchQuery + "\\%", "%\\" + searchQuery + "%" };
+		}
+		else
+			searchStatement = "kanji != " + (int) '\n';
+
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT kanji FROM kanji WHERE " + (showType == ShowType.LEARNED ? "learned = 1 AND " : showType == showType.UNLEARNED ? "learned = 0 AND " : "") + searchStatement + " ORDER BY " + orderStatement, searchArgs);
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return new char[0];
+		}
+
+		res.moveToFirst();
+
+		final char[] kanji = new char[res.getCount()];
+		int i = 0;
+
+		do
+		{
+			kanji[i] = (char) res.getInt(0);
+			i++;
+		}
+		while (res.moveToNext());
+
+		res.close();
+
+		return kanji;
+	}
+
+	public char[] getNewKanji()
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT kanji FROM kanji WHERE learned = 1 AND lastChecked = 0", null);
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return new char[0];
+		}
+
+		res.moveToFirst();
+
+		char[] kanji = new char[res.getCount()];
+		int i = 0;
+		do
+		{
+			kanji[i] = (char) res.getInt(0);
+			i++;
+		}
+		while (res.moveToNext());
+
+		res.close();
+
+		return kanji;
+	}
+	
+	public int getIntKanji(char id, String column)
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM kanji WHERE kanji = " + (int) id +" LIMIT 1", null);
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return -1;
+		}
+
+		res.moveToFirst();
+
+		int i = res.getInt(0);
+		res.close();
+		return i;
+	}
+
+	public long getLongKanji(char id, String column)
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT " + column + " FROM kanji WHERE kanji = " + (int) id + " LIMIT 1", null);
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return -1;
+		}
+
+		res.moveToFirst();
+
+		long l = res.getLong(0);
+		res.close();
+		return l;
+	}
+	
+	public Kanji getKanji(char kanji)
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT * FROM kanji WHERE kanji = " + (int) kanji, null);
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return null;
+		}
+
+		res.moveToFirst();
+		Kanji result = getKanji(res);
+		res.close();
+
+		return result;
+	}
+	
+	public Kanji getKanji(Cursor res)
+	{
+		final Kanji kanji = new Kanji((char) res.getInt(res.getColumnIndex("kanji")));
+		kanji.reading_kun = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading_kun")));
+		kanji.reading_on = StringHelper.toStringArray(res.getString(res.getColumnIndex("reading_on")));
+		kanji.meaning = StringHelper.toStringArray(res.getString(res.getColumnIndex("meaning")));
+		kanji.notes = res.getString(res.getColumnIndex("notes"));
+		kanji.strokes = res.getInt(res.getColumnIndex("strokes"));
+		
+		kanji.category = res.getInt(res.getColumnIndex("category"));
+		kanji.learned = res.getInt(res.getColumnIndex("learned")) == 1;
+		
+		kanji.added = res.getLong(res.getColumnIndex("added"));
+		kanji.lastChecked = res.getLong(res.getColumnIndex("lastChecked"));
+		kanji.nextReview = res.getLong(res.getColumnIndex("nextReview"));
+
+		kanji.vocabularies = StringHelper.toIntArray(res.getString(res.getColumnIndex("vocabularies")));
+		
+		kanji.streak_kanji = res.getInt(res.getColumnIndex("streak_kanji"));
+		kanji.streak_reading_kun = res.getInt(res.getColumnIndex("streak_reading_kun"));
+		kanji.streak_reading_on = res.getInt(res.getColumnIndex("streak_reading_on"));
+		kanji.streak_meaning = res.getInt(res.getColumnIndex("streak_meaning"));
+
+		kanji.streak_kanji_best = res.getInt(res.getColumnIndex("streak_kanji_best"));
+		kanji.streak_reading_kun_best = res.getInt(res.getColumnIndex("streak_reading_kun_best"));
+		kanji.streak_reading_on_best = res.getInt(res.getColumnIndex("streak_reading_on_best"));
+		kanji.streak_meaning_best = res.getInt(res.getColumnIndex("streak_meaning_best"));
+
+		kanji.timesChecked_kanji = res.getInt(res.getColumnIndex("timesChecked_kanji"));
+		kanji.timesChecked_reading = StringHelper.toIntArray(res.getString(res.getColumnIndex("timesChecked_reading")));
+		kanji.timesChecked_reading_kun = res.getInt(res.getColumnIndex("timesChecked_reading_kun"));
+		kanji.timesChecked_reading_on = res.getInt(res.getColumnIndex("timesChecked_reading_on"));
+		kanji.timesChecked_meaning = res.getInt(res.getColumnIndex("timesChecked_meaning"));
+
+		kanji.timesCorrect_kanji = res.getInt(res.getColumnIndex("timesCorrect_kanji"));
+		kanji.timesCorrect_reading = StringHelper.toIntArray(res.getString(res.getColumnIndex("timesCorrect_reading")));
+		kanji.timesCorrect_reading_kun = res.getInt(res.getColumnIndex("timesCorrect_reading_kun"));
+		kanji.timesCorrect_reading_on = res.getInt(res.getColumnIndex("timesCorrect_reading_on"));
+		kanji.timesCorrect_meaning = res.getInt(res.getColumnIndex("timesCorrect_meaning"));
+
+		kanji.meaning_used = StringHelper.toIntArray(res.getString(res.getColumnIndex("meaning_used")));
+		kanji.category_history = StringHelper.toIntArray(res.getString(res.getColumnIndex("category_history")));
+
+		if (kanji.timesChecked_reading.length != kanji.reading_kun.length + kanji.reading_on.length || kanji.timesCorrect_reading.length != kanji.timesChecked_reading.length)
+		{
+			kanji.timesChecked_reading = new int[kanji.reading_kun.length + kanji.reading_on.length];
+			kanji.timesCorrect_reading = new int[kanji.timesChecked_reading.length];
+		}
+		
+		if (kanji.meaning_used.length != kanji.meaning.length)
+			kanji.meaning_used = new int[kanji.meaning.length];
+
+		int answered = res.getInt(res.getColumnIndex("answered"));
+		kanji.answered_kanji = (answered & 0b1) != 0;
+		kanji.answered_reading_kun = (answered & 0b10) != 0;
+		kanji.answered_reading_on = (answered & 0b10) != 0;
+		kanji.answered_meaning = (answered & 0b1000) != 0;
+		kanji.answered_correct = (answered & 0b10000) != 0;
+		kanji.imageFile = res.getString(res.getColumnIndex("imageFile"));
+		return kanji;
+	}
+	
+	public boolean existsKanji(char kanji)
+	{
+		if (kanji == '\n')
+			return false;
+
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor res =  db.rawQuery("SELECT kanji FROM kanji WHERE kanji = ? LIMIT 1", new String[] {"" + (int) kanji});
+		if (res.getCount() <= 0)
+		{
+			res.close();
+			return false;
+		}
+
+		res.close();
+		return true;
+	}
+	
+	public void updateKanji(final Kanji kanji)
+	{
+		updateKanji(kanji, ImportType.UPDATE, null);
+	}
+	
+	public void updateKanji(final Kanji kanji, ImportType importType, final OnProcessSuccessListener listener)
+	{
+		final SQLiteDatabase db = this.getWritableDatabase();
+
+		final ContentValues contentValues = new ContentValues();
+		contentValues.put("kanji", (int) kanji.kanji);
+		contentValues.put("reading_kun", StringHelper.toString(kanji.reading_kun));
+		contentValues.put("reading_on", StringHelper.toString(kanji.reading_on));
+		contentValues.put("meaning", StringHelper.toString(kanji.meaning));
+		contentValues.put("notes", kanji.notes);
+		contentValues.put("strokes", kanji.strokes);
+		contentValues.put("category", kanji.category);
+		contentValues.put("learned", kanji.learned);
+		contentValues.put("added", kanji.added);
+		contentValues.put("lastChecked", kanji.lastChecked);
+		contentValues.put("nextReview", kanji.nextReview);
+		contentValues.put("vocabularies", StringHelper.toString(kanji.vocabularies));
+		contentValues.put("streak_kanji", kanji.streak_kanji);
+		contentValues.put("streak_reading_kun", kanji.streak_reading_kun);
+		contentValues.put("streak_reading_on", kanji.streak_reading_on);
+		contentValues.put("streak_meaning", kanji.streak_meaning);
+		contentValues.put("streak_kanji_best", kanji.streak_kanji_best);
+		contentValues.put("streak_reading_kun_best", kanji.streak_reading_kun_best);
+		contentValues.put("streak_reading_on_best", kanji.streak_reading_on_best);
+		contentValues.put("streak_meaning_best", kanji.streak_meaning_best);
+		contentValues.put("timesChecked_kanji", kanji.timesChecked_kanji);
+		contentValues.put("timesChecked_reading", StringHelper.toString(kanji.timesChecked_reading));
+		contentValues.put("timesChecked_reading_kun", kanji.timesChecked_reading_kun);
+		contentValues.put("timesChecked_reading_on", kanji.timesChecked_reading_on);
+		contentValues.put("timesChecked_meaning", kanji.timesChecked_meaning);
+		contentValues.put("timesCorrect_kanji", kanji.timesCorrect_kanji);
+		contentValues.put("timesCorrect_reading", StringHelper.toString(kanji.timesCorrect_reading));
+		contentValues.put("timesCorrect_reading_kun", kanji.timesCorrect_reading_kun);
+		contentValues.put("timesCorrect_reading_on", kanji.timesCorrect_reading_on);
+		contentValues.put("timesCorrect_meaning", kanji.timesCorrect_meaning);
+		contentValues.put("meaning_used", StringHelper.toString(kanji.meaning_used));
+		contentValues.put("category_history", StringHelper.toString(kanji.category_history));
+		contentValues.put("answered", 
+						  (kanji.answered_kanji ? (byte) 0b1 : 0)
+						  | (kanji.answered_reading_kun ? (byte) 0b10 : 0)
+						  | (kanji.answered_reading_on ? (byte) 0b100 : 0)
+						  | (kanji.answered_meaning ? (byte) 0b1000 : 0)
+						  | (kanji.answered_correct ? (byte) 0b10000 : 0));
+		contentValues.put("imageFile", kanji.imageFile);
+
+		if (existsKanji(kanji.kanji))
+		{
+			int i, i1, index;
+			Kanji old;
+			switch (importType)
+			{
+				case KEEP:
+					break;
+
+				case UPDATE:
+				case REPLACE:
+					db.update("kanji", contentValues, "kanji = ?", new String[] {"" + (int) kanji.kanji});
+					break;
+
+				case REPLACE_KEEP_STATS:
+					old = getKanji(kanji.kanji);
+
+					if (!kanji.learned)
+						contentValues.put("learned", old.learned);
+
+					if (old.category > kanji.category)
+					{
+						contentValues.put("category", old.category);
+						contentValues.put("category_history", StringHelper.toString(old.category_history));
+					}
+
+					contentValues.put("timesChecked_kanji", kanji.timesChecked_kanji + old.timesChecked_kanji);
+					contentValues.put("timesChecked_reading_kun", kanji.timesChecked_reading_kun + old.timesChecked_reading_kun);
+					contentValues.put("timesChecked_reading_on", kanji.timesChecked_reading_on + old.timesChecked_reading_on);
+					contentValues.put("timesChecked_meaning", kanji.timesChecked_meaning + old.timesChecked_meaning);
+					contentValues.put("timesCorrect_kanji", kanji.timesCorrect_kanji + old.timesCorrect_kanji);
+					contentValues.put("timesCorrect_reading_kun", kanji.timesCorrect_reading_kun + old.timesCorrect_reading_kun);
+					contentValues.put("timesCorrect_reading_on", kanji.timesCorrect_reading_on + old.timesCorrect_reading_on);
+					contentValues.put("timesCorrect_meaning", kanji.timesCorrect_meaning + old.timesCorrect_meaning);
+					contentValues.put("streak_kanji", kanji.streak_kanji + old.streak_meaning);
+					contentValues.put("streak_reading_kun", kanji.streak_reading_kun + old.streak_reading_on);
+					contentValues.put("streak_reading_on", kanji.streak_reading_on + old.streak_reading_on);
+					contentValues.put("streak_meaning", kanji.streak_meaning + old.streak_meaning);
+					contentValues.put("streak_kanji_best", Math.max(Math.max(kanji.streak_kanji + old.streak_kanji, old.streak_kanji_best), kanji.streak_kanji_best));
+					contentValues.put("streak_reading_kun_best", Math.max(Math.max(kanji.streak_reading_kun + old.streak_reading_kun, old.streak_reading_kun_best), kanji.streak_reading_kun_best));
+					contentValues.put("streak_reading_on_best", Math.max(Math.max(kanji.streak_reading_on + old.streak_reading_on, old.streak_reading_on_best), kanji.streak_reading_on_best));
+					contentValues.put("streak_meaning_best", Math.max(Math.max(kanji.streak_meaning + old.streak_meaning, old.streak_meaning_best), kanji.streak_meaning_best));
+
+					if (old.added < kanji.added)
+						contentValues.put("added", old.added);
+
+					if (old.lastChecked > kanji.lastChecked)
+						contentValues.put("lastChecked", old.lastChecked);
+
+					contentValues.put("nextReview", contentValues.getAsLong("lastChecked") + Vocabulary.getNextReview(contentValues.getAsInteger("category")));
+
+					for (i = 0; i < old.reading_kun.length; ++i)
+					{
+						for (i1 = 0; i1 < kanji.reading_kun.length; ++i1)
+							if (kanji.reading_kun[i1].equalsIgnoreCase(old.reading_kun[i]))
+							{
+								kanji.timesChecked_reading[i1] += old.timesChecked_reading[i];
+								kanji.timesCorrect_reading[i1] += old.timesCorrect_reading[i];
+							}
+					}
+					
+					for (i = 0; i < old.reading_on.length; ++i)
+					{
+						for (i1 = 0; i1 < kanji.reading_on.length; ++i1)
+							if (kanji.reading_on[i1].equalsIgnoreCase(old.reading_on[i]))
+							{
+								kanji.timesChecked_reading[i1 + kanji.reading_kun.length] += old.timesChecked_reading[i + old.reading_kun.length];
+								kanji.timesCorrect_reading[i1 + kanji.reading_kun.length] += old.timesCorrect_reading[i + old.reading_kun.length];
+							}
+					}
+					
+					contentValues.put("timesChecked_reading", StringHelper.toString(kanji.timesChecked_reading));
+					contentValues.put("timesCorrect_reading", StringHelper.toString(kanji.timesCorrect_reading));
+					
+					for (i = 0; i < old.meaning.length; ++i)
+						for (i1 = 0; i1 < kanji.meaning.length; ++i1)
+							if (kanji.meaning[i1].equalsIgnoreCase(old.meaning[i]))
+								kanji.meaning_used[i1] += old.meaning_used[i];
+					
+					contentValues.put("meaning_used", StringHelper.toString(kanji.meaning_used));
+
+					db.update("kanji", contentValues, "kanji = ?", new String[] {"" + (int) kanji.kanji});
+					break;
+
+				case MERGE:
+					old = getKanji(kanji.kanji);
+
+					final ArrayList<String> reading_kun = new ArrayList<>();
+					final ArrayList<String> reading_on = new ArrayList<>();
+					final ArrayList<Integer> timesChecked_kun = new ArrayList<>();
+					final ArrayList<Integer> timesChecked_on = new ArrayList<>();
+					final ArrayList<Integer> timesCorrect_kun = new ArrayList<>();
+					final ArrayList<Integer> timesCorrect_on = new ArrayList<>();
+					final ArrayList<String> meaning = new ArrayList<>();
+					final ArrayList<Integer> meaning_used = new ArrayList<>();
+					
+					for (i = 0; i < kanji.reading_kun.length; ++i)
+					{
+						reading_kun.add(kanji.reading_kun[i]);
+						timesChecked_kun.add(kanji.timesChecked_reading[i]);
+						timesCorrect_kun.add(kanji.timesCorrect_reading[i]);
+					}
+
+					for (i = 0; i < old.reading_kun.length; ++i)
+					{
+						index = reading_kun.indexOf(old.reading_kun[i]);
+
+						if (index == -1)
+						{
+							reading_kun.add(old.reading_kun[i]);
+							timesChecked_kun.add(old.timesChecked_reading[i]);
+							timesCorrect_kun.add(old.timesCorrect_reading[i]);
+						}
+						else
+						{
+							timesChecked_kun.set(index, timesChecked_kun.get(index) + old.timesChecked_reading[i]);
+							timesCorrect_kun.set(index, timesCorrect_kun.get(index) + old.timesCorrect_reading[i]);
+						}
+					}
+
+					for (i = 0; i < kanji.reading_on.length; ++i)
+					{
+						reading_on.add(kanji.reading_on[i]);
+						timesChecked_on.add(kanji.timesChecked_reading[i + kanji.reading_kun.length]);
+						timesCorrect_on.add(kanji.timesCorrect_reading[i + kanji.reading_kun.length]);
+					}
+
+					for (i = 0; i < old.reading_on.length; ++i)
+					{
+						index = reading_on.indexOf(old.reading_on[i]);
+
+						if (index == -1)
+						{
+							reading_on.add(old.reading_on[i]);
+							timesChecked_on.add(old.timesChecked_reading[i + old.reading_kun.length]);
+							timesCorrect_on.add(old.timesCorrect_reading[i + old.reading_kun.length]);
+						}
+						else
+						{
+							timesChecked_on.set(index, timesChecked_on.get(index) + old.timesChecked_reading[i + old.reading_kun.length]);
+							timesCorrect_on.set(index, timesCorrect_on.get(index) + old.timesCorrect_reading[i + old.reading_kun.length]);
+						}
+					}
+					
+					for (i = 0; i < kanji.meaning.length; ++i)
+					{
+						meaning.add(kanji.meaning[i]);
+						meaning_used.add(kanji.meaning_used[i]);
+					}
+
+					for (i = 0; i < old.meaning.length; ++i)
+					{
+						index = meaning.indexOf(old.meaning[i]);
+
+						if (index == -1)
+						{
+							meaning.add(old.meaning[i]);
+							meaning_used.add(old.meaning_used[i]);
+						}
+						else
+							meaning_used.set(index, meaning_used.get(index) + old.meaning_used[i]);
+					}
+
+					int[] timesChecked = new int[timesChecked_kun.size() + timesChecked_on.size()];
+					int[] timesCorrect = new int[timesCorrect_kun.size() + timesCorrect_on.size()];
+					
+					for (i = 0; i < timesChecked_kun.size(); ++i)
+					{
+						timesChecked[i] = timesChecked_kun.get(i);
+						timesCorrect[i] = timesCorrect_kun.get(i);
+					}
+					
+					for (i = 0; i < timesChecked_on.size(); ++i)
+					{
+						timesChecked[i + timesChecked_kun.size()] = timesChecked_on.get(i);
+						timesCorrect[i + timesChecked_kun.size()] = timesCorrect_on.get(i);
+					}
+					
+					contentValues.put("timesChecked_reading", StringHelper.toString(timesChecked));
+					contentValues.put("timesCorrect_reading", StringHelper.toString(timesCorrect));
+					contentValues.put("reading_kun", StringHelper.toString(reading_kun));
+					contentValues.put("reading_on", StringHelper.toString(reading_on));
+					contentValues.put("meaning", StringHelper.toString(meaning));
+					contentValues.put("notes", kanji.notes + (!kanji.notes.isEmpty() && !old.notes.isEmpty() && ! old.notes.equalsIgnoreCase(kanji.notes) ? ", " : "") + (old.notes.equalsIgnoreCase(kanji.notes) ? "" : old.notes));
+					contentValues.put("meaning_used", StringHelper.toString(meaning_used));
+
+					if (!kanji.learned)
+						contentValues.put("learned", old.learned);
+
+					if (old.category > kanji.category)
+					{
+						contentValues.put("category", old.category);
+						contentValues.put("category_history", StringHelper.toString(old.category_history));
+					}
+
+					contentValues.put("timesChecked_kanji", kanji.timesChecked_kanji + old.timesChecked_kanji);
+					contentValues.put("timesChecked_reading_kun", kanji.timesChecked_reading_kun + old.timesChecked_reading_kun);
+					contentValues.put("timesChecked_reading_on", kanji.timesChecked_reading_on + old.timesChecked_reading_on);
+					contentValues.put("timesChecked_meaning", kanji.timesChecked_meaning + old.timesChecked_meaning);
+					contentValues.put("timesCorrect_kanji", kanji.timesCorrect_kanji + old.timesCorrect_kanji);
+					contentValues.put("timesCorrect_reading_kun", kanji.timesCorrect_reading_kun + old.timesCorrect_reading_kun);
+					contentValues.put("timesCorrect_reading_on", kanji.timesCorrect_reading_on + old.timesCorrect_reading_on);
+					contentValues.put("timesCorrect_meaning", kanji.timesCorrect_meaning + old.timesCorrect_meaning);
+					contentValues.put("streak_kanji", kanji.streak_kanji + old.streak_meaning);
+					contentValues.put("streak_reading_kun", kanji.streak_reading_kun + old.streak_reading_on);
+					contentValues.put("streak_reading_on", kanji.streak_reading_on + old.streak_reading_on);
+					contentValues.put("streak_meaning", kanji.streak_meaning + old.streak_meaning);
+					contentValues.put("streak_kanji_best", Math.max(Math.max(kanji.streak_kanji + old.streak_kanji, old.streak_kanji_best), kanji.streak_kanji_best));
+					contentValues.put("streak_reading_kun_best", Math.max(Math.max(kanji.streak_reading_kun + old.streak_reading_kun, old.streak_reading_kun_best), kanji.streak_reading_kun_best));
+					contentValues.put("streak_reading_on_best", Math.max(Math.max(kanji.streak_reading_on + old.streak_reading_on, old.streak_reading_on_best), kanji.streak_reading_on_best));
+					contentValues.put("streak_meaning_best", Math.max(Math.max(kanji.streak_meaning + old.streak_meaning, old.streak_meaning_best), kanji.streak_meaning_best));
+
+					if (old.added < kanji.added)
+						contentValues.put("added", old.added);
+
+					if (old.lastChecked > kanji.lastChecked)
+						contentValues.put("lastChecked", old.lastChecked);
+
+					contentValues.put("nextReview", contentValues.getAsLong("lastChecked") + Vocabulary.getNextReview(contentValues.getAsInteger("category")));
+					
+					if (kanji.imageFile.isEmpty())
+						contentValues.put("imageFile", old.imageFile);
+
+					contentValues.put("answered", (byte) 0b10000);
+
+					db.update("kanji", contentValues, "kanji = ?", new String[] {"" + (int) kanji.kanji});
+
+					break;
+
+				case ASK:
+					AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+					alertDialog.setMessage("Conflict");
+					alertDialog.setMessage("The kanji 「" + kanji.kanji + "」is already in your database! What do you want to do?");
+					alertDialog.setPositiveButton("Replace",
+						new DialogInterface.OnClickListener() 
+						{
+							public void onClick(DialogInterface dialog, int which) 
+							{
+								db.update("kanji", contentValues, "kanji = ?", new String[] {"" + (int) kanji.kanji});
+								
+								if (listener != null)
+									listener.onProcessSuccess(true);
+
+								dialog.dismiss();
+							}
+						});
+					alertDialog.setNegativeButton("Keep",
+						new DialogInterface.OnClickListener() 
+						{
+							public void onClick(DialogInterface dialog, int which) 
+							{
+								if (listener != null)
+									listener.onProcessSuccess(false);
+
+								dialog.dismiss();
+							}
+						});
+					alertDialog.setNeutralButton("Merge",
+						new DialogInterface.OnClickListener() 
+						{
+							public void onClick(DialogInterface dialog, int which) 
+							{
+								updateKanji(kanji, ImportType.MERGE, listener);
+								dialog.dismiss();
+							}
+						});
+					alertDialog.show();
+					return;
+			}
+		}
+		else
+			db.insert("kanji", null, contentValues);
+
+		if (listener != null)
+			listener.onProcessSuccess(true);
+	}
+	
+	public void deleteKanji(char kanji)
+	{
+		this.getWritableDatabase().delete("kanji", "kanji = " + (int) kanji, null);
+	}
+	
+	public void updateKanjiLearned(char kanji, boolean learned)
+	{
+		SQLiteDatabase db = this.getWritableDatabase();
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("learned", learned ? 1 : 0);
+
+		db.update("kanji", contentValues, "kanji = " + (int) kanji, null);
+	}
+	
+	public void resetKanji(char... id)
+	{
+		int[] category_history = new int[32];
+		category_history[category_history.length - 1] = 0;
+		for (int i = 0; i < category_history.length - 1; ++i)
+			category_history[i] = -1;
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("category", 0);
+		contentValues.put("learned", 0);
+		contentValues.put("lastChecked", 0);
+		contentValues.put("nextReview", Vocabulary.getNextReview(0));
+		contentValues.put("streak_kanji", 0);
+		contentValues.put("streak_reading_kun", 0);
+		contentValues.put("streak_reading_on", 0);
+		contentValues.put("streak_meaning", 0);
+		contentValues.put("streak_kanji_best", 0);
+		contentValues.put("streak_reading_kun_best", 0);
+		contentValues.put("streak_reading_on_best", 0);
+		contentValues.put("streak_meaning_best", 0);
+		contentValues.put("timesChecked_kanji", 0);
+		contentValues.put("timesChecked_reading_kun", 0);
+		contentValues.put("timesChecked_reading_on", 0);
+		contentValues.put("timesChecked_meaning", 0);
+		contentValues.put("timesCorrect_kanji", 0);
+		contentValues.put("timesCorrect_reading_kun", 0);
+		contentValues.put("timesCorrect_reading_on", 0);
+		contentValues.put("timesCorrect_meaning", 0);
+		contentValues.put("timesChecked_reading", "");
+		contentValues.put("timesCorrect_reading", "");
+		contentValues.put("meaning_used", "");
+		contentValues.put("category_history", StringHelper.toString(category_history));
+		contentValues.put("answered", (byte) 0b10000);
+
+		SQLiteDatabase db = this.getWritableDatabase();
+		StringBuilder list = new StringBuilder();
+		for (int i = 0; i < id.length; ++i)
+		{
+			list.append((int) id[i]);
+
+			if (i < id.length - 1)
+				list.append(", ");
+		}
+		db.update("kanji", contentValues, "kanji IN (" + list + ")", null);
+	}
+
+	public void resetKanjiCategory(long lastChecked, char id)
+	{
+		SQLiteDatabase db = this.getWritableDatabase();
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("category", 1);
+		contentValues.put("nextReview", lastChecked + Vocabulary.getNextReview(1));
+
+		int[] category_history = new int[32];
+		category_history[category_history.length - 1] = 1;
+		for (int i = 0; i < category_history.length - 1; ++i)
+			category_history[i] = -1;
+
+		contentValues.put("category_history", StringHelper.toString(category_history));
+
+		db.update("kanji", contentValues, "kanji = " + (int) id, null);
 	}
 }

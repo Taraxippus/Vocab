@@ -45,7 +45,7 @@ public final class DialogHelper
 			});
 		alertDialog.show();
 	}
-
+	
 	public static void createDialog(Context context, String title, String message, String neutral, DialogInterface.OnClickListener onNeutral, String ok, DialogInterface.OnClickListener onOk)
 	{
 		createDialog(context, title, message, neutral, onNeutral, ok, onOk, false);

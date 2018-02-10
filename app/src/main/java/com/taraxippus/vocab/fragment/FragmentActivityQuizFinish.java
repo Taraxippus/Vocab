@@ -11,25 +11,25 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.transition.TransitionInflater;
-import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import com.taraxippus.vocab.ActivityDetail;
+import com.taraxippus.vocab.ActivityLearn;
 import com.taraxippus.vocab.ActivityMain;
 import com.taraxippus.vocab.R;
-import com.taraxippus.vocab.dialog.LearnNextDialog;
+import com.taraxippus.vocab.dialog.DialogLearnNext;
 import com.taraxippus.vocab.util.NotificationHelper;
 import com.taraxippus.vocab.util.StringHelper;
 import com.taraxippus.vocab.view.GraphView;
 import com.taraxippus.vocab.view.LineGraphView;
 import com.taraxippus.vocab.view.PercentageView;
 import com.taraxippus.vocab.vocabulary.DBHelper;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.Locale;
 
 public class FragmentActivityQuizFinish extends Fragment implements View.OnClickListener
 {
@@ -57,6 +57,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		dbHelper = new DBHelper(getContext());
 		preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 		
+		setHasOptionsMenu(true);
 		getContext().sendBroadcast(new Intent(getContext(), NotificationHelper.class));
 	}
 	
@@ -92,7 +93,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		v.findViewById(R.id.button_home).setOnClickListener(this);
 		v.findViewById(R.id.button_learn).setOnClickListener(this);
 		
-		((LineGraphView) v.findViewById(R.id.line_graph_quiz)).setValues("#noNumbers", getArguments().getIntArray("history_quiz"));
+		((LineGraphView) v.findViewById(R.id.line_graph_quiz)).setValues("#noNumbers", 0, -1, getArguments().getIntArray("history_quiz"));
 		
 		int[] review = new int[25];
 	
@@ -171,7 +172,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_plus);
 			recyclerView.setHasFixedSize(true);
 			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
+			recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
 		
 			((TextView) v.findViewById(R.id.text_title_plus)).setText("+   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
 		}
@@ -187,7 +188,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_neutral);
 			recyclerView.setHasFixedSize(true);
 			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
+			recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
 
 			((TextView) v.findViewById(R.id.text_title_neutral)).setText("/   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
 		}
@@ -203,7 +204,7 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 			RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recycler_minus);
 			recyclerView.setHasFixedSize(true);
 			recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-			recyclerView.setAdapter(new FragmentDetail.SynonymAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
+			recyclerView.setAdapter(new FragmentDetail.VocabularyAdapter(getActivity(), dbHelper, recyclerView, vocabularies));	
 
 			((TextView) v.findViewById(R.id.text_title_minus)).setText("-   (" + vocabularies.length + (vocabularies.length == 1 ? " Vocabulary" : " Vocabularies") + ")");
 		}
@@ -215,8 +216,11 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		if (v.getId() == R.id.button_home)
 			startActivity(new Intent(getContext(), ActivityMain.class));
 			
+		else if (dbHelper.getNewVocabularies().length > 0)
+			getContext().startActivity(new Intent(getContext(), ActivityLearn.class));
+		
 		else
-			new LearnNextDialog().show(getFragmentManager(), "learn");
+			new DialogLearnNext().show(getFragmentManager(), "learn");
 	}
 
 	@Override
@@ -226,6 +230,38 @@ public class FragmentActivityQuizFinish extends Fragment implements View.OnClick
 		
 		if (getActivity() != null)
 			getActivity().setTitle("Finished Quiz!");
+	}
+	
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+			case R.id.item_continue:
+				Fragment f = new FragmentActivityQuiz().setDefaultTransitions(getContext());
+				getFragmentManager().beginTransaction().replace(R.id.layout_content, f).commit();
+				return true;
+
+			default:
+				return super.onOptionsItemSelected(item);
+		}
+	}
+
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater)
+	{
+		inflater.inflate(R.menu.fragment_quiz_finish, menu);
+		
+		super.onCreateOptionsMenu(menu, inflater);
+	}
+
+	@Override
+	public void onPrepareOptionsMenu(Menu menu)
+	{
+		super.onPrepareOptionsMenu(menu);
+		
+		menu.findItem(R.id.item_continue).setVisible(dbHelper.getCount("learned = 1 AND nextReview < " + System.currentTimeMillis()) > 0);
 	}
 	
 	@Override

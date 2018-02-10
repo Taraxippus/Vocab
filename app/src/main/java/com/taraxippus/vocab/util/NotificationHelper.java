@@ -27,44 +27,83 @@ public class NotificationHelper extends BroadcastReceiver
 		SQLiteDatabase db = dbHelper.getReadableDatabase();
 		
 		Cursor res =  db.rawQuery("SELECT nextReview, lastChecked FROM vocab WHERE learned = 1", null);
+		Cursor res2 =  db.rawQuery("SELECT nextReview, lastChecked FROM kanji WHERE learned = 1", null);
 		
-		if (res.getCount() <= 0)
-		{
-			res.close();
-			dbHelper.close();
-			
-			((NotificationManager)context.getSystemService(context.NOTIFICATION_SERVICE)).cancel(R.string.notification_id);
-			return;
-		}
-		
-		res.moveToFirst();
-		
-		int ticker = 0;
-		int newVocab = 0;
+		int vocab = 0, kanji = 0;
+		int newVocab = 0, newKanji = 0;
 		long nextReview = 0;
 		long vNextReview;
-		do
+		
+		if (res.getCount() <= 0)
+			res.close();
+		else
 		{
-			vNextReview = res.getLong(0);
-			
-			if (vNextReview > System.currentTimeMillis())
+			res.moveToFirst();
+
+			do
 			{
-				if (nextReview == 0)
-					nextReview = vNextReview;
+				vNextReview = res.getLong(0);
+
+				if (vNextReview > System.currentTimeMillis())
+				{
+					if (nextReview == 0)
+						nextReview = vNextReview;
+					else
+						nextReview = Math.min(nextReview, vNextReview);
+				}
 				else
-					nextReview = Math.min(nextReview, vNextReview);
+				{
+					vocab++;
+
+					if (res.getLong(1) == 0)
+						newVocab++;
+				}
 			}
-			else
+			while (res.moveToNext());
+
+			res.close();
+		}
+		
+		if (res2.getCount() <= 0)
+		{
+			res2.close();
+			
+			if (res.getCount() <= 0)
 			{
-				ticker++;
-				
-				if (res.getLong(1) == 0)
-					newVocab++;
+				dbHelper.close();
+
+				((NotificationManager)context.getSystemService(context.NOTIFICATION_SERVICE)).cancel(R.string.notification_id);
+				return;
 			}
 		}
-		while (res.moveToNext());
+		else
+		{
+			res2.moveToFirst();
+
+			do
+			{
+				vNextReview = res2.getLong(0);
+
+				if (vNextReview > System.currentTimeMillis())
+				{
+					if (nextReview == 0)
+						nextReview = vNextReview;
+					else
+						nextReview = Math.min(nextReview, vNextReview);
+				}
+				else
+				{
+					kanji++;
+
+					if (res2.getLong(1) == 0)
+						newKanji++;
+				}
+			}
+			while (res2.moveToNext());
+
+			res2.close();
+		}
 		
-		res.close();
 		dbHelper.close();
 		
 		if (nextReview != 0)
@@ -77,7 +116,7 @@ public class NotificationHelper extends BroadcastReceiver
 		
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
 		
-		if (ticker > 0)
+		if (vocab + kanji > 0)
 		{
 			NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
 			Intent intent_open = new Intent(context, ActivityQuiz.class);
@@ -85,9 +124,9 @@ public class NotificationHelper extends BroadcastReceiver
 			builder.setContentIntent(PendingIntent.getActivity(context, 0, intent_open, PendingIntent.FLAG_CANCEL_CURRENT));
 			builder.setSmallIcon(R.drawable.notification);
 			builder.setContentTitle("Next Review");
-			builder.setContentText(ticker == 1 ? "1 Vocabulary" : ticker + " Vocabularies" + (newVocab == 0 ? "" : " ("  + newVocab + " New)"));
+			builder.setContentText((vocab > 0 ? (vocab == 1 ? "1 Vocabulary" : vocab + " Vocabularies" + (newVocab == 0 ? "" : " ("  + newVocab + " New)")) : "") + (kanji == 0 ? "" : (vocab == 0 ? "" : ", ") + kanji + " Kanji" + (newKanji == 0 ? "" : " (" + newKanji + " New)")));
 			builder.setColor(context.getResources().getColor(R.color.primary));
-			builder.setNumber(ticker);
+			builder.setNumber(vocab + kanji);
 
 			notificationManager.notify(R.string.notification_id, builder.build());
 		}
